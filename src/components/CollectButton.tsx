@@ -16,7 +16,7 @@ export function CollectButton({ lessonId }: { lessonId: string }) {
   return (
     <button
       onClick={mark}
-      className="w-full rounded-xl bg-warn px-4 py-2.5 text-sm font-semibold text-ink"
+      className="w-full rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white"
     >
       Mark collected
     </button>
