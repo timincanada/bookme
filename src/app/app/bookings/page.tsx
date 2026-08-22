@@ -51,7 +51,8 @@ export default async function BookingsPage({
         {rows.map((l) => {
           const pay = payLabel(l.payment?.status, l.payment?.method);
           return (
-            <li key={l.id} className="rounded-xl border border-slate-200 p-4">
+            <li key={l.id}>
+              <Link href={`/app/lessons/${l.id}`} className="block rounded-xl border border-slate-200 p-4">
               <div className="font-semibold">{formatWhen(l.startAt)}</div>
               <div>Private · {l.client.name}</div>
               <div className="text-sm text-slate-500">{l.location.name}</div>
@@ -67,6 +68,7 @@ export default async function BookingsPage({
                 )}
                 <span className="rounded-full border px-2 py-0.5 capitalize text-slate-500">{l.status}</span>
               </div>
+              </Link>
             </li>
           );
         })}
