@@ -43,3 +43,14 @@ Card checkout needs STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET. Webhook: /api/s
 
 - Student manage is a one-time email link or 6-digit code. Without RESEND_API_KEY the send logs `[mail stub]` including the link.
 
+
+## Deploy (Vercel)
+
+Production uses Postgres. Vercel filesystem cannot keep SQLite.
+
+1. Create a Postgres database (`npx create-db@latest` or Neon) and claim it so it is not deleted.
+2. Put the DB URL and generated app secrets in the host env only. Never commit them.
+3. Leave Stripe and Resend empty: cash booking works, mail logs `[mail stub]`.
+4. Build runs `prisma migrate deploy` then `next build`. Seed once with `npm run seed`.
+
+Seed coach: `tim@bookme.test` / `coach123`, booking link `/tim-zhang`.

@@ -43,3 +43,5 @@ prisma/dev.db
 
 *.db-journal
 prisma/dev.db-journal
+
+.deploy-secrets
