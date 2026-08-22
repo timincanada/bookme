@@ -15,7 +15,7 @@ npm run dev
 Open http://localhost:3000
 
 - Student booking: `/tim-zhang` then Book a lesson. Choose **Cash** to confirm without Stripe.
-- Find / reschedule: `/manage` with the email used at checkout.
+- Find / reschedule: `/manage` — enter the booking email, then open the one-time link or 6-digit code. No student account. Self-serve until 24 hours before the lesson.
 - Coach open for business: `/app/register` then `/app/setup` (basics, locations, weekly hours). Copy the booking link only after a trial.
 - Coach sign in: `/app/login` (seed: `tim@bookme.test` / `coach123`)
 - Coach schedule: `/app/schedule`
@@ -40,3 +40,6 @@ Card checkout needs STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET. Webhook: /api/s
 - Student booking: if the coach has 2+ locations, pick one (S3). A single location is attached automatically. Never defaults to the first of many.
 
 - Confirmed lessons send a 24h and 2h reminder to coach and student. Without RESEND_API_KEY they stub to `[mail stub]` in the log. Cron: `/api/cron/reminders` hourly.
+
+- Student manage is a one-time email link or 6-digit code. Without RESEND_API_KEY the send logs `[mail stub]` including the link.
+

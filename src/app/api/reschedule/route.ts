@@ -3,14 +3,17 @@ import { prisma } from "@/lib/db";
 import { openSlots } from "@/lib/slots";
 import { getStripe } from "@/lib/stripe";
 import { canMoveLesson, canSelfReschedule, statusAfterReschedule } from "@/lib/hold";
+import { currentStudentEmail } from "@/lib/session";
 
 export async function POST(req: NextRequest) {
-  const { lessonId, email, start, action } = await req.json();
+  const email = currentStudentEmail();
+  if (!email) return NextResponse.json({ error: "Verify your email first" }, { status: 401 });
+  const { lessonId, start, action } = await req.json();
   const lesson = await prisma.lesson.findUnique({
     where: { id: lessonId },
     include: { client: true, service: true, payment: true, coach: true },
   });
-  if (!lesson || lesson.client.email.toLowerCase() !== String(email).toLowerCase()) {
+  if (!lesson || lesson.client.email.toLowerCase() !== email) {
     return NextResponse.json({ error: "Lesson not found for that email" }, { status: 404 });
   }
   const selfServe = canSelfReschedule(lesson.startAt);

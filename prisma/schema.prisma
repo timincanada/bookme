@@ -108,3 +108,13 @@ model Payment {
   stripeCheckoutSessionId  String?
   stripePaymentIntentId    String?
 }
+
+model ManageLink {
+  id        String    @id @default(cuid())
+  email     String
+  token     String    @unique
+  code      String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}

@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { prisma } from "./db";
-import { readSession, SESSION_COOKIE } from "./auth";
+import { readSession, readStudent, SESSION_COOKIE, STUDENT_COOKIE } from "./auth";
 
 export async function currentCoach() {
   const id = readSession(cookies().get(SESSION_COOKIE)?.value);
@@ -9,4 +9,8 @@ export async function currentCoach() {
     where: { id },
     include: { services: true, locations: true, hours: true },
   });
+}
+
+export function currentStudentEmail() {
+  return readStudent(cookies().get(STUDENT_COOKIE)?.value);
 }

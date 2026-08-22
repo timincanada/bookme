@@ -1,8 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { currentStudentEmail } from "@/lib/session";
 
-export async function GET(req: NextRequest) {
-  const email = req.nextUrl.searchParams.get("email") || "";
+export async function GET() {
+  const email = currentStudentEmail();
+  if (!email) return NextResponse.json({ error: "Verify your email first" }, { status: 401 });
   const client = await prisma.client.findUnique({ where: { email } });
   if (!client) return NextResponse.json({ lessons: [] });
   const lessons = await prisma.lesson.findMany({
@@ -11,6 +13,7 @@ export async function GET(req: NextRequest) {
     orderBy: { startAt: "desc" },
   });
   return NextResponse.json({
+    email,
     lessons: lessons.map((l) => ({
       id: l.id,
       coachName: l.coach.name,
