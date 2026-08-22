@@ -68,16 +68,20 @@ export default function PayPage() {
       <label className="mt-3 block text-sm">Email</label>
       <input value={email} onChange={(e) => setEmail(e.target.value)} className="field mt-1" placeholder="you@email.com" />
       <p className="mt-5 font-semibold">Payment</p>
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        {meta?.acceptCash !== false && (
-          <button onClick={() => setMethod("cash")} className={`rounded-xl border py-2 ${method === "cash" ? "border-brand bg-brand-soft" : "border-line"}`}>Cash</button>
-        )}
+      <div className="mt-2 space-y-2">
         {meta?.acceptCard !== false && (
-          <button onClick={() => setMethod("card")} className={`rounded-xl border py-2 ${method === "card" ? "border-brand bg-brand-soft" : "border-line"}`}>Card</button>
+          <button type="button" onClick={() => setMethod("card")} className={`w-full rounded-2xl border px-4 py-3 text-left ${method === "card" ? "border-brand bg-brand-soft text-brand-dark" : "border-line"}`}>
+            <div className="font-semibold">Pay with card</div>
+            <div className="text-sm text-muted">CAD · held 15 minutes at checkout</div>
+          </button>
+        )}
+        {meta?.acceptCash !== false && (
+          <button type="button" onClick={() => setMethod("cash")} className={`w-full rounded-2xl border px-4 py-3 text-left ${method === "cash" ? "border-brand bg-brand-soft text-brand-dark" : "border-line"}`}>
+            <div className="font-semibold">Pay with cash</div>
+            <div className="text-sm text-muted">Pay cash on arrival</div>
+          </button>
         )}
       </div>
-      {method === "card" && <p className="mt-2 text-sm text-muted">Pay by card (CAD). Your time is held for 15 minutes while you check out.</p>}
-      {method === "cash" && <p className="mt-2 text-sm text-muted">Pay the coach in person. Your spot is confirmed now.</p>}
       {error && <p className="mt-3 text-sm text-danger">{error}</p>}
       <button disabled={busy || !name || !email} onClick={submit} className="mt-6 w-full rounded-2xl bg-brand py-3 font-semibold text-white disabled:opacity-40">
         {method === "cash" ? "Confirm booking" : "Pay CA$80"}

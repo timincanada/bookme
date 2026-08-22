@@ -1,18 +1,15 @@
 "use client";
 import { Brand } from "@/components/Brand";
-import { useEffect, useMemo, useState } from "react";
+import { MonthCal } from "@/components/MonthCal";
+import { torontoDateKey } from "@/lib/time";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-
-function dateKey(d: Date) {
-  return d.toISOString().slice(0, 10);
-}
 
 export default function BookPage() {
   const params = useSearchParams();
   const router = useRouter();
   const slug = params.get("coach") || "tim-zhang";
-  const today = useMemo(() => new Date(), []);
-  const [day, setDay] = useState(dateKey(today));
+  const [day, setDay] = useState(() => torontoDateKey());
   const [slots, setSlots] = useState<string[]>([]);
   const [picked, setPicked] = useState("");
   const [locations, setLocations] = useState<{ id: string }[]>([]);
@@ -39,8 +36,7 @@ export default function BookPage() {
       <Brand />
       <h1 className="text-2xl font-bold">Select date & time</h1>
       <p className="text-muted">Private · 60 min</p>
-      <label className="mt-4 block text-sm text-muted">Date</label>
-      <input type="date" value={day} onChange={(e) => setDay(e.target.value)} className="field mt-1" />
+      <MonthCal value={day} onChange={setDay} />
       <h2 className="mt-6 font-semibold">Available times</h2>
       <div className="mt-3 grid grid-cols-2 gap-2">
         {slots.map((s) => {

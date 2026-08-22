@@ -30,3 +30,23 @@ export function formatTime(d: Date) {
 export function startOfDay(dateKey: string) {
   return new Date(`${dateKey}T00:00:00-04:00`);
 }
+
+export function torontoDateKey(d = new Date()) {
+  return d.toLocaleDateString("en-CA", { timeZone: TZ });
+}
+
+/** Sunday-first cells for a civil month. null = leading pad. month is 1-12. */
+export function monthGrid(year: number, month: number): (string | null)[] {
+  const firstKey = `${year}-${pad(month)}-01`;
+  const firstWeekday = new Date(`${firstKey}T12:00:00`).getDay();
+  const days = new Date(year, month, 0).getDate();
+  const cells: (string | null)[] = [];
+  for (let i = 0; i < firstWeekday; i++) cells.push(null);
+  for (let d = 1; d <= days; d++) cells.push(`${year}-${pad(month)}-${pad(d)}`);
+  return cells;
+}
+
+export function shiftMonth(year: number, month: number, delta: number) {
+  const d = new Date(year, month - 1 + delta, 1);
+  return { year: d.getFullYear(), month: d.getMonth() + 1 };
+}
