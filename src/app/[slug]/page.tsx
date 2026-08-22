@@ -23,25 +23,27 @@ export default async function CoachPage({ params }: { params: { slug: string } }
     <main className="phone px-5 pb-8">
       <Brand />
       <div className="flex flex-col items-center text-center">
-        <div className="h-28 w-28 rounded-full bg-emerald-100" />
-        <h1 className="mt-4 text-2xl font-bold">{coach.name}</h1>
-        <p className="text-slate-500">{coach.title} · {coach.city}</p>
+        <div className="flex h-28 w-28 items-center justify-center rounded-full bg-brand-soft text-4xl font-semibold text-brand-dark">
+          {coach.name.slice(0, 1)}
+        </div>
+        <h1 className="mt-4 text-2xl font-bold text-ink">{coach.name}</h1>
+        <p className="text-muted">{coach.title} · {coach.city}</p>
       </div>
-      <ul className="mt-8 divide-y divide-slate-100 text-left">
+      <ul className="mt-8 divide-y divide-line text-left">
         <li className="py-3">{service?.name} · All levels</li>
         <li className="py-3">{service?.duration} min · CA${service?.priceCad}</li>
         <li className="py-3">{coach.languages}</li>
       </ul>
       <h2 className="mt-6 font-semibold">Teaching locations</h2>
-      <ul className="mt-2 divide-y divide-slate-100">
+      <ul className="mt-2 divide-y divide-line">
         {coach.locations.map((l) => (
           <li key={l.id} className="py-3">{l.name}</li>
         ))}
       </ul>
       {open ? (
-        <Link href={`/book?coach=${coach.slug}`} className="mt-8 block rounded-xl bg-[#10B981] py-3 text-center font-semibold text-white">Book a lesson</Link>
+        <Link href={`/book?coach=${coach.slug}`} className="mt-8 block rounded-2xl bg-brand py-3 text-center font-semibold text-white">Book a lesson</Link>
       ) : (
-        <p className="mt-8 text-center text-sm text-slate-500">This coach is not taking new bookings right now.</p>
+        <p className="mt-8 text-center text-sm text-muted">This coach is not taking new bookings right now.</p>
       )}
     </main>
   );

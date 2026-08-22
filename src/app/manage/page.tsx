@@ -49,34 +49,34 @@ export default function ManagePage() {
     <main className="phone px-5 pb-8">
       <Brand />
       <h1 className="text-2xl font-bold">Your bookings</h1>
-      <p className="text-slate-500">Use the email from your booking.</p>
-      <input value={email} onChange={(e) => setEmail(e.target.value)} className="mt-4 w-full rounded-xl border px-3 py-2" placeholder="you@email.com" />
-      <button onClick={load} className="mt-3 w-full rounded-xl bg-[#10B981] py-3 font-semibold text-white">Find bookings</button>
-      {msg && <p className="mt-3 text-sm text-[#059669]">{msg}</p>}
+      <p className="text-muted">Use the email from your booking.</p>
+      <input value={email} onChange={(e) => setEmail(e.target.value)} className="field mt-4" placeholder="you@email.com" />
+      <button onClick={load} className="mt-3 w-full rounded-2xl bg-brand py-3 font-semibold text-white">Find bookings</button>
+      {msg && <p className="mt-3 text-sm text-brand-dark">{msg}</p>}
       <ul className="mt-6 space-y-3">
         {lessons.map((l) => (
-          <li key={l.id} className="rounded-xl border border-slate-200 p-4">
+          <li key={l.id} className="card">
             <div className="font-semibold">{l.coachName}</div>
-            <div className="text-sm text-slate-500">{new Date(l.startAt).toLocaleString()}</div>
+            <div className="text-sm text-muted">{new Date(l.startAt).toLocaleString()}</div>
             <div className="text-sm">{l.status} · {l.payStatus} · {l.method}</div>
             {l.status === "confirmed" && (
-              <button onClick={() => setPicked(l)} className="mt-2 text-sm font-semibold text-[#10B981]">Reschedule or cancel</button>
+              <button onClick={() => setPicked(l)} className="mt-2 text-sm font-semibold text-brand">Reschedule or cancel</button>
             )}
           </li>
         ))}
       </ul>
       {picked && (
-        <div className="mt-6 rounded-xl border p-4">
+        <div className="card mt-6">
           <p className="font-semibold">Move this lesson</p>
-          <input type="date" value={day} onChange={(e) => setDay(e.target.value)} className="mt-2 w-full rounded-xl border px-3 py-2" />
+          <input type="date" value={day} onChange={(e) => setDay(e.target.value)} className="field mt-2" />
           <div className="mt-2 grid grid-cols-2 gap-2">
             {slots.map((s) => (
-              <button key={s} onClick={() => act("reschedule", s)} className="rounded-xl border border-slate-200 px-2 py-2 text-sm">
+              <button key={s} onClick={() => act("reschedule", s)} className="rounded-xl border border-line px-2 py-2 text-sm">
                 {new Date(s).toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit" })}
               </button>
             ))}
           </div>
-          <button onClick={() => act("cancel")} className="mt-4 w-full rounded-xl border border-red-200 py-2 text-red-600">Cancel lesson</button>
+          <button onClick={() => act("cancel")} className="mt-4 w-full rounded-2xl border border-danger/30 py-2 font-semibold text-danger">Cancel lesson</button>
         </div>
       )}
     </main>

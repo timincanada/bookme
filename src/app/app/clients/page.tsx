@@ -33,18 +33,18 @@ export default async function ClientsPage() {
     <main className="phone px-5 pb-24">
       <Brand />
       <h1 className="text-2xl font-bold">Clients</h1>
-      <p className="text-slate-500">{clients.length} people who booked with you</p>
+      <p className="text-muted">{clients.length} people who booked with you</p>
       <ul className="mt-5 space-y-3">
         {clients.map((c) => (
           <li key={c.id}>
-            <Link href={`/app/clients/${c.id}`} className="block rounded-xl border border-slate-200 p-4">
+            <Link href={`/app/clients/${c.id}`} className="block card">
               <div className="font-semibold">{c.name}</div>
-              <div className="text-sm text-slate-500">{c.email}</div>
-              <div className="mt-1 text-xs text-slate-500">{c.count} lesson{c.count === 1 ? "" : "s"}</div>
+              <div className="text-sm text-muted">{c.email}</div>
+              <div className="mt-1 text-xs text-muted">{c.count} lesson{c.count === 1 ? "" : "s"}</div>
             </Link>
           </li>
         ))}
-        {clients.length === 0 && <p className="text-slate-500">No clients yet. First booking creates the record.</p>}
+        {clients.length === 0 && <p className="text-muted">No clients yet. First booking creates the record.</p>}
       </ul>
       <TabBar active="clients" />
     </main>

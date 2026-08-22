@@ -49,15 +49,15 @@ export function LessonActions({
     <div className="mt-6 space-y-4">
       <section>
         <h2 className="font-semibold">Reschedule</h2>
-        <p className="text-sm text-slate-500">Same price. A held card stay held, not confirmed.</p>
-        <input type="date" value={day} onChange={(e) => setDay(e.target.value)} className="mt-2 w-full rounded-xl border px-3 py-2" />
+        <p className="text-sm text-muted">Same price. A held card stay held, not confirmed.</p>
+        <input type="date" value={day} onChange={(e) => setDay(e.target.value)} className="field mt-2" />
         <div className="mt-2 grid grid-cols-2 gap-2">
           {slots.map((s) => (
             <button
               key={s}
               disabled={busy}
               onClick={() => post("/api/coach/lessons/move", { lessonId, start: s })}
-              className="rounded-xl border border-slate-200 px-2 py-2 text-sm"
+              className="rounded-xl border border-line px-2 py-2 text-sm"
             >
               {new Date(s).toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit" })}
             </button>
@@ -68,22 +68,22 @@ export function LessonActions({
         <button
           disabled={busy || !canBookNext}
           onClick={() => post("/api/coach/lessons/next-week", { lessonId })}
-          className="w-full rounded-xl border border-slate-200 py-3 font-semibold disabled:opacity-40"
+          className="w-full rounded-2xl border border-line py-3 font-semibold disabled:opacity-40"
         >
           Book same time next week
         </button>
       )}
       {!canBookNext && confirmed && (
-        <p className="text-sm text-slate-500">Start a trial to book next week.</p>
+        <p className="text-sm text-muted">Start a trial to book next week.</p>
       )}
       <button
         disabled={busy}
         onClick={() => post("/api/coach/lessons/cancel", { lessonId })}
-        className="w-full rounded-xl border border-red-200 py-3 font-semibold text-red-600"
+        className="w-full rounded-2xl border border-danger/30 py-3 font-semibold text-danger"
       >
         Cancel lesson
       </button>
-      {msg && <p className="text-sm text-[#059669]">{msg}</p>}
+      {msg && <p className="text-sm text-brand-dark">{msg}</p>}
     </div>
   );
 }

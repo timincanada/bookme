@@ -18,13 +18,13 @@ export function ClientNote({ clientId, note }: { clientId: string; note: string 
         value={value}
         onChange={(e) => setValue(e.target.value)}
         rows={3}
-        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+        className="w-full rounded-xl border border-line px-3 py-2 text-sm"
         placeholder="One note about this client"
       />
-      <button onClick={save} className="mt-2 rounded-xl bg-[#10B981] px-4 py-2 text-sm font-semibold text-white">
+      <button onClick={save} className="mt-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-white">
         Save note
       </button>
-      {saved && <span className="ml-3 text-sm text-slate-500">{saved}</span>}
+      {saved && <span className="ml-3 text-sm text-muted">{saved}</span>}
     </div>
   );
 }

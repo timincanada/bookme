@@ -10,6 +10,13 @@
   --text: #0F172A;
   --muted: #64748B;
   --border: #E2E8F0;
+  --surface: #FFFFFF;
+  --warn: #F59E0B;
+  --danger: #EF4444;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -21,6 +28,36 @@ body {
   max-width: 430px;
   margin: 0 auto;
   min-height: 100vh;
-  background: white;
+  background: var(--surface);
   box-shadow: 0 0 0 1px var(--border);
+}
+
+@layer components {
+  .btn {
+    @apply w-full rounded-2xl py-3 font-semibold disabled:opacity-40;
+  }
+  .btn-primary {
+    @apply btn bg-brand text-white;
+  }
+  .btn-secondary {
+    @apply btn border border-line bg-surface text-ink;
+  }
+  .btn-danger {
+    @apply btn border border-danger/30 text-danger;
+  }
+  .btn-text {
+    @apply text-sm font-semibold text-brand;
+  }
+  .field {
+    @apply w-full rounded-xl border border-line bg-surface px-3 py-2 text-ink outline-none focus:border-brand;
+  }
+  .card {
+    @apply rounded-2xl border border-line bg-surface p-4;
+  }
+  .choice {
+    @apply rounded-xl border border-line px-3 py-2;
+  }
+  .choice-on {
+    @apply border-brand bg-brand-soft text-brand-dark;
+  }
 }

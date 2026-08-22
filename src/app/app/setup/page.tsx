@@ -145,20 +145,20 @@ export default function SetupPage() {
   return (
     <main className="phone px-5 pb-10">
       <Brand />
-      <p className="text-sm text-slate-500">Step {step + 1} of 4</p>
+      <p className="text-sm text-muted">Step {step + 1} of 4</p>
       <h1 className="text-2xl font-bold">Open for business</h1>
       <div className="mt-3 flex gap-1">
         {STEPS.map((label, i) => (
-          <div key={label} className={`h-1 flex-1 rounded-full ${i <= step ? "bg-[#10B981]" : "bg-slate-200"}`} />
+          <div key={label} className={`h-1 flex-1 rounded-full ${i <= step ? "bg-brand" : "bg-line"}`} />
         ))}
       </div>
 
       {step === 0 && (
         <section className="mt-6 space-y-3">
           <label className="block text-sm">Name</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-xl border px-3 py-2" />
+          <input value={name} onChange={(e) => setName(e.target.value)} className="field" />
           <label className="block text-sm">Vertical</label>
-          <select value={title} onChange={(e) => setTitle(e.target.value)} className="w-full rounded-xl border px-3 py-2">
+          <select value={title} onChange={(e) => setTitle(e.target.value)} className="field">
             {VERTICALS.map((v) => (
               <option key={v}>{v}</option>
             ))}
@@ -169,19 +169,19 @@ export default function SetupPage() {
               <button
                 key={d}
                 onClick={() => setDuration(d)}
-                className={`rounded-xl border py-2 text-sm ${duration === d ? "border-[#10B981] bg-[#D1FAE5]" : "border-slate-200"}`}
+                className={`rounded-xl border py-2 text-sm ${duration === d ? "border-brand bg-brand-soft" : "border-line"}`}
               >
                 {d}m
               </button>
             ))}
           </div>
           <label className="block text-sm">Price (CAD)</label>
-          <input type="number" value={priceCad} onChange={(e) => setPriceCad(Number(e.target.value))} className="w-full rounded-xl border px-3 py-2" />
+          <input type="number" value={priceCad} onChange={(e) => setPriceCad(Number(e.target.value))} className="field" />
           <label className="block text-sm">City</label>
-          <input value={city} onChange={(e) => setCity(e.target.value)} className="w-full rounded-xl border px-3 py-2" />
+          <input value={city} onChange={(e) => setCity(e.target.value)} className="field" />
           <label className="block text-sm">Timezone</label>
-          <input value={timezone} onChange={(e) => setTimezone(e.target.value)} className="w-full rounded-xl border px-3 py-2" />
-          <button disabled={busy} onClick={saveBasics} className="w-full rounded-xl bg-[#10B981] py-3 font-semibold text-white">
+          <input value={timezone} onChange={(e) => setTimezone(e.target.value)} className="field" />
+          <button disabled={busy} onClick={saveBasics} className="w-full rounded-2xl bg-brand py-3 font-semibold text-white">
             Continue
           </button>
         </section>
@@ -189,37 +189,37 @@ export default function SetupPage() {
 
       {step === 1 && (
         <section className="mt-6">
-          <p className="text-slate-500">Add at least one location to publish.</p>
+          <p className="text-muted">Add at least one location to publish.</p>
           <ul className="mt-3 space-y-2">
             {locations.map((l) => (
-              <li key={l.id} className="flex items-center justify-between rounded-xl border border-slate-200 p-3">
+              <li key={l.id} className="flex items-center justify-between rounded-2xl border border-line p-3">
                 <div>
                   <div className="font-semibold">{l.name}</div>
-                  <div className="text-sm text-slate-500">{l.address || l.kind}</div>
+                  <div className="text-sm text-muted">{l.address || l.kind}</div>
                 </div>
-                <button onClick={() => toggleLocation(l.id, !l.active)} className="text-sm text-[#10B981]">
+                <button onClick={() => toggleLocation(l.id, !l.active)} className="text-sm text-brand">
                   {l.active ? "Disable" : "Enable"}
                 </button>
               </li>
             ))}
           </ul>
           <label className="mt-4 block text-sm">Location name</label>
-          <input value={locName} onChange={(e) => setLocName(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2" placeholder="Court 3" />
+          <input value={locName} onChange={(e) => setLocName(e.target.value)} className="field mt-1" placeholder="Court 3" />
           <label className="mt-3 block text-sm">Address</label>
-          <input value={locAddress} onChange={(e) => setLocAddress(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2" />
+          <input value={locAddress} onChange={(e) => setLocAddress(e.target.value)} className="field mt-1" />
           <label className="mt-3 block text-sm">Type</label>
-          <select value={locKind} onChange={(e) => setLocKind(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2">
+          <select value={locKind} onChange={(e) => setLocKind(e.target.value)} className="field mt-1">
             <option value="in_person">In person</option>
             <option value="house_call">House call</option>
             <option value="online">Online</option>
           </select>
-          <button disabled={busy || !locName} onClick={addLocation} className="mt-3 w-full rounded-xl border border-slate-200 py-3 font-semibold">
+          <button disabled={busy || !locName} onClick={addLocation} className="mt-3 w-full rounded-2xl border border-line py-3 font-semibold">
             Add location
           </button>
           <button
             disabled={activeLocations.length === 0}
             onClick={() => setStep(2)}
-            className="mt-3 w-full rounded-xl bg-[#10B981] py-3 font-semibold text-white disabled:opacity-40"
+            className="mt-3 w-full rounded-2xl bg-brand py-3 font-semibold text-white disabled:opacity-40"
           >
             Continue
           </button>
@@ -228,12 +228,12 @@ export default function SetupPage() {
 
       {step === 2 && (
         <section className="mt-6">
-          <p className="text-slate-500">Repeating weekly hours. Students only see open slots.</p>
+          <p className="text-muted">Repeating weekly hours. Students only see open slots.</p>
           <div className="mt-3 space-y-2">
             {DAYS.map((label, weekday) => {
               const row = hours.find((h) => h.weekday === weekday);
               return (
-                <div key={label} className="rounded-xl border border-slate-200 p-3">
+                <div key={label} className="rounded-2xl border border-line p-3">
                   <label className="flex items-center gap-2 font-semibold">
                     <input type="checkbox" checked={!!row} onChange={() => toggleDay(weekday)} />
                     {label}
@@ -247,7 +247,7 @@ export default function SetupPage() {
                           const [hh, mm] = e.target.value.split(":").map(Number);
                           setDayTime(weekday, "startMin", hh * 60 + mm);
                         }}
-                        className="rounded-xl border px-2 py-1"
+                        className="field py-1"
                       />
                       <input
                         type="time"
@@ -256,7 +256,7 @@ export default function SetupPage() {
                           const [hh, mm] = e.target.value.split(":").map(Number);
                           setDayTime(weekday, "endMin", hh * 60 + mm);
                         }}
-                        className="rounded-xl border px-2 py-1"
+                        className="field py-1"
                       />
                     </div>
                   )}
@@ -264,7 +264,7 @@ export default function SetupPage() {
               );
             })}
           </div>
-          <button disabled={busy || hours.length === 0} onClick={saveHours} className="mt-4 w-full rounded-xl bg-[#10B981] py-3 font-semibold text-white disabled:opacity-40">
+          <button disabled={busy || hours.length === 0} onClick={saveHours} className="mt-4 w-full rounded-2xl bg-brand py-3 font-semibold text-white disabled:opacity-40">
             Continue
           </button>
         </section>
@@ -272,9 +272,9 @@ export default function SetupPage() {
 
       {step === 3 && (
         <section className="mt-6">
-          <p className="text-slate-500">Your booking link publishes only after a trial or paid plan is active.</p>
-          <div className="mt-4 rounded-xl border border-slate-200 p-4 text-sm">
-            <div className="text-slate-500">Share this link</div>
+          <p className="text-muted">Your booking link publishes only after a trial or paid plan is active.</p>
+          <div className="mt-4 card text-sm">
+            <div className="text-muted">Share this link</div>
             <div className="mt-1 break-all font-semibold">{link}</div>
           </div>
           {canCopy ? (
@@ -283,29 +283,29 @@ export default function SetupPage() {
                 await navigator.clipboard.writeText(link);
                 setCopied(true);
               }}
-              className="mt-4 w-full rounded-xl bg-[#10B981] py-3 font-semibold text-white"
+              className="mt-4 w-full rounded-2xl bg-brand py-3 font-semibold text-white"
             >
               {copied ? "Copied" : "Copy booking link"}
             </button>
           ) : (
             <div className="mt-4">
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-muted">
                 {subStatus === "none" || subStatus === "canceled"
                   ? "Start the 3-day Light trial (card required) to copy and send this link."
                   : "Your plan is not active, so the link cannot be published yet."}
               </p>
-              <Link href="/app/billing" className="mt-3 block w-full rounded-xl bg-[#10B981] py-3 text-center font-semibold text-white">
+              <Link href="/app/billing" className="mt-3 block w-full rounded-2xl bg-brand py-3 text-center font-semibold text-white">
                 Start 3-day trial
               </Link>
             </div>
           )}
-          <Link href="/app/schedule" className="mt-3 block w-full rounded-xl border border-slate-200 py-3 text-center font-semibold">
+          <Link href="/app/schedule" className="mt-3 block w-full rounded-xl border border-line py-3 text-center font-semibold">
             Go to schedule
           </Link>
         </section>
       )}
 
-      {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
+      {error && <p className="mt-3 text-sm text-danger">{error}</p>}
     </main>
   );
 }

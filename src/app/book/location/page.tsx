@@ -29,16 +29,16 @@ export default function LocationPage() {
     <main className="phone px-5 pb-8">
       <Brand />
       <h1 className="text-2xl font-bold">Choose location</h1>
-      <p className="text-slate-500">This coach teaches at more than one place.</p>
+      <p className="text-muted">This coach teaches at more than one place.</p>
       <ul className="mt-5 space-y-2">
         {locations.map((l) => (
           <li key={l.id}>
             <button
               onClick={() => setPicked(l.id)}
-              className={`w-full rounded-xl border p-4 text-left ${picked === l.id ? "border-[#10B981] bg-[#D1FAE5]" : "border-slate-200"}`}
+              className={`w-full rounded-xl border p-4 text-left ${picked === l.id ? "border-brand bg-brand-soft" : "border-line"}`}
             >
               <div className="font-semibold">{l.name}</div>
-              <div className="text-sm text-slate-500">{l.address || l.kind}</div>
+              <div className="text-sm text-muted">{l.address || l.kind}</div>
             </button>
           </li>
         ))}
@@ -46,7 +46,7 @@ export default function LocationPage() {
       <button
         disabled={!picked}
         onClick={() => router.push(`/book/pay?coach=${slug}&start=${encodeURIComponent(start)}&location=${picked}`)}
-        className="mt-8 w-full rounded-xl bg-[#10B981] py-3 font-semibold text-white disabled:opacity-40"
+        className="mt-8 w-full rounded-2xl bg-brand py-3 font-semibold text-white disabled:opacity-40"
       >
         Continue
       </button>
