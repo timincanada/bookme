@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #10B981;
+  --primary-dark: #059669;
+  --primary-soft: #D1FAE5;
+  --bg: #F8FAFC;
+  --text: #0F172A;
+  --muted: #64748B;
+  --border: #E2E8F0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.phone {
+  max-width: 430px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: white;
+  box-shadow: 0 0 0 1px var(--border);
+}

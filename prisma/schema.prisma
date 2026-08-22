@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Coach {
+  id        String       @id @default(cuid())
+  slug      String       @unique
+  name      String
+  title     String
+  city      String
+  timezone  String       @default("America/Toronto")
+  languages String       @default("English")
+  photoUrl  String?
+  email     String       @unique
+  services  Service[]
+  locations Location[]
+  hours     WeeklyHour[]
+  blocks    DateBlock[]
+  lessons   Lesson[]
+}
+
+model Service {
+  id       String   @id @default(cuid())
+  coachId  String
+  coach    Coach    @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  name     String
+  duration Int
+  priceCad Int
+  lessons  Lesson[]
+}
+
+model Location {
+  id      String   @id @default(cuid())
+  coachId String
+  coach   Coach    @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  name    String
+  address String
+  kind    String   @default("in_person")
+  active  Boolean  @default(true)
+  lessons Lesson[]
+}
+
+model WeeklyHour {
+  id       String @id @default(cuid())
+  coachId  String
+  coach    Coach  @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  weekday  Int
+  startMin Int
+  endMin   Int
+}
+
+model DateBlock {
+  id      String @id @default(cuid())
+  coachId String
+  coach   Coach  @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  date    String
+}
+
+model Client {
+  id      String   @id @default(cuid())
+  name    String
+  email   String   @unique
+  phone   String?
+  note    String   @default("")
+  lessons Lesson[]
+}
+
+model Lesson {
+  id         String    @id @default(cuid())
+  coachId    String
+  coach      Coach     @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  serviceId  String
+  service    Service   @relation(fields: [serviceId], references: [id])
+  locationId String
+  location   Location  @relation(fields: [locationId], references: [id])
+  clientId   String
+  client     Client    @relation(fields: [clientId], references: [id])
+  startAt    DateTime
+  endAt      DateTime
+  status     String    @default("confirmed")
+  holdUntil  DateTime?
+  payment    Payment?
+}
+
+model Payment {
+  id        String @id @default(cuid())
+  lessonId  String @unique
+  lesson    Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  method    String
+  status    String
+  amountCad Int
+}
