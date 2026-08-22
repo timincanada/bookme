@@ -2,7 +2,7 @@
 import { Brand } from "@/components/Brand";
 import { TabBar } from "@/components/TabBar";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 type Preview = {
@@ -23,7 +23,7 @@ const SHORTCUTS = [
   { label: "Change hours", text: "Change hours" },
 ];
 
-export default function AssistantPage() {
+function AssistantInner() {
   const params = useSearchParams();
   const fromSchedule = params.get("from") === "schedule";
   const [me, setMe] = useState<any>(null);
@@ -151,3 +151,12 @@ export default function AssistantPage() {
     </main>
   );
 }
+
+export default function AssistantPage() {
+  return (
+    <Suspense fallback={<main className="phone px-5 pb-24"><p className="text-muted">Loading…</p></main>}>
+      <AssistantInner />
+    </Suspense>
+  );
+}
+
