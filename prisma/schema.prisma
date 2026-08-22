@@ -16,8 +16,13 @@ model Coach {
   timezone        String       @default("America/Toronto")
   languages       String       @default("English")
   photoUrl        String?
-  email           String       @unique
-  stripeAccountId String?
+  email                 String       @unique
+  stripeAccountId       String?
+  stripeCustomerId      String?
+  stripeSubscriptionId  String?
+  subscriptionStatus    String       @default("none")
+  plan                  String       @default("none")
+  trialEndsAt           DateTime?
   services  Service[]
   locations Location[]
   hours     WeeklyHour[]

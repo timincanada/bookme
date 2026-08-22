@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Brand } from "@/components/Brand";
 import { prisma } from "@/lib/db";
+import { canAcceptNewBookings } from "@/lib/subscription";
 
 export default async function CoachPage({ params }: { params: { slug: string } }) {
   const coach = await prisma.coach.findUnique({
@@ -29,7 +30,11 @@ export default async function CoachPage({ params }: { params: { slug: string } }
           <li key={l.id} className="py-3">{l.name}</li>
         ))}
       </ul>
-      <Link href={`/book?coach=${coach.slug}`} className="mt-8 block rounded-xl bg-[#10B981] py-3 text-center font-semibold text-white">Book a lesson</Link>
+      {canAcceptNewBookings(coach.subscriptionStatus) ? (
+        <Link href={`/book?coach=${coach.slug}`} className="mt-8 block rounded-xl bg-[#10B981] py-3 text-center font-semibold text-white">Book a lesson</Link>
+      ) : (
+        <p className="mt-8 text-center text-sm text-slate-500">This coach is not taking new bookings right now.</p>
+      )}
     </main>
   );
 }

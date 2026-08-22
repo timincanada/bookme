@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { openSlots } from "@/lib/slots";
 import { holdExpiresAt } from "@/lib/hold";
 import { appUrl, getStripe } from "@/lib/stripe";
+import { canAcceptNewBookings } from "@/lib/subscription";
 
 export async function POST(req: NextRequest) {
   const { slug, start, name, email, method } = await req.json();
@@ -17,6 +18,9 @@ export async function POST(req: NextRequest) {
   const service = coach.services[0];
   const location = coach.locations[0];
   if (!service || !location) return NextResponse.json({ error: "Coach is not set up" }, { status: 400 });
+  if (!canAcceptNewBookings(coach.subscriptionStatus)) {
+    return NextResponse.json({ error: "This coach is not accepting new bookings" }, { status: 403 });
+  }
 
   const startAt = new Date(start);
   const dateKey = startAt.toISOString().slice(0, 10);
