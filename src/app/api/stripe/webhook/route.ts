@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getStripe } from "@/lib/stripe";
 import { canConfirmCheckout } from "@/lib/hold";
+import { syncCoachSubscription } from "@/lib/subscription-sync";
 
 export const runtime = "nodejs";
 
@@ -24,6 +25,15 @@ export async function POST(req: NextRequest) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
+    if (session.mode === "subscription" || session.metadata?.kind === "coach_subscription") {
+      const coachId = session.metadata?.coachId || session.client_reference_id || undefined;
+      const subId = typeof session.subscription === "string" ? session.subscription : session.subscription?.id;
+      if (subId) {
+        const sub = await stripe.subscriptions.retrieve(subId);
+        await syncCoachSubscription(sub, coachId);
+      }
+      return NextResponse.json({ received: true, kind: "coach_subscription" });
+    }
     const lessonId = session.metadata?.lessonId;
     if (!lessonId) return NextResponse.json({ received: true });
     const lesson = await prisma.lesson.findUnique({
@@ -64,6 +74,10 @@ export async function POST(req: NextRequest) {
         await prisma.lesson.update({ where: { id: lessonId }, data: { status: "expired" } });
       }
     }
+  }
+
+  if (event.type === "customer.subscription.updated" || event.type === "customer.subscription.deleted") {
+    await syncCoachSubscription(event.data.object);
   }
 
   return NextResponse.json({ received: true });

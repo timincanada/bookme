@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Brand } from "@/components/Brand";
 import { prisma } from "@/lib/db";
 import { formatTime } from "@/lib/time";
+import { CollectButton } from "@/components/CollectButton";
 
 export default async function SchedulePage() {
   const coach = await prisma.coach.findUnique({ where: { slug: "tim-zhang" } });
@@ -25,8 +26,8 @@ export default async function SchedulePage() {
             <div className="text-sm text-slate-500">{l.location.name}</div>
             <div className="mt-2 text-xs">
               {l.payment?.method === "cash" && l.payment.status === "unpaid" ? (
-                <span className="rounded-full border border-amber-400 px-2 py-0.5 text-amber-700">Pay in person</span>
-              ) : l.payment?.status === "paid" ? (
+                <CollectButton lessonId={l.id} />
+              ) : l.payment?.status === "paid" || l.payment?.status === "marked_offline" ? (
                 <span className="rounded-full bg-[#D1FAE5] px-2 py-0.5 text-[#059669]">Paid</span>
               ) : (
                 <span className="rounded-full border px-2 py-0.5">{l.payment?.status}</span>
@@ -40,7 +41,7 @@ export default async function SchedulePage() {
         <span className="text-[#10B981] font-semibold">Schedule</span>
         <Link href="/manage">Bookings</Link>
         <Link href="/">Clients</Link>
-        <Link href="/">More</Link>
+        <Link href="/app/billing">More</Link>
       </nav>
     </main>
   );
