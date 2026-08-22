@@ -28,6 +28,9 @@ async function main() {
       languages: "English / 中文",
       email: "tim@bookme.test",
       passwordHash: hashPassword("coach123"),
+      subscriptionStatus: "trialing",
+      plan: "light",
+      trialEndsAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
       services: {
         create: { name: "Private tennis", duration: 60, priceCad: 80 },
       },
