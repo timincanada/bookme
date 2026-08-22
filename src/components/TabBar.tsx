@@ -54,8 +54,10 @@ const ITEMS = [
     label: "Assistant",
     icon: (
       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-        <path d="M12 3l1.55 5.05L18.6 9.6l-5.05 1.55L12 16.2l-1.55-5.05L5.4 9.6l5.05-1.55L12 3z" strokeLinejoin="round" />
-        <path d="M18.2 14.2l.75 2.15 2.15.75-2.15.75-.75 2.15-.75-2.15-2.15-.75 2.15-.75.75-2.15z" strokeLinejoin="round" />
+        <rect x="9" y="3.5" width="6" height="10" rx="3" />
+        <path d="M7 12a5 5 0 0 0 10 0M12 17v3M9.5 20.5h5" />
+        <path d="M18.2 2.6l.4 1.15 1.15.4-1.15.4-.4 1.15-.4-1.15-1.15-.4 1.15-.4.4-1.15z" fill="currentColor" stroke="none" />
+        <path d="M21.3 5.4l.28.8.8.28-.8.28-.28.8-.28-.8-.8-.28.8-.28.28-.8z" fill="currentColor" stroke="none" />
       </svg>
     ),
   },
