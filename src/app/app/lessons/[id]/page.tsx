@@ -26,13 +26,13 @@ export default async function LessonDetailPage({ params }: { params: { id: strin
       <Brand />
       <Link href="/app/schedule" className="text-sm font-semibold text-brand">Schedule</Link>
       <h1 className="mt-2 text-2xl font-bold">Lesson</h1>
-      <div className="mt-4 card">
-        <div className="font-semibold">{formatWhen(lesson.startAt)}</div>
-        <div className="mt-1">Private · {lesson.client.name}</div>
-        <div className="text-sm text-muted">{lesson.client.email}</div>
-        <div className="mt-2 text-sm text-muted">{lesson.location.name}</div>
+      <div className="mt-4 rounded-2xl border border-line bg-surface p-6">
+        <div className="text-xl font-bold leading-snug text-ink">{formatWhen(lesson.startAt)}</div>
+        <div className="mt-3 font-semibold">Private · {lesson.client.name}</div>
+        <div className="mt-0.5 text-sm text-muted">{lesson.client.email}</div>
+        <div className="mt-3 text-sm text-muted">{lesson.location.name}</div>
         <div className="mt-1 text-sm">CA${lesson.payment?.amountCad || lesson.service.priceCad} · {lesson.service.duration} min</div>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-5 flex flex-wrap items-center gap-2">
           {lesson.payment?.method === "cash" && lesson.payment.status === "unpaid" ? (
             <CollectButton lessonId={lesson.id} />
           ) : (
