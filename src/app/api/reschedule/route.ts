@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   const endAt = new Date(startAt.getTime() + lesson.service.duration * 60 * 1000);
   await prisma.lesson.update({
     where: { id: lessonId },
-    data: { startAt, endAt, status: statusAfterReschedule(lesson.status) },
+    data: { startAt, endAt, status: statusAfterReschedule(lesson.status), reminded24h: false, reminded2h: false },
   });
   return NextResponse.json({ ok: true });
 }

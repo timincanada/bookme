@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
   const when = formatWhen(lesson.startAt);
   await prisma.lesson.update({
     where: { id: lessonId },
-    data: { startAt, endAt, status: statusAfterReschedule(lesson.status) },
+    data: { startAt, endAt, status: statusAfterReschedule(lesson.status), reminded24h: false, reminded2h: false },
   });
   for (const mail of changeMails({
     kind: "rescheduled",
