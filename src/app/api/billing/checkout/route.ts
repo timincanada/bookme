@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { appUrl, getStripe } from "@/lib/stripe";
-import { TRIAL_DAYS } from "@/lib/subscription";
+import { priceIdForPlan, TRIAL_DAYS } from "@/lib/subscription";
 
 export async function POST(req: NextRequest) {
   const { slug } = await req.json();
   const coach = await prisma.coach.findUnique({ where: { slug: slug || "tim-zhang" } });
   if (!coach) return NextResponse.json({ error: "Coach not found" }, { status: 404 });
   const stripe = getStripe();
-  const price = process.env.STRIPE_COACH_PRICE_ID;
+  const price = priceIdForPlan("light");
   if (!stripe || !price) {
     return NextResponse.json(
-      { error: "Coach billing is not configured. Set STRIPE_SECRET_KEY and STRIPE_COACH_PRICE_ID." },
+      { error: "Coach billing is not configured. Set STRIPE_SECRET_KEY and STRIPE_PRICE_LIGHT." },
       { status: 503 },
     );
   }

@@ -21,6 +21,7 @@ model Coach {
   stripeCustomerId      String?
   stripeSubscriptionId  String?
   subscriptionStatus    String       @default("none")
+  plan                  String       @default("none")
   trialEndsAt           DateTime?
   services  Service[]
   locations Location[]

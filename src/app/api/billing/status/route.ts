@@ -7,6 +7,7 @@ export async function GET(req: NextRequest) {
   if (!coach) return NextResponse.json({ error: "Coach not found" }, { status: 404 });
   return NextResponse.json({
     status: coach.subscriptionStatus,
+    plan: coach.plan,
     trialEndsAt: coach.trialEndsAt,
   });
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getStripe } from "@/lib/stripe";
 import { canConfirmCheckout } from "@/lib/hold";
-import { syncCoachSubscription } from "@/lib/subscription-sync";
+import { reconcilePlanForNextCycle, syncCoachSubscription } from "@/lib/subscription-sync";
 
 export const runtime = "nodejs";
 
@@ -78,6 +78,17 @@ export async function POST(req: NextRequest) {
 
   if (event.type === "customer.subscription.updated" || event.type === "customer.subscription.deleted") {
     await syncCoachSubscription(event.data.object);
+  }
+
+  if (event.type === "invoice.paid") {
+    const invoice = event.data.object;
+    if (invoice.billing_reason === "subscription_cycle") {
+      const subId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
+      if (subId) {
+        const coach = await prisma.coach.findFirst({ where: { stripeSubscriptionId: subId } });
+        if (coach) await reconcilePlanForNextCycle(coach.id);
+      }
+    }
   }
 
   return NextResponse.json({ received: true });

@@ -24,7 +24,7 @@ Open http://localhost:3000
 - Card checkout uses Stripe Checkout (CAD). The slot is held 15 minutes until payment completes.
 - Reschedule is free until 24 hours before the lesson.
 - Seed coach: Tim Zhang, `tim-zhang`, CA$80 / 60 min, America/Toronto.
-- Coach plan: CA$29/month via Stripe Billing, 3-day trial (card required), cancel anytime. Unsubscribed coaches cannot take new bookings; existing lessons can still be moved, cancelled, or marked collected.
+- Coach plans: Light CA$19 (e20 confirmed/mo), Coach CA$29 (21-60), Busy CA$49 (61+). 3-day Light trial (card required), then auto-renew. Next cycle moves up or down from last month confirmed count. Unsubscribed coaches cannot take new bookings; existing lessons can still be moved, cancelled, or marked collected.
 
 
 Card checkout needs STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET. Webhook: /api/stripe/webhook. Connect application_fee_amount=0.
