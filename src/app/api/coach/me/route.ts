@@ -25,6 +25,8 @@ export async function GET() {
     setup,
     canCopyLink: canCopyBookingLink(setup, coach.subscriptionStatus),
     service: coach.services[0] || null,
+    acceptCard: coach.acceptCard,
+    acceptCash: coach.acceptCash,
     locations: coach.locations,
     hours: coach.hours,
   });
