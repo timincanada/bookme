@@ -49,3 +49,55 @@ export async function sendLessonConfirmations(input: Parameters<typeof confirmat
     await sendMail(mail);
   }
 }
+
+
+export function changeMails(input: {
+  kind: "rescheduled" | "cancelled" | "next_week_cash" | "next_week_card";
+  coachName: string;
+  coachEmail: string;
+  studentName: string;
+  studentEmail: string;
+  when: string;
+  nextWhen?: string;
+  payUrl?: string;
+}): Mail[] {
+  if (input.kind === "rescheduled") {
+    return [
+      {
+        to: input.studentEmail,
+        subject: `Lesson moved with ${input.coachName}`,
+        text: `Hi ${input.studentName}, your lesson with ${input.coachName} moved to ${input.nextWhen}. Same price, no extra charge.`,
+      },
+    ];
+  }
+  if (input.kind === "cancelled") {
+    return [
+      {
+        to: input.studentEmail,
+        subject: `Lesson cancelled with ${input.coachName}`,
+        text: `Hi ${input.studentName}, ${input.coachName} cancelled your lesson on ${input.when}. If you paid by card, the refund is on the way.`,
+      },
+    ];
+  }
+  if (input.kind === "next_week_cash") {
+    return [
+      {
+        to: input.studentEmail,
+        subject: `Booked next week with ${input.coachName}`,
+        text: `Hi ${input.studentName}, ${input.coachName} booked you for ${input.nextWhen}. Pay cash on arrival.`,
+      },
+      {
+        to: input.coachEmail,
+        subject: `Next week booked: ${input.studentName}`,
+        text: `${input.studentName} is booked for ${input.nextWhen}. Cash, unpaid.`,
+      },
+    ];
+  }
+  return [
+    {
+      to: input.studentEmail,
+      subject: `Pay to confirm next week with ${input.coachName}`,
+      text: `Hi ${input.studentName}, ${input.coachName} offered ${input.nextWhen}. Pay to confirm: ${input.payUrl || ""}`,
+    },
+  ];
+}

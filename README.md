@@ -32,3 +32,5 @@ Open http://localhost:3000
 Card checkout needs STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET. Webhook: /api/stripe/webhook. Connect application_fee_amount=0.
 
 - Confirmation emails go to coach and student on cash confirm and card paid. Without RESEND_API_KEY they stub to the server log.
+
+- Coach lesson detail `/app/lessons/[id]`: reschedule, cancel (card always refunds), book same time next week.

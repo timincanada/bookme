@@ -57,9 +57,11 @@ export default async function SchedulePage() {
           const pay = payLabel(l.payment?.status, l.payment?.method);
           return (
             <li key={l.id} className="rounded-xl border border-slate-200 p-4">
+              <Link href={`/app/lessons/${l.id}`} className="block">
               <div className="font-semibold">{formatTime(l.startAt)}</div>
               <div>Private · {l.client.name}</div>
               <div className="text-sm text-slate-500">{l.location.name}</div>
+              </Link>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                 {l.payment?.method === "cash" && l.payment.status === "unpaid" ? (
                   <CollectButton lessonId={l.id} />
