@@ -4,6 +4,7 @@ import { getStripe } from "@/lib/stripe";
 import { canConfirmCheckout } from "@/lib/hold";
 import { reconcilePlanForNextCycle, syncCoachSubscription } from "@/lib/subscription-sync";
 import { shouldPriceInvoiceFromLastMonth } from "@/lib/subscription";
+import { notifyLessonConfirmed } from "@/lib/mail-send";
 
 export const runtime = "nodejs";
 
@@ -64,6 +65,7 @@ export async function POST(req: NextRequest) {
         stripePaymentIntentId: pi ?? undefined,
       },
     });
+    await notifyLessonConfirmed(lesson.id);
   }
 
   if (event.type === "checkout.session.expired") {

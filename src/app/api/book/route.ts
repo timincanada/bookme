@@ -4,6 +4,7 @@ import { openSlots } from "@/lib/slots";
 import { holdExpiresAt } from "@/lib/hold";
 import { appUrl, getStripe } from "@/lib/stripe";
 import { canAcceptNewBookings } from "@/lib/subscription";
+import { notifyLessonConfirmed } from "@/lib/mail-send";
 
 export async function POST(req: NextRequest) {
   const { slug, start, name, email, method } = await req.json();
@@ -57,6 +58,7 @@ export async function POST(req: NextRequest) {
         },
       },
     });
+    await notifyLessonConfirmed(lesson.id);
     return NextResponse.json({ id: lesson.id });
   }
 

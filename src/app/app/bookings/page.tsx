@@ -1,14 +1,77 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Brand } from "@/components/Brand";
 import { TabBar } from "@/components/TabBar";
+import { currentCoach } from "@/lib/session";
+import { prisma } from "@/lib/db";
+import { bookingBucket, payLabel } from "@/lib/bookings";
+import { formatWhen } from "@/lib/time";
 
-export default function BookingsPlaceholder() {
+const TABS = ["upcoming", "completed", "cancelled"] as const;
+
+export default async function BookingsPage({
+  searchParams,
+}: {
+  searchParams: { tab?: string };
+}) {
+  const coach = await currentCoach();
+  if (!coach) redirect("/app/login");
+  const tab = (TABS.includes(searchParams.tab as (typeof TABS)[number])
+    ? searchParams.tab
+    : "upcoming") as (typeof TABS)[number];
+  const lessons = await prisma.lesson.findMany({
+    where: { coachId: coach.id },
+    include: { client: true, location: true, payment: true },
+    orderBy: { startAt: "asc" },
+  });
+  const now = new Date();
+  const grouped = {
+    upcoming: lessons.filter((l) => bookingBucket(l.status, l.startAt, now) === "upcoming"),
+    completed: lessons.filter((l) => bookingBucket(l.status, l.startAt, now) === "completed"),
+    cancelled: lessons.filter((l) => bookingBucket(l.status, l.startAt, now) === "cancelled"),
+  };
+  const rows = grouped[tab];
   return (
     <main className="phone px-5 pb-24">
       <Brand />
       <h1 className="text-2xl font-bold">Bookings</h1>
-      <p className="mt-2 text-slate-500">Upcoming, completed, and cancelled lists ship next.</p>
-      <Link href="/app/schedule" className="mt-6 block font-semibold text-[#10B981]">Back to schedule</Link>
+      <p className="text-slate-500">All lessons. This is not an approval inbox.</p>
+      <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
+        {TABS.map((t) => (
+          <Link
+            key={t}
+            href={`/app/bookings?tab=${t}`}
+            className={`rounded-xl border py-2 text-center capitalize ${tab === t ? "border-[#10B981] bg-[#D1FAE5] font-semibold" : "border-slate-200"}`}
+          >
+            {t}
+          </Link>
+        ))}
+      </div>
+      <ul className="mt-5 space-y-3">
+        {rows.map((l) => {
+          const pay = payLabel(l.payment?.status, l.payment?.method);
+          return (
+            <li key={l.id} className="rounded-xl border border-slate-200 p-4">
+              <div className="font-semibold">{formatWhen(l.startAt)}</div>
+              <div>Private · {l.client.name}</div>
+              <div className="text-sm text-slate-500">{l.location.name}</div>
+              <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                {pay.kind === "paid" ? (
+                  <span className="rounded-full bg-[#10B981] px-2 py-0.5 text-white">Paid</span>
+                ) : pay.kind === "offline" ? (
+                  <span className="rounded-full border border-amber-400 px-2 py-0.5 text-amber-700">Collected offline</span>
+                ) : pay.kind === "unpaid" ? (
+                  <span className="rounded-full border border-amber-400 px-2 py-0.5 text-amber-700">Unpaid</span>
+                ) : (
+                  <span className="rounded-full border px-2 py-0.5">{pay.text}</span>
+                )}
+                <span className="rounded-full border px-2 py-0.5 capitalize text-slate-500">{l.status}</span>
+              </div>
+            </li>
+          );
+        })}
+        {rows.length === 0 && <p className="text-slate-500">No {tab} lessons.</p>}
+      </ul>
       <TabBar active="bookings" />
     </main>
   );
