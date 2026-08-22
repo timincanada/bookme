@@ -1,6 +1,7 @@
 "use client";
 import { Brand } from "@/components/Brand";
 import { useEffect, useState } from "react";
+import { formatTime, formatWhen } from "@/lib/time";
 import { useSearchParams } from "next/navigation";
 
 export default function ManagePage() {
@@ -136,7 +137,7 @@ export default function ManagePage() {
             {lessons.map((l) => (
               <li key={l.id} className="card">
                 <div className="font-semibold">{l.coachName}</div>
-                <div className="text-sm text-muted">{new Date(l.startAt).toLocaleString()}</div>
+                <div className="text-sm text-muted">{formatWhen(new Date(l.startAt))}</div>
                 <div className="text-sm">{l.status} · {l.payStatus} · {l.method}</div>
                 {l.status === "confirmed" && (
                   <button onClick={() => setPicked(l)} className="mt-2 text-sm font-semibold text-brand">Reschedule or cancel</button>
@@ -154,7 +155,7 @@ export default function ManagePage() {
           <div className="mt-2 grid grid-cols-2 gap-2">
             {slots.map((s) => (
               <button key={s} onClick={() => act("reschedule", s)} className="rounded-xl border border-line px-2 py-2 text-sm">
-                {new Date(s).toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit" })}
+                {formatTime(new Date(s))}
               </button>
             ))}
           </div>

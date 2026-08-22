@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { monthGrid, pad, shiftMonth } from "./time";
+import { formatTime, formatWhen, monthGrid, pad, shiftMonth } from "./time";
 
 const aug = monthGrid(2026, 8);
 assert.equal(aug[0], null); // Sat 1st 2026 → 6 leading pads? Aug 1 2026 is Saturday.
@@ -13,4 +13,11 @@ const next = shiftMonth(2026, 12, 1);
 assert.deepEqual(next, { year: 2027, month: 1 });
 assert.equal(pad(3), "03");
 
+// 2026-08-24T21:00:00.000Z is 5:00 p.m. Eastern (EDT, UTC-4), not 9:00 p.m. local/UTC.
+const slot = new Date("2026-08-24T21:00:00.000Z");
+assert.match(formatTime(slot), /5:00/);
+assert.match(formatWhen(slot), /5:00/);
+assert.doesNotMatch(formatTime(slot), /9:00/);
+
 console.log("time tests ok");
+

@@ -1,7 +1,7 @@
 "use client";
 import { Brand } from "@/components/Brand";
 import { MonthCal } from "@/components/MonthCal";
-import { torontoDateKey } from "@/lib/time";
+import { formatTime, torontoDateKey } from "@/lib/time";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -40,7 +40,7 @@ export default function BookPage() {
       <h2 className="mt-6 font-semibold">Available times</h2>
       <div className="mt-3 grid grid-cols-2 gap-2">
         {slots.map((s) => {
-          const label = new Date(s).toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit" });
+          const label = formatTime(new Date(s));
           const on = picked === s;
           return (
             <button key={s} onClick={() => setPicked(s)} className={`rounded-xl border px-3 py-2 ${on ? "border-brand bg-brand-soft text-brand-dark" : "border-line"}`}>

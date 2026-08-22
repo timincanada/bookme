@@ -7,11 +7,17 @@ import { canAcceptNewBookings } from "@/lib/subscription";
 import { notifyLessonConfirmed } from "@/lib/mail-send";
 import { canUseMethod } from "@/lib/payments";
 import { pickLocation } from "@/lib/location";
+import { looksLikeEmail, normalizeEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
-  const { slug, start, name, email, method, locationId } = await req.json();
+  const body = await req.json();
+  const { slug, start, name, method, locationId } = body;
+  const email = normalizeEmail(body.email);
   if (!slug || !start || !name || !email) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+  }
+  if (!looksLikeEmail(email)) {
+    return NextResponse.json({ error: "Enter a valid email" }, { status: 400 });
   }
   const coach = await prisma.coach.findUnique({
     where: { slug },
@@ -101,6 +107,8 @@ export async function POST(req: NextRequest) {
 
   const sessionParams: Parameters<typeof stripe.checkout.sessions.create>[0] = {
     mode: "payment",
+    // Keep presentment in CAD. Adaptive Pricing otherwise shows USD first.
+    adaptive_pricing: { enabled: false },
     // Stripe Checkout minimum expiry is 30 minutes; our slot hold is 15.
     expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
     customer_email: email,
