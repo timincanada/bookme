@@ -16,10 +16,13 @@ export function LessonActions({
   const router = useRouter();
   const [day, setDay] = useState("");
   const [slots, setSlots] = useState<string[]>([]);
+  const [picked, setPicked] = useState("");
+  const [done, setDone] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    setPicked("");
     if (!day) return;
     fetch(`/api/slots?coach=${coachSlug}&date=${day}`)
       .then((r) => r.json())
@@ -41,8 +44,13 @@ export function LessonActions({
       return;
     }
     router.refresh();
-    if (url.includes("cancel")) router.push("/app/schedule");
-    else setMsg("Updated. The student was emailed.");
+    setDone(url.includes("cancel") ? "Lesson cancelled." : "Lesson updated.");
+  }
+
+  function closeDone() {
+    const next = done;
+    setDone("");
+    if (next === "Lesson cancelled.") router.push("/app/schedule");
   }
 
   return (
@@ -55,14 +63,25 @@ export function LessonActions({
           {slots.map((s) => (
             <button
               key={s}
+              type="button"
               disabled={busy}
-              onClick={() => post("/api/coach/lessons/move", { lessonId, start: s })}
-              className="rounded-xl border border-line px-2 py-2 text-sm"
+              onClick={() => setPicked(s)}
+              className={"rounded-xl border px-2 py-2 text-sm " + (picked === s ? "border-brand bg-brand text-white" : "border-line bg-white")}
             >
               {new Date(s).toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit" })}
             </button>
           ))}
         </div>
+        {slots.length > 0 && (
+          <button
+            type="button"
+            disabled={busy || !picked}
+            onClick={() => post("/api/coach/lessons/move", { lessonId, start: picked })}
+            className="mt-3 w-full rounded-2xl bg-brand py-3 font-semibold text-white disabled:opacity-40"
+          >
+            Reschedule
+          </button>
+        )}
       </section>
       {confirmed && (
         <button
@@ -83,7 +102,18 @@ export function LessonActions({
       >
         Cancel lesson
       </button>
-      {msg && <p className="text-sm text-brand-dark">{msg}</p>}
+      {msg && <p className="text-sm text-danger">{msg}</p>}
+      {done && (
+        <div className="fixed inset-0 z-20 flex items-center justify-center bg-ink/40 px-5">
+          <div className="w-full rounded-3xl bg-white p-6 text-center shadow-lg">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand text-white">
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12l5 5L20 7" /></svg>
+            </div>
+            <p className="mt-3 text-lg font-semibold">{done}</p>
+            <button type="button" onClick={closeDone} className="mt-5 w-full rounded-2xl bg-brand py-3 font-semibold text-white">OK</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
