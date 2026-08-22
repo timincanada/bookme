@@ -1,0 +1,21 @@
+name: Lesson reminders
+
+on:
+  schedule:
+    - cron: "0 */2 * * *"
+  workflow_dispatch:
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /api/cron/reminders
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_URL: ${{ vars.BOOKME_APP_URL }}
+        run: |
+          set -euo pipefail
+          url="${APP_URL:-https://bookme-flax.vercel.app}"
+          curl -fsS -X POST "$url/api/cron/reminders" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json"
