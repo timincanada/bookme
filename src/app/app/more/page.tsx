@@ -26,6 +26,9 @@ export default function MorePage() {
       <h1 className="text-2xl font-bold">More</h1>
       <ul className="mt-5 divide-y divide-line rounded-xl border border-line">
         <li>
+          <Link href="/app/assistant" className="block p-4 font-semibold">Assistant</Link>
+        </li>
+        <li>
           <Link href="/app/more/hours" className="block p-4 font-semibold">Weekly hours</Link>
         </li>
         <li>

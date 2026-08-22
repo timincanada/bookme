@@ -4,6 +4,8 @@ import {
   lastMonthRange,
   planForConfirmedCount,
   PLANS,
+  hasCapability,
+  planCapabilities,
   shouldPriceInvoiceFromLastMonth,
   TRIAL_DAYS,
 } from "./subscription";
@@ -62,5 +64,10 @@ assert.equal(
   }),
   false,
 );
+
+assert.deepEqual(planCapabilities("light"), []);
+assert.equal(hasCapability("light", "list_availability"), false);
+assert.equal(hasCapability("coach", "message_student"), true);
+assert.equal(hasCapability("busy", "mutate_schedule"), true);
 
 console.log("subscription tests ok");

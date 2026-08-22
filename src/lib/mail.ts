@@ -139,3 +139,11 @@ export function manageLinkMail(input: { email: string; link: string; code: strin
     text: `Open this one-time link to manage your private lessons: ${input.link}\n\nOr enter this code: ${input.code}\nIt expires in 30 minutes. Request a new one if it was already used.`,
   };
 }
+
+export function studentMessageMail(input: { studentEmail: string; studentName: string; coachName: string; body: string }) {
+  return {
+    to: input.studentEmail,
+    subject: "Message from " + input.coachName,
+    text: "Hi " + input.studentName + ",\n\n" + input.body + "\n\n— " + input.coachName + " via BookMe",
+  };
+}
