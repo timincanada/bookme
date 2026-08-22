@@ -45,3 +45,13 @@ prisma/dev.db
 prisma/dev.db-journal
 
 .deploy-secrets
+
+# Capacitor native build output
+android/.gradle
+android/build
+android/app/build
+android/local.properties
+ios/App/Pods
+ios/App/build
+*.iml
+.idea
