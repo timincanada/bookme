@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { Brand } from "@/components/Brand";
 import { TabBar } from "@/components/TabBar";
-import { CollectButton } from "@/components/CollectButton";
 import { PayChip, StatusChip } from "@/components/PayChip";
 import { currentCoach } from "@/lib/session";
 import { prisma } from "@/lib/db";
@@ -57,20 +56,16 @@ export default async function SchedulePage() {
         {lessons.map((l) => {
           const pay = payLabel(l.payment?.status, l.payment?.method);
           return (
-            <li key={l.id} className="card">
-              <Link href={`/app/lessons/${l.id}`} className="block">
-              <div className="font-semibold">{formatTime(l.startAt)}</div>
-              <div>Private · {l.client.name}</div>
-              <div className="text-sm text-muted">{l.location.name}</div>
-              </Link>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                {l.payment?.method === "cash" && l.payment.status === "unpaid" ? (
-                  <CollectButton lessonId={l.id} />
-                ) : (
+            <li key={l.id}>
+              <Link href={`/app/lessons/${l.id}`} className="block card">
+                <div className="font-semibold">{formatTime(l.startAt)}</div>
+                <div>Private · {l.client.name}</div>
+                <div className="text-sm text-muted">{l.location.name}</div>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
                   <PayChip kind={pay.kind} text={pay.text} />
-                )}
-                <StatusChip>Confirmed</StatusChip>
-              </div>
+                  <StatusChip>Confirmed</StatusChip>
+                </div>
+              </Link>
             </li>
           );
         })}
