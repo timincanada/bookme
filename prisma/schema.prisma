@@ -23,6 +23,7 @@ model Coach {
   subscriptionStatus    String       @default("none")
   plan                  String       @default("none")
   trialEndsAt           DateTime?
+  passwordHash          String?
   services  Service[]
   locations Location[]
   hours     WeeklyHour[]

@@ -6,6 +6,8 @@ import {
   canSelfReschedule,
   holdExpiresAt,
   isHoldOpen,
+  statusAfterReschedule,
+  canMoveLesson,
 } from "./hold";
 
 const t0 = new Date("2026-08-22T16:00:00Z");
@@ -24,5 +26,12 @@ const start = new Date("2026-08-23T16:00:00Z");
 assert.equal(canSelfReschedule(start, new Date(start.getTime() - SELF_RESCHEDULE_MS)), true);
 assert.equal(canSelfReschedule(start, new Date(start.getTime() - SELF_RESCHEDULE_MS + 1)), false);
 assert.equal(SELF_RESCHEDULE_MS, 24 * 60 * 60 * 1000);
+
+assert.equal(statusAfterReschedule("held"), "held");
+assert.equal(statusAfterReschedule("confirmed"), "confirmed");
+assert.equal(statusAfterReschedule("expired"), "expired");
+assert.equal(canMoveLesson("held"), true);
+assert.equal(canMoveLesson("confirmed"), true);
+assert.equal(canMoveLesson("cancelled"), false);
 
 console.log("hold tests ok");

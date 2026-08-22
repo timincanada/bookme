@@ -1,6 +1,6 @@
 "use client";
 import { Brand } from "@/components/Brand";
-import Link from "next/link";
+import { TabBar } from "@/components/TabBar";
 import { useEffect, useState } from "react";
 
 const TIERS = [
@@ -16,12 +16,20 @@ export default function BillingPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("/api/billing/status?slug=tim-zhang")
-      .then((r) => r.json())
-      .then((d) => {
-        setStatus(d.status || "none");
-        setPlan(d.plan || "none");
-      });
+    fetch("/api/coach/me").then(async (r) => {
+      if (r.status === 401) {
+        window.location.href = "/app/login";
+        return null;
+      }
+      return r.json();
+    }).then((me) => {
+      if (!me) return;
+      return fetch("/api/billing/status").then((r) => r.json());
+    }).then((d) => {
+      if (!d) return;
+      setStatus(d.status || "none");
+      setPlan(d.plan || "none");
+    });
   }, []);
 
   async function start() {
@@ -30,7 +38,6 @@ export default function BillingPage() {
     const res = await fetch("/api/billing/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug: "tim-zhang" }),
     });
     const data = await res.json();
     setBusy(false);
@@ -46,7 +53,6 @@ export default function BillingPage() {
     const res = await fetch("/api/billing/cancel", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug: "tim-zhang" }),
     });
     setBusy(false);
     if (res.ok) {
@@ -82,12 +88,7 @@ export default function BillingPage() {
           Cancel plan
         </button>
       )}
-      <nav className="fixed bottom-0 left-1/2 flex w-full max-w-[430px] -translate-x-1/2 justify-around border-t bg-white py-3 text-xs">
-        <Link href="/app/schedule">Schedule</Link>
-        <Link href="/manage">Bookings</Link>
-        <Link href="/">Clients</Link>
-        <span className="font-semibold text-[#10B981]">More</span>
-      </nav>
+      <TabBar active="more" />
     </main>
   );
 }

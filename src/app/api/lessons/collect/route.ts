@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { currentCoach } from "@/lib/session";
 
 export async function POST(req: NextRequest) {
+  const coach = await currentCoach();
+  if (!coach) return NextResponse.json({ error: "Sign in required" }, { status: 401 });
   const { lessonId } = await req.json();
   const lesson = await prisma.lesson.findUnique({
     where: { id: lessonId },
     include: { payment: true },
   });
-  if (!lesson?.payment || lesson.status === "cancelled") {
+  if (!lesson?.payment || lesson.coachId !== coach.id || lesson.status === "cancelled") {
     return NextResponse.json({ error: "Lesson not found" }, { status: 404 });
   }
   if (lesson.payment.method !== "cash") {

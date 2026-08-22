@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { openSlots } from "@/lib/slots";
 import { getStripe } from "@/lib/stripe";
-import { canSelfReschedule } from "@/lib/hold";
+import { canMoveLesson, canSelfReschedule, statusAfterReschedule } from "@/lib/hold";
 
 export async function POST(req: NextRequest) {
   const { lessonId, email, start, action } = await req.json();
@@ -27,6 +27,9 @@ export async function POST(req: NextRequest) {
     await prisma.lesson.update({ where: { id: lessonId }, data: { status: "cancelled" } });
     return NextResponse.json({ ok: true });
   }
+  if (!canMoveLesson(lesson.status)) {
+    return NextResponse.json({ error: "That lesson cannot be moved" }, { status: 400 });
+  }
   if (!selfServe) {
     return NextResponse.json({ error: "Within 24 hours, reschedule needs the coach. Email them or cancel." }, { status: 400 });
   }
@@ -39,7 +42,7 @@ export async function POST(req: NextRequest) {
   const endAt = new Date(startAt.getTime() + lesson.service.duration * 60 * 1000);
   await prisma.lesson.update({
     where: { id: lessonId },
-    data: { startAt, endAt, status: "confirmed" },
+    data: { startAt, endAt, status: statusAfterReschedule(lesson.status) },
   });
   return NextResponse.json({ ok: true });
 }

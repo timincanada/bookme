@@ -22,3 +22,14 @@ export function canConfirmCheckout(
 export function canSelfReschedule(startAt: Date, now = new Date()) {
   return startAt.getTime() - now.getTime() >= SELF_RESCHEDULE_MS;
 }
+
+/** Moving a slot never confirms an unpaid card hold. */
+export function statusAfterReschedule(status: string) {
+  if (status === "held") return "held";
+  if (status === "confirmed") return "confirmed";
+  return status;
+}
+
+export function canMoveLesson(status: string) {
+  return status === "confirmed" || status === "held";
+}

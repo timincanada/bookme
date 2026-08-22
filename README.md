@@ -16,6 +16,8 @@ Open http://localhost:3000
 
 - Student booking: `/tim-zhang` then Book a lesson. Choose **Cash** to confirm without Stripe.
 - Find / reschedule: `/manage` with the email used at checkout.
+- Coach open for business: `/app/register` then `/app/setup` (basics, locations, weekly hours). Copy the booking link only after a trial.
+- Coach sign in: `/app/login` (seed: `tim@bookme.test` / `coach123`)
 - Coach schedule: `/app/schedule`
 
 ## V1 notes
