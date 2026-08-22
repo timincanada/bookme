@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Brand } from "@/components/Brand";
 import { TabBar } from "@/components/TabBar";
 import { CollectButton } from "@/components/CollectButton";
+import { PayChip, StatusChip } from "@/components/PayChip";
 import { currentCoach } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { formatTime } from "@/lib/time";
@@ -35,20 +36,20 @@ export default async function SchedulePage() {
     <main className="phone px-5 pb-24">
       <Brand
         right={
-          <div className="h-8 w-8 rounded-full bg-emerald-100 text-center text-sm leading-8 font-semibold text-[#059669]">
+          <div className="h-8 w-8 rounded-full bg-brand-soft text-center text-sm leading-8 font-semibold text-brand-dark">
             {coach.name.slice(0, 1)}
           </div>
         }
       />
       <h1 className="text-2xl font-bold">My Schedule</h1>
-      <p className="text-slate-500">{lessons.length} upcoming lessons</p>
+      <p className="text-muted">{lessons.length} upcoming lessons</p>
       {!setup && (
-        <Link href="/app/setup" className="mt-4 block rounded-xl bg-[#D1FAE5] p-3 text-sm font-semibold text-[#059669]">
+        <Link href="/app/setup" className="mt-4 block rounded-2xl bg-brand-soft p-3 text-sm font-semibold text-brand-dark">
           Finish Open for business to publish your link
         </Link>
       )}
       {setup && !publish && (
-        <Link href="/app/billing" className="mt-4 block rounded-xl bg-[#D1FAE5] p-3 text-sm font-semibold text-[#059669]">
+        <Link href="/app/billing" className="mt-4 block rounded-2xl bg-brand-soft p-3 text-sm font-semibold text-brand-dark">
           Start a trial to copy your booking link
         </Link>
       )}
@@ -56,28 +57,24 @@ export default async function SchedulePage() {
         {lessons.map((l) => {
           const pay = payLabel(l.payment?.status, l.payment?.method);
           return (
-            <li key={l.id} className="rounded-xl border border-slate-200 p-4">
+            <li key={l.id} className="card">
               <Link href={`/app/lessons/${l.id}`} className="block">
               <div className="font-semibold">{formatTime(l.startAt)}</div>
               <div>Private · {l.client.name}</div>
-              <div className="text-sm text-slate-500">{l.location.name}</div>
+              <div className="text-sm text-muted">{l.location.name}</div>
               </Link>
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+              <div className="mt-2 flex flex-wrap items-center gap-2">
                 {l.payment?.method === "cash" && l.payment.status === "unpaid" ? (
                   <CollectButton lessonId={l.id} />
-                ) : pay.kind === "paid" ? (
-                  <span className="rounded-full bg-[#10B981] px-2 py-0.5 text-white">Paid</span>
-                ) : pay.kind === "offline" ? (
-                  <span className="rounded-full border border-amber-400 px-2 py-0.5 text-amber-700">Collected offline</span>
                 ) : (
-                  <span className="rounded-full border px-2 py-0.5">{pay.text}</span>
+                  <PayChip kind={pay.kind} text={pay.text} />
                 )}
-                <span className="rounded-full border px-2 py-0.5 text-slate-500">Confirmed</span>
+                <StatusChip>Confirmed</StatusChip>
               </div>
             </li>
           );
         })}
-        {lessons.length === 0 && <p className="text-slate-500">No lessons yet.</p>}
+        {lessons.length === 0 && <p className="text-muted">No lessons yet.</p>}
       </ul>
       <TabBar active="schedule" />
     </main>

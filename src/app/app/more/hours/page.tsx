@@ -61,14 +61,14 @@ export default function MoreHoursPage() {
   return (
     <main className="phone px-5 pb-24">
       <Brand />
-      <Link href="/app/more" className="text-sm font-semibold text-[#10B981]">More</Link>
+      <Link href="/app/more" className="text-sm font-semibold text-brand">More</Link>
       <h1 className="mt-2 text-2xl font-bold">Weekly hours</h1>
-      <p className="text-slate-500">Repeating windows. Students only see open slots.</p>
+      <p className="text-muted">Repeating windows. Students only see open slots.</p>
       <div className="mt-4 space-y-2">
         {DAYS.map((label, weekday) => {
           const row = hours.find((h) => h.weekday === weekday);
           return (
-            <div key={label} className="rounded-xl border border-slate-200 p-3">
+            <div key={label} className="rounded-2xl border border-line p-3">
               <label className="flex items-center gap-2 font-semibold">
                 <input type="checkbox" checked={!!row} onChange={() => toggleDay(weekday)} />
                 {label}
@@ -82,7 +82,7 @@ export default function MoreHoursPage() {
                       const [hh, mm] = e.target.value.split(":").map(Number);
                       setDayTime(weekday, "startMin", hh * 60 + mm);
                     }}
-                    className="rounded-xl border px-2 py-1"
+                    className="field py-1"
                   />
                   <input
                     type="time"
@@ -91,7 +91,7 @@ export default function MoreHoursPage() {
                       const [hh, mm] = e.target.value.split(":").map(Number);
                       setDayTime(weekday, "endMin", hh * 60 + mm);
                     }}
-                    className="rounded-xl border px-2 py-1"
+                    className="field py-1"
                   />
                 </div>
               )}
@@ -99,9 +99,9 @@ export default function MoreHoursPage() {
           );
         })}
       </div>
-      {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
-      {saved && <p className="mt-3 text-sm text-[#059669]">{saved}</p>}
-      <button disabled={busy} onClick={save} className="mt-4 w-full rounded-xl bg-[#10B981] py-3 font-semibold text-white">
+      {error && <p className="mt-3 text-sm text-danger">{error}</p>}
+      {saved && <p className="mt-3 text-sm text-brand-dark">{saved}</p>}
+      <button disabled={busy} onClick={save} className="mt-4 w-full rounded-2xl bg-brand py-3 font-semibold text-white">
         Save hours
       </button>
       <TabBar active="more" />

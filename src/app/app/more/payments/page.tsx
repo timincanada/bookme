@@ -46,14 +46,14 @@ export default function MorePaymentsPage() {
   return (
     <main className="phone px-5 pb-24">
       <Brand />
-      <Link href="/app/more" className="text-sm font-semibold text-[#10B981]">More</Link>
+      <Link href="/app/more" className="text-sm font-semibold text-brand">More</Link>
       <h1 className="mt-2 text-2xl font-bold">Accepted payments</h1>
-      <p className="text-slate-500">Checkout only shows what you turn on. Keep at least one.</p>
+      <p className="text-muted">Checkout only shows what you turn on. Keep at least one.</p>
       <div className="mt-5 space-y-3">
-        <label className="flex items-center justify-between rounded-xl border border-slate-200 p-4">
+        <label className="flex items-center justify-between card">
           <div>
             <div className="font-semibold">Card</div>
-            <div className="text-sm text-slate-500">Stripe, CAD, pay to confirm</div>
+            <div className="text-sm text-muted">Stripe, CAD, pay to confirm</div>
           </div>
           <input
             type="checkbox"
@@ -62,10 +62,10 @@ export default function MorePaymentsPage() {
             onChange={(e) => save(e.target.checked, acceptCash)}
           />
         </label>
-        <label className="flex items-center justify-between rounded-xl border border-slate-200 p-4">
+        <label className="flex items-center justify-between card">
           <div>
             <div className="font-semibold">Cash</div>
-            <div className="text-sm text-slate-500">Confirm now, collect in person</div>
+            <div className="text-sm text-muted">Confirm now, collect in person</div>
           </div>
           <input
             type="checkbox"
@@ -75,8 +75,8 @@ export default function MorePaymentsPage() {
           />
         </label>
       </div>
-      {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
-      {saved && <p className="mt-3 text-sm text-[#059669]">{saved}</p>}
+      {error && <p className="mt-3 text-sm text-danger">{error}</p>}
+      {saved && <p className="mt-3 text-sm text-brand-dark">{saved}</p>}
       <TabBar active="more" />
     </main>
   );

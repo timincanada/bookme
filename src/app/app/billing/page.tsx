@@ -67,24 +67,24 @@ export default function BillingPage() {
     <main className="phone px-5 pb-24">
       <Brand />
       <h1 className="text-2xl font-bold">BookMe plan</h1>
-      <p className="mt-2 text-slate-500">3-day trial on Light (card required), then auto-renew. Tier follows last month&apos;s confirmed lessons at the next cycle. Student lesson payments are separate.</p>
+      <p className="mt-2 text-muted">3-day trial on Light (card required), then auto-renew. Tier follows last month&apos;s confirmed lessons at the next cycle. Student lesson payments are separate.</p>
       <ul className="mt-4 space-y-2 text-sm">
         {TIERS.map((t) => (
-          <li key={t.id} className={`rounded-xl border p-3 ${plan === t.id ? "border-[#10B981] bg-[#D1FAE5]" : "border-slate-200"}`}>
+          <li key={t.id} className={`rounded-xl border p-3 ${plan === t.id ? "border-brand bg-brand-soft" : "border-line"}`}>
             <div className="font-semibold">{t.name} · {t.price}</div>
-            <div className="text-slate-500">{t.detail}</div>
+            <div className="text-muted">{t.detail}</div>
           </li>
         ))}
       </ul>
-      <div className="mt-4 rounded-xl border border-slate-200 p-4 text-sm">Status: {status}{plan !== "none" ? ` · ${plan}` : ""}</div>
-      {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
+      <div className="mt-4 card text-sm">Status: {status}{plan !== "none" ? ` · ${plan}` : ""}</div>
+      {error && <p className="mt-3 text-sm text-danger">{error}</p>}
       {!open && (
-        <button disabled={busy} onClick={start} className="mt-6 w-full rounded-xl bg-[#10B981] py-3 font-semibold text-white disabled:opacity-40">
+        <button disabled={busy} onClick={start} className="mt-6 w-full rounded-2xl bg-brand py-3 font-semibold text-white disabled:opacity-40">
           Start 3-day Light trial
         </button>
       )}
       {open && (
-        <button disabled={busy} onClick={cancel} className="mt-6 w-full rounded-xl border border-slate-200 py-3 font-semibold">
+        <button disabled={busy} onClick={cancel} className="mt-6 w-full rounded-2xl border border-line py-3 font-semibold">
           Cancel plan
         </button>
       )}

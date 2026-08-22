@@ -9,8 +9,27 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+        brand: {
+          DEFAULT: "#10B981",
+          dark: "#059669",
+          soft: "#D1FAE5",
+        },
+        ink: "#0F172A",
+        muted: "#64748B",
+        line: "#E2E8F0",
+        page: "#F8FAFC",
+        surface: "#FFFFFF",
+        warn: "#F59E0B",
+        danger: "#EF4444",
+        info: "#3B82F6",
+        ok: "#22C55E",
+      },
+      borderRadius: {
+        "4": "4px",
+        "8": "8px",
+        "12": "12px",
+        "16": "16px",
+        "20": "20px",
       },
     },
   },

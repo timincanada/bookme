@@ -6,6 +6,7 @@ import { currentCoach } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { bookingBucket, payLabel } from "@/lib/bookings";
 import { formatWhen } from "@/lib/time";
+import { PayChip, StatusChip } from "@/components/PayChip";
 
 const TABS = ["upcoming", "completed", "cancelled"] as const;
 
@@ -35,13 +36,13 @@ export default async function BookingsPage({
     <main className="phone px-5 pb-24">
       <Brand />
       <h1 className="text-2xl font-bold">Bookings</h1>
-      <p className="text-slate-500">All lessons. This is not an approval inbox.</p>
+      <p className="text-muted">All lessons. This is not an approval inbox.</p>
       <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
         {TABS.map((t) => (
           <Link
             key={t}
             href={`/app/bookings?tab=${t}`}
-            className={`rounded-xl border py-2 text-center capitalize ${tab === t ? "border-[#10B981] bg-[#D1FAE5] font-semibold" : "border-slate-200"}`}
+            className={`rounded-xl border py-2 text-center capitalize ${tab === t ? "border-brand bg-brand-soft font-semibold" : "border-line"}`}
           >
             {t}
           </Link>
@@ -52,27 +53,19 @@ export default async function BookingsPage({
           const pay = payLabel(l.payment?.status, l.payment?.method);
           return (
             <li key={l.id}>
-              <Link href={`/app/lessons/${l.id}`} className="block rounded-xl border border-slate-200 p-4">
+              <Link href={`/app/lessons/${l.id}`} className="block card">
               <div className="font-semibold">{formatWhen(l.startAt)}</div>
               <div>Private · {l.client.name}</div>
-              <div className="text-sm text-slate-500">{l.location.name}</div>
-              <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                {pay.kind === "paid" ? (
-                  <span className="rounded-full bg-[#10B981] px-2 py-0.5 text-white">Paid</span>
-                ) : pay.kind === "offline" ? (
-                  <span className="rounded-full border border-amber-400 px-2 py-0.5 text-amber-700">Collected offline</span>
-                ) : pay.kind === "unpaid" ? (
-                  <span className="rounded-full border border-amber-400 px-2 py-0.5 text-amber-700">Unpaid</span>
-                ) : (
-                  <span className="rounded-full border px-2 py-0.5">{pay.text}</span>
-                )}
-                <span className="rounded-full border px-2 py-0.5 capitalize text-slate-500">{l.status}</span>
+              <div className="text-sm text-muted">{l.location.name}</div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <PayChip kind={pay.kind} text={pay.text} />
+                <StatusChip>{l.status}</StatusChip>
               </div>
               </Link>
             </li>
           );
         })}
-        {rows.length === 0 && <p className="text-slate-500">No {tab} lessons.</p>}
+        {rows.length === 0 && <p className="text-muted">No {tab} lessons.</p>}
       </ul>
       <TabBar active="bookings" />
     </main>

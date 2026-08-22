@@ -57,29 +57,29 @@ export default function PayPage() {
     <main className="phone px-5 pb-8">
       <Brand />
       <h1 className="text-2xl font-bold">Review & pay</h1>
-      <p className="text-slate-500">{meta?.coachName || "Coach"} · Private · 60 min</p>
-      <div className="mt-4 rounded-xl border border-slate-200 p-4 text-sm">
+      <p className="text-muted">{meta?.coachName || "Coach"} · Private · 60 min</p>
+      <div className="mt-4 card text-sm">
         <div>{when}</div>
-        <div className="mt-1 text-slate-500">{(meta?.locations || []).find((l: any) => l.id === locationId)?.name || (meta?.locations?.length === 1 ? meta.locations[0].name : "")}</div>
+        <div className="mt-1 text-muted">{(meta?.locations || []).find((l: any) => l.id === locationId)?.name || (meta?.locations?.length === 1 ? meta.locations[0].name : "")}</div>
         <div className="mt-2 font-semibold">Total CA${(meta?.priceCad || 80).toFixed(2)}</div>
       </div>
       <label className="mt-5 block text-sm">Your name</label>
-      <input value={name} onChange={(e) => setName(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2" />
+      <input value={name} onChange={(e) => setName(e.target.value)} className="field mt-1" />
       <label className="mt-3 block text-sm">Email</label>
-      <input value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2" placeholder="you@email.com" />
+      <input value={email} onChange={(e) => setEmail(e.target.value)} className="field mt-1" placeholder="you@email.com" />
       <p className="mt-5 font-semibold">Payment</p>
       <div className="mt-2 grid grid-cols-2 gap-2">
         {meta?.acceptCash !== false && (
-          <button onClick={() => setMethod("cash")} className={`rounded-xl border py-2 ${method === "cash" ? "border-[#10B981] bg-[#D1FAE5]" : "border-slate-200"}`}>Cash</button>
+          <button onClick={() => setMethod("cash")} className={`rounded-xl border py-2 ${method === "cash" ? "border-brand bg-brand-soft" : "border-line"}`}>Cash</button>
         )}
         {meta?.acceptCard !== false && (
-          <button onClick={() => setMethod("card")} className={`rounded-xl border py-2 ${method === "card" ? "border-[#10B981] bg-[#D1FAE5]" : "border-slate-200"}`}>Card</button>
+          <button onClick={() => setMethod("card")} className={`rounded-xl border py-2 ${method === "card" ? "border-brand bg-brand-soft" : "border-line"}`}>Card</button>
         )}
       </div>
-      {method === "card" && <p className="mt-2 text-sm text-slate-500">Pay by card (CAD). Your time is held for 15 minutes while you check out.</p>}
-      {method === "cash" && <p className="mt-2 text-sm text-slate-500">Pay the coach in person. Your spot is confirmed now.</p>}
-      {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
-      <button disabled={busy || !name || !email} onClick={submit} className="mt-6 w-full rounded-xl bg-[#10B981] py-3 font-semibold text-white disabled:opacity-40">
+      {method === "card" && <p className="mt-2 text-sm text-muted">Pay by card (CAD). Your time is held for 15 minutes while you check out.</p>}
+      {method === "cash" && <p className="mt-2 text-sm text-muted">Pay the coach in person. Your spot is confirmed now.</p>}
+      {error && <p className="mt-3 text-sm text-danger">{error}</p>}
+      <button disabled={busy || !name || !email} onClick={submit} className="mt-6 w-full rounded-2xl bg-brand py-3 font-semibold text-white disabled:opacity-40">
         {method === "cash" ? "Confirm booking" : "Pay CA$80"}
       </button>
     </main>

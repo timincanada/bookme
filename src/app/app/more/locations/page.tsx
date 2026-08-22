@@ -65,34 +65,34 @@ export default function MoreLocationsPage() {
   return (
     <main className="phone px-5 pb-24">
       <Brand />
-      <Link href="/app/more" className="text-sm font-semibold text-[#10B981]">More</Link>
+      <Link href="/app/more" className="text-sm font-semibold text-brand">More</Link>
       <h1 className="mt-2 text-2xl font-bold">Locations</h1>
-      <p className="text-slate-500">Add or disable. Keep at least one on.</p>
+      <p className="text-muted">Add or disable. Keep at least one on.</p>
       <ul className="mt-4 space-y-2">
         {locations.map((l) => (
-          <li key={l.id} className="flex items-center justify-between rounded-xl border border-slate-200 p-3">
+          <li key={l.id} className="flex items-center justify-between rounded-2xl border border-line p-3">
             <div>
               <div className="font-semibold">{l.name}</div>
-              <div className="text-sm text-slate-500">{l.address || l.kind}</div>
+              <div className="text-sm text-muted">{l.address || l.kind}</div>
             </div>
-            <button onClick={() => toggle(l.id, !l.active)} className="text-sm text-[#10B981]">
+            <button onClick={() => toggle(l.id, !l.active)} className="text-sm text-brand">
               {l.active ? "Disable" : "Enable"}
             </button>
           </li>
         ))}
       </ul>
       <label className="mt-5 block text-sm">Location name</label>
-      <input value={name} onChange={(e) => setName(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2" />
+      <input value={name} onChange={(e) => setName(e.target.value)} className="field mt-1" />
       <label className="mt-3 block text-sm">Address</label>
-      <input value={address} onChange={(e) => setAddress(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2" />
+      <input value={address} onChange={(e) => setAddress(e.target.value)} className="field mt-1" />
       <label className="mt-3 block text-sm">Type</label>
-      <select value={kind} onChange={(e) => setKind(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2">
+      <select value={kind} onChange={(e) => setKind(e.target.value)} className="field mt-1">
         <option value="in_person">In person</option>
         <option value="house_call">House call</option>
         <option value="online">Online</option>
       </select>
-      {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
-      <button disabled={busy || !name} onClick={add} className="mt-4 w-full rounded-xl bg-[#10B981] py-3 font-semibold text-white disabled:opacity-40">
+      {error && <p className="mt-3 text-sm text-danger">{error}</p>}
+      <button disabled={busy || !name} onClick={add} className="mt-4 w-full rounded-2xl bg-brand py-3 font-semibold text-white disabled:opacity-40">
         Add location
       </button>
       <TabBar active="more" />

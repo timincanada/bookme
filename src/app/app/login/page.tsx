@@ -33,15 +33,15 @@ export default function LoginPage() {
       <Brand />
       <h1 className="text-2xl font-bold">Coach sign in</h1>
       <label className="mt-5 block text-sm">Email</label>
-      <input value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2" />
+      <input value={email} onChange={(e) => setEmail(e.target.value)} className="field mt-1" />
       <label className="mt-3 block text-sm">Password</label>
-      <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2" />
-      {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
-      <button disabled={busy || !email || !password} onClick={submit} className="mt-6 w-full rounded-xl bg-[#10B981] py-3 font-semibold text-white disabled:opacity-40">
+      <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="field mt-1" />
+      {error && <p className="mt-3 text-sm text-danger">{error}</p>}
+      <button disabled={busy || !email || !password} onClick={submit} className="mt-6 w-full rounded-2xl bg-brand py-3 font-semibold text-white disabled:opacity-40">
         Sign in
       </button>
-      <p className="mt-4 text-center text-sm text-slate-500">
-        New coach? <Link href="/app/register" className="font-semibold text-[#10B981]">Open for business</Link>
+      <p className="mt-4 text-center text-sm text-muted">
+        New coach? <Link href="/app/register" className="font-semibold text-brand">Open for business</Link>
       </p>
     </main>
   );

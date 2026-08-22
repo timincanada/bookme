@@ -24,7 +24,7 @@ export default function MorePage() {
     <main className="phone px-5 pb-24">
       <Brand />
       <h1 className="text-2xl font-bold">More</h1>
-      <ul className="mt-5 divide-y divide-slate-100 rounded-xl border border-slate-200">
+      <ul className="mt-5 divide-y divide-line rounded-xl border border-line">
         <li>
           <Link href="/app/more/hours" className="block p-4 font-semibold">Weekly hours</Link>
         </li>
@@ -42,8 +42,8 @@ export default function MorePage() {
         </li>
       </ul>
       {me && (
-        <div className="mt-5 rounded-xl border border-slate-200 p-4 text-sm">
-          <div className="text-slate-500">Booking link</div>
+        <div className="mt-5 card text-sm">
+          <div className="text-muted">Booking link</div>
           <div className="mt-1 break-all font-semibold">{link}</div>
           {me.canCopyLink ? (
             <button
@@ -51,12 +51,12 @@ export default function MorePage() {
                 await navigator.clipboard.writeText(link);
                 setCopied(true);
               }}
-              className="mt-3 w-full rounded-xl bg-[#10B981] py-2 font-semibold text-white"
+              className="mt-3 w-full rounded-2xl bg-brand py-2 font-semibold text-white"
             >
               {copied ? "Copied" : "Copy link"}
             </button>
           ) : (
-            <p className="mt-2 text-slate-500">Finish setup and start a trial to copy this link.</p>
+            <p className="mt-2 text-muted">Finish setup and start a trial to copy this link.</p>
           )}
         </div>
       )}
@@ -65,7 +65,7 @@ export default function MorePage() {
           await fetch("/api/auth/logout", { method: "POST" });
           window.location.href = "/app/login";
         }}
-        className="mt-6 w-full rounded-xl border border-slate-200 py-3 font-semibold"
+        className="mt-6 w-full rounded-2xl border border-line py-3 font-semibold"
       >
         Sign out
       </button>
