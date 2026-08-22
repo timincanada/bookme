@@ -57,8 +57,10 @@ async function runAction(coach: { id: string; name: string; email: string; plan:
 
   if (action.type === "draft_reschedule" && action.op === "block") {
     if (!hasCapability(coach.plan, "draft_reschedule", status)) return { error: "Missing capability", status: 403 };
+    const data = { coachId: coach.id, date: action.dateKey, startMin: action.startMin, endMin: action.endMin };
     const existing = await prisma.dateBlock.findFirst({ where: { coachId: coach.id, date: action.dateKey } });
-    if (!existing) await prisma.dateBlock.create({ data: { coachId: coach.id, date: action.dateKey } });
+    if (existing) await prisma.dateBlock.update({ where: { id: existing.id }, data: { startMin: data.startMin, endMin: data.endMin } });
+    else await prisma.dateBlock.create({ data });
     return { text: "Blocked openings on " + action.dateKey + ". Existing lessons stay." };
   }
 
