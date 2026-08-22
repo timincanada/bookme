@@ -101,3 +101,30 @@ export function changeMails(input: {
     },
   ];
 }
+
+
+export function reminderMails(input: {
+  kind: "24h" | "2h";
+  coachName: string;
+  coachEmail: string;
+  studentName: string;
+  studentEmail: string;
+  when: string;
+  location: string;
+  manageUrl?: string;
+}): Mail[] {
+  const label = input.kind === "24h" ? "tomorrow" : "in 2 hours";
+  const manage = input.manageUrl ? ` Manage: ${input.manageUrl}` : "";
+  return [
+    {
+      to: input.studentEmail,
+      subject: `Reminder: lesson ${label} with ${input.coachName}`,
+      text: `Hi ${input.studentName}, your private lesson with ${input.coachName} is ${label}: ${input.when} at ${input.location}.${manage}`,
+    },
+    {
+      to: input.coachEmail,
+      subject: `Reminder: ${input.studentName} ${label}`,
+      text: `${input.studentName} has a private lesson ${label}: ${input.when} at ${input.location}.`,
+    },
+  ];
+}

@@ -92,8 +92,10 @@ model Lesson {
   startAt    DateTime
   endAt      DateTime
   status     String    @default("confirmed")
-  holdUntil  DateTime?
-  payment    Payment?
+  holdUntil    DateTime?
+  reminded24h  Boolean   @default(false)
+  reminded2h   Boolean   @default(false)
+  payment      Payment?
 }
 
 model Payment {

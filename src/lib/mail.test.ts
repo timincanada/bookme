@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { changeMails, confirmationMails } from "./mail";
+import { changeMails, confirmationMails, reminderMails } from "./mail";
 
 const mails = confirmationMails({
   coachName: "Tim Zhang",
@@ -52,5 +52,33 @@ const nextCard = changeMails({
   payUrl: "https://pay.test",
 });
 assert.match(nextCard[0].text, /https:\/\/pay.test/);
+
+
+const r24 = reminderMails({
+  kind: "24h",
+  coachName: "Tim Zhang",
+  coachEmail: "tim@bookme.test",
+  studentName: "Emma",
+  studentEmail: "emma@test.com",
+  when: "Sat 10:00",
+  location: "Court 3",
+  manageUrl: "https://bookme.test/manage?email=emma@test.com",
+});
+assert.equal(r24.length, 2);
+assert.equal(r24[0].to, "emma@test.com");
+assert.equal(r24[1].to, "tim@bookme.test");
+assert.match(r24[0].text, /tomorrow/);
+assert.match(r24[0].text, /manage/i);
+
+const r2 = reminderMails({
+  kind: "2h",
+  coachName: "Tim Zhang",
+  coachEmail: "tim@bookme.test",
+  studentName: "Emma",
+  studentEmail: "emma@test.com",
+  when: "Sat 10:00",
+  location: "Court 3",
+});
+assert.match(r2[0].subject, /2 hours/);
 
 console.log("mail tests ok");
