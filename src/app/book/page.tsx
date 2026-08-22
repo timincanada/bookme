@@ -15,15 +15,24 @@ export default function BookPage() {
   const [day, setDay] = useState(dateKey(today));
   const [slots, setSlots] = useState<string[]>([]);
   const [picked, setPicked] = useState("");
+  const [locations, setLocations] = useState<{ id: string }[]>([]);
 
   useEffect(() => {
     fetch(`/api/slots?coach=${slug}&date=${day}`)
       .then((r) => r.json())
       .then((d) => {
         setSlots(d.slots || []);
+        setLocations(d.locations || []);
         setPicked("");
       });
   }, [slug, day]);
+
+  function continueBook() {
+    if (!picked) return;
+    const q = `coach=${slug}&start=${encodeURIComponent(picked)}`;
+    if (locations.length > 1) router.push(`/book/location?${q}`);
+    else if (locations.length === 1) router.push(`/book/pay?${q}&location=${locations[0].id}`);
+  }
 
   return (
     <main className="phone px-5 pb-8">
@@ -47,7 +56,7 @@ export default function BookPage() {
       </div>
       <button
         disabled={!picked}
-        onClick={() => router.push(`/book/pay?coach=${slug}&start=${encodeURIComponent(picked)}`)}
+        onClick={continueBook}
         className="mt-8 w-full rounded-xl bg-[#10B981] py-3 font-semibold text-white disabled:opacity-40"
       >
         Continue

@@ -6,9 +6,10 @@ import { appUrl, getStripe } from "@/lib/stripe";
 import { canAcceptNewBookings } from "@/lib/subscription";
 import { notifyLessonConfirmed } from "@/lib/mail-send";
 import { canUseMethod } from "@/lib/payments";
+import { pickLocation } from "@/lib/location";
 
 export async function POST(req: NextRequest) {
-  const { slug, start, name, email, method } = await req.json();
+  const { slug, start, name, email, method, locationId } = await req.json();
   if (!slug || !start || !name || !email) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
@@ -18,8 +19,10 @@ export async function POST(req: NextRequest) {
   });
   if (!coach) return NextResponse.json({ error: "Coach not found" }, { status: 404 });
   const service = coach.services[0];
-  const location = coach.locations[0];
-  if (!service || !location) return NextResponse.json({ error: "Coach is not set up" }, { status: 400 });
+  if (!service) return NextResponse.json({ error: "Coach is not set up" }, { status: 400 });
+  const picked = pickLocation(coach.locations, locationId);
+  if (!picked.ok) return NextResponse.json({ error: picked.error }, { status: 400 });
+  const location = picked.location;
   if (!canAcceptNewBookings(coach.subscriptionStatus)) {
     return NextResponse.json({ error: "This coach is not accepting new bookings" }, { status: 403 });
   }
@@ -113,7 +116,7 @@ export async function POST(req: NextRequest) {
     ],
     metadata: { lessonId: lesson.id },
     success_url: `${appUrl()}/book/done?id=${lesson.id}`,
-    cancel_url: `${appUrl()}/book/pay?coach=${slug}&start=${encodeURIComponent(start)}`,
+    cancel_url: `${appUrl()}/book/pay?coach=${slug}&start=${encodeURIComponent(start)}&location=${location.id}`,
   };
   if (coach.stripeAccountId) {
     sessionParams.payment_intent_data = {

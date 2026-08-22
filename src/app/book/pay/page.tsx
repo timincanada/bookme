@@ -8,6 +8,7 @@ export default function PayPage() {
   const router = useRouter();
   const slug = params.get("coach") || "tim-zhang";
   const start = params.get("start") || "";
+  const locationId = params.get("location") || "";
   const [method, setMethod] = useState<"cash" | "card">("cash");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -22,6 +23,10 @@ export default function PayPage() {
         setMeta(d);
         if (d.acceptCash === false && d.acceptCard !== false) setMethod("card");
         else if (d.acceptCard === false) setMethod("cash");
+        const list = d.locations || [];
+        if (list.length > 1 && !params.get("location")) {
+          router.replace(`/book/location?coach=${slug}&start=${encodeURIComponent(start)}`);
+        }
       });
   }, [slug, start]);
 
@@ -31,7 +36,7 @@ export default function PayPage() {
     const res = await fetch("/api/book", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug, start, name, email, method }),
+      body: JSON.stringify({ slug, start, name, email, method, locationId }),
     });
     const data = await res.json();
     setBusy(false);
@@ -55,7 +60,8 @@ export default function PayPage() {
       <p className="text-slate-500">{meta?.coachName || "Coach"} · Private · 60 min</p>
       <div className="mt-4 rounded-xl border border-slate-200 p-4 text-sm">
         <div>{when}</div>
-        <div className="mt-2 font-semibold">Total CA$80.00</div>
+        <div className="mt-1 text-slate-500">{(meta?.locations || []).find((l: any) => l.id === locationId)?.name || (meta?.locations?.length === 1 ? meta.locations[0].name : "")}</div>
+        <div className="mt-2 font-semibold">Total CA${(meta?.priceCad || 80).toFixed(2)}</div>
       </div>
       <label className="mt-5 block text-sm">Your name</label>
       <input value={name} onChange={(e) => setName(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2" />
