@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
         })
       ) {
         const coach = await prisma.coach.findFirst({ where: { stripeSubscriptionId: subId } });
-        if (coach) await reconcilePlanForNextCycle(coach.id, periodStart ?? new Date());
+        if (coach) await reconcilePlanForNextCycle(coach.id, periodStart ?? new Date(), invoice);
       }
     }
   }

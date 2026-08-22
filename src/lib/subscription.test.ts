@@ -15,6 +15,7 @@ assert.equal(PLANS.busy.cad, 49);
 assert.equal(planForConfirmedCount(20), "light");
 assert.equal(planForConfirmedCount(21), "coach");
 assert.equal(planForConfirmedCount(61), "busy");
+assert.equal(PLANS.busy.cad * 100, 4900);
 assert.equal(canAcceptNewBookings("trialing"), true);
 assert.equal(canAcceptNewBookings("canceled"), false);
 const sept = new Date("2026-09-01T00:00:00Z");
