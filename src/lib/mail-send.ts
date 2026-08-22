@@ -1,6 +1,7 @@
 import { prisma } from "./db";
 import { formatWhen } from "./time";
 import { sendLessonConfirmations } from "./mail";
+import { appUrl } from "./stripe";
 
 export async function notifyLessonConfirmed(lessonId: string) {
   const lesson = await prisma.lesson.findUnique({
@@ -16,5 +17,6 @@ export async function notifyLessonConfirmed(lessonId: string) {
     when: formatWhen(lesson.startAt),
     location: lesson.location.name,
     method: lesson.payment?.method || "cash",
+    manageUrl: `${appUrl()}/manage?email=${encodeURIComponent(lesson.client.email)}`,
   });
 }

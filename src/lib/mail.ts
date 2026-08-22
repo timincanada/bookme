@@ -8,13 +8,15 @@ export function confirmationMails(input: {
   when: string;
   location: string;
   method: "cash" | "card" | string;
+  manageUrl?: string;
 }): Mail[] {
   const pay = input.method === "cash" ? "Pay cash on arrival." : "Card payment received.";
+  const manage = input.manageUrl ? ` Manage: ${input.manageUrl}` : "";
   return [
     {
       to: input.studentEmail,
       subject: `Booked with ${input.coachName}`,
-      text: `Hi ${input.studentName}, your private lesson with ${input.coachName} is confirmed for ${input.when} at ${input.location}. ${pay}`,
+      text: `Hi ${input.studentName}, your private lesson with ${input.coachName} is confirmed for ${input.when} at ${input.location}. ${pay}${manage}`,
     },
     {
       to: input.coachEmail,
@@ -41,7 +43,7 @@ export async function sendMail(mail: Mail) {
     });
     return;
   }
-  console.log("[mail stub]", mail.to, mail.subject);
+  console.log("[mail stub]", mail.to, mail.subject, mail.text);
 }
 
 export async function sendLessonConfirmations(input: Parameters<typeof confirmationMails>[0]) {
@@ -127,4 +129,13 @@ export function reminderMails(input: {
       text: `${input.studentName} has a private lesson ${label}: ${input.when} at ${input.location}.`,
     },
   ];
+}
+
+
+export function manageLinkMail(input: { email: string; link: string; code: string }): Mail {
+  return {
+    to: input.email,
+    subject: "Your BookMe bookings link",
+    text: `Open this one-time link to manage your private lessons: ${input.link}\n\nOr enter this code: ${input.code}\nIt expires in 30 minutes. Request a new one if it was already used.`,
+  };
 }
