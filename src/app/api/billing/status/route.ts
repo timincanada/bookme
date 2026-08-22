@@ -1,10 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { NextResponse } from "next/server";
+import { currentCoach } from "@/lib/session";
 
-export async function GET(req: NextRequest) {
-  const slug = req.nextUrl.searchParams.get("slug") || "tim-zhang";
-  const coach = await prisma.coach.findUnique({ where: { slug } });
-  if (!coach) return NextResponse.json({ error: "Coach not found" }, { status: 404 });
+export async function GET() {
+  const coach = await currentCoach();
+  if (!coach) return NextResponse.json({ error: "Sign in required" }, { status: 401 });
   return NextResponse.json({
     status: coach.subscriptionStatus,
     plan: coach.plan,

@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { currentCoach } from "@/lib/session";
 import { appUrl, getStripe } from "@/lib/stripe";
 import { priceIdForPlan, TRIAL_DAYS } from "@/lib/subscription";
 
-export async function POST(req: NextRequest) {
-  const { slug } = await req.json();
-  const coach = await prisma.coach.findUnique({ where: { slug: slug || "tim-zhang" } });
-  if (!coach) return NextResponse.json({ error: "Coach not found" }, { status: 404 });
+export async function POST() {
+  const coach = await currentCoach();
+  if (!coach) return NextResponse.json({ error: "Sign in required" }, { status: 401 });
   const stripe = getStripe();
   const price = priceIdForPlan("light");
   if (!stripe || !price) {

@@ -1,11 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { currentCoach } from "@/lib/session";
 import { getStripe } from "@/lib/stripe";
 
-export async function POST(req: NextRequest) {
-  const { slug } = await req.json();
-  const coach = await prisma.coach.findUnique({ where: { slug: slug || "tim-zhang" } });
-  if (!coach?.stripeSubscriptionId) {
+export async function POST() {
+  const coach = await currentCoach();
+  if (!coach) return NextResponse.json({ error: "Sign in required" }, { status: 401 });
+  if (!coach.stripeSubscriptionId) {
     return NextResponse.json({ error: "No subscription" }, { status: 400 });
   }
   const stripe = getStripe();

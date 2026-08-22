@@ -10,7 +10,6 @@ const TIERS = [
 ];
 
 export default function BillingPage() {
-  const [slug, setSlug] = useState("");
   const [status, setStatus] = useState("none");
   const [plan, setPlan] = useState("none");
   const [busy, setBusy] = useState(false);
@@ -25,8 +24,7 @@ export default function BillingPage() {
       return r.json();
     }).then((me) => {
       if (!me) return;
-      setSlug(me.slug);
-      return fetch(`/api/billing/status?slug=${me.slug}`).then((r) => r.json());
+      return fetch("/api/billing/status").then((r) => r.json());
     }).then((d) => {
       if (!d) return;
       setStatus(d.status || "none");
@@ -40,7 +38,6 @@ export default function BillingPage() {
     const res = await fetch("/api/billing/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug }),
     });
     const data = await res.json();
     setBusy(false);
@@ -56,7 +53,6 @@ export default function BillingPage() {
     const res = await fetch("/api/billing/cancel", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug }),
     });
     setBusy(false);
     if (res.ok) {
@@ -83,7 +79,7 @@ export default function BillingPage() {
       <div className="mt-4 rounded-xl border border-slate-200 p-4 text-sm">Status: {status}{plan !== "none" ? ` · ${plan}` : ""}</div>
       {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
       {!open && (
-        <button disabled={busy || !slug} onClick={start} className="mt-6 w-full rounded-xl bg-[#10B981] py-3 font-semibold text-white disabled:opacity-40">
+        <button disabled={busy} onClick={start} className="mt-6 w-full rounded-xl bg-[#10B981] py-3 font-semibold text-white disabled:opacity-40">
           Start 3-day Light trial
         </button>
       )}
