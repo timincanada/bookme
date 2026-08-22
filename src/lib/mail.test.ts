@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { changeMails, confirmationMails, manageLinkMail, reminderMails } from "./mail";
+import { changeMails, confirmationMails, manageLinkMail, reminderMails, studentMessageMail } from "./mail";
 
 const mails = confirmationMails({
   coachName: "Tim Zhang",
@@ -91,5 +91,10 @@ assert.equal(link.to, "emma@test.com");
 assert.match(link.text, /one-time/i);
 assert.match(link.text, /123456/);
 assert.match(link.text, /token=abc/);
+
+const note = studentMessageMail({ studentEmail: "emma@test.com", studentName: "Emma", coachName: "Tim Zhang", body: "Practice serve." });
+assert.equal(note.to, "emma@test.com");
+assert.match(note.subject, /Tim Zhang/);
+assert.match(note.text, /Practice serve/);
 
 console.log("mail tests ok");

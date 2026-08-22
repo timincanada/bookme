@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentCoach } from "@/lib/session";
 import { canCopyBookingLink, isSetupComplete } from "@/lib/setup";
+import { planCapabilities } from "@/lib/subscription";
 
 export async function GET() {
   const coach = await currentCoach();
@@ -29,5 +30,6 @@ export async function GET() {
     acceptCash: coach.acceptCash,
     locations: coach.locations,
     hours: coach.hours,
+    capabilities: planCapabilities(coach.plan, coach.subscriptionStatus),
   });
 }

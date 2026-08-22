@@ -1,12 +1,26 @@
 export const TRIAL_DAYS = 3;
 
+export type Capability = "list_availability" | "draft_email" | "draft_reschedule";
+
+const ASSISTANT: Capability[] = ["list_availability", "draft_email", "draft_reschedule"];
+
 export const PLANS = {
-  light: { id: "light", name: "Light", cad: 19, max: 20 },
-  coach: { id: "coach", name: "Coach", cad: 29, max: 60 },
-  busy: { id: "busy", name: "Busy", cad: 49, max: Infinity },
+  light: { id: "light", name: "Light", cad: 19, max: 20, capabilities: [] as Capability[] },
+  coach: { id: "coach", name: "Coach", cad: 29, max: 60, capabilities: ASSISTANT },
+  busy: { id: "busy", name: "Busy", cad: 49, max: Infinity, capabilities: ASSISTANT },
 } as const;
 
 export type PlanId = keyof typeof PLANS;
+
+export function planCapabilities(plan: string | null | undefined, status?: string | null): Capability[] {
+  if (status === "trialing") return [...ASSISTANT];
+  if (plan === "coach" || plan === "busy") return [...PLANS[plan].capabilities];
+  return [];
+}
+
+export function hasCapability(plan: string | null | undefined, cap: Capability, status?: string | null) {
+  return planCapabilities(plan, status).includes(cap);
+}
 
 const OPEN = new Set(["trialing", "active"]);
 

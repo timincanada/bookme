@@ -68,7 +68,9 @@ model DateBlock {
   id      String @id @default(cuid())
   coachId String
   coach   Coach  @relation(fields: [coachId], references: [id], onDelete: Cascade)
-  date    String
+  date     String
+  startMin Int    @default(0)
+  endMin   Int    @default(1440)
 }
 
 model Client {
