@@ -48,11 +48,24 @@ const ITEMS = [
       </svg>
     ),
   },
+  {
+    id: "assistant",
+    href: "/app/assistant",
+    label: "Assistant",
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <rect x="9" y="3.5" width="6" height="10" rx="3" />
+        <path d="M7 12a5 5 0 0 0 10 0M12 17v3M9.5 20.5h5" />
+        <path d="M18.2 2.6l.4 1.15 1.15.4-1.15.4-.4 1.15-.4-1.15-1.15-.4 1.15-.4.4-1.15z" fill="currentColor" stroke="none" />
+        <path d="M21.3 5.4l.28.8.8.28-.8.28-.28.8-.28-.8-.8-.28.8-.28.28-.8z" fill="currentColor" stroke="none" />
+      </svg>
+    ),
+  },
 ] as const;
 
 export function TabBar({ active }: { active: (typeof ITEMS)[number]["id"] }) {
   return (
-    <nav className="fixed bottom-0 left-1/2 flex w-full max-w-[430px] -translate-x-1/2 justify-around border-t border-line bg-surface pb-[max(10px,env(safe-area-inset-bottom))] pt-2 text-[11px]">
+    <nav className="fixed bottom-0 left-1/2 z-20 flex w-full max-w-[430px] -translate-x-1/2 justify-around border-t border-line bg-surface pb-[max(10px,env(safe-area-inset-bottom))] pt-2 text-[11px]">
       {ITEMS.map((item) => {
         const on = item.id === active;
         return (
