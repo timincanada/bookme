@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getStripe } from "@/lib/stripe";
 import { canConfirmCheckout } from "@/lib/hold";
 import { reconcilePlanForNextCycle, syncCoachSubscription } from "@/lib/subscription-sync";
+import { shouldPriceInvoiceFromLastMonth } from "@/lib/subscription";
 
 export const runtime = "nodejs";
 
@@ -80,13 +81,24 @@ export async function POST(req: NextRequest) {
     await syncCoachSubscription(event.data.object);
   }
 
-  if (event.type === "invoice.paid") {
+  if (event.type === "invoice.created") {
     const invoice = event.data.object;
-    if (invoice.billing_reason === "subscription_cycle") {
-      const subId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
-      if (subId) {
+    const subId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
+    if (subId) {
+      const sub = await stripe.subscriptions.retrieve(subId);
+      const trialEnd = sub.trial_end ? new Date(sub.trial_end * 1000) : null;
+      const periodStart = invoice.period_start ? new Date(invoice.period_start * 1000) : null;
+      if (
+        shouldPriceInvoiceFromLastMonth({
+          billingReason: invoice.billing_reason,
+          invoiceStatus: invoice.status,
+          subscriptionStatus: sub.status,
+          trialEnd,
+          periodStart,
+        })
+      ) {
         const coach = await prisma.coach.findFirst({ where: { stripeSubscriptionId: subId } });
-        if (coach) await reconcilePlanForNextCycle(coach.id);
+        if (coach) await reconcilePlanForNextCycle(coach.id, periodStart ?? new Date());
       }
     }
   }

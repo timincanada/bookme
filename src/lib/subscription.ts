@@ -47,3 +47,19 @@ export function planFromPriceId(priceId: string | null | undefined): PlanId | nu
   if (priceId === process.env.STRIPE_PRICE_BUSY) return "busy";
   return null;
 }
+
+export function shouldPriceInvoiceFromLastMonth(opts: {
+  billingReason?: string | null;
+  invoiceStatus?: string | null;
+  subscriptionStatus?: string | null;
+  trialEnd?: Date | null;
+  periodStart?: Date | null;
+}) {
+  if (opts.invoiceStatus && !["draft", "open"].includes(opts.invoiceStatus)) return false;
+  if (opts.subscriptionStatus === "trialing") return false;
+  if (opts.billingReason && opts.billingReason !== "subscription_cycle") return false;
+  if (opts.trialEnd && opts.periodStart && opts.periodStart.getTime() <= opts.trialEnd.getTime() + 60_000) {
+    return false;
+  }
+  return true;
+}

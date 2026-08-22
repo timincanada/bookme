@@ -24,10 +24,10 @@ export async function syncCoachSubscription(sub: Stripe.Subscription, coachId?: 
   if (existing) await prisma.coach.update({ where: { id: existing.id }, data });
 }
 
-export async function reconcilePlanForNextCycle(coachId: string) {
+export async function reconcilePlanForNextCycle(coachId: string, asOf = new Date()) {
   const coach = await prisma.coach.findUnique({ where: { id: coachId } });
   if (!coach?.stripeSubscriptionId || !["trialing", "active"].includes(coach.subscriptionStatus)) return;
-  const { start, end } = lastMonthRange();
+  const { start, end } = lastMonthRange(asOf);
   const count = await prisma.lesson.count({
     where: {
       coachId,
