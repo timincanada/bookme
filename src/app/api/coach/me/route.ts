@@ -30,6 +30,6 @@ export async function GET() {
     acceptCash: coach.acceptCash,
     locations: coach.locations,
     hours: coach.hours,
-    capabilities: planCapabilities(coach.plan),
+    capabilities: planCapabilities(coach.plan, coach.subscriptionStatus),
   });
 }

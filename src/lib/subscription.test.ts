@@ -65,9 +65,10 @@ assert.equal(
   false,
 );
 
-assert.deepEqual(planCapabilities("light"), []);
-assert.equal(hasCapability("light", "list_availability"), false);
-assert.equal(hasCapability("coach", "message_student"), true);
-assert.equal(hasCapability("busy", "mutate_schedule"), true);
+assert.deepEqual(planCapabilities("light", "trialing"), ["list_availability", "draft_email", "draft_reschedule"]);
+assert.deepEqual(planCapabilities("light", "active"), []);
+assert.equal(hasCapability("light", "list_availability", "active"), false);
+assert.equal(hasCapability("coach", "draft_email"), true);
+assert.equal(hasCapability("busy", "draft_reschedule"), true);
 
 console.log("subscription tests ok");

@@ -40,7 +40,10 @@ export default async function SchedulePage() {
           </div>
         }
       />
-      <h1 className="text-2xl font-bold">My Schedule</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">My Schedule</h1>
+        <Link href="/app/assistant?from=schedule" className="shrink-0 text-sm font-semibold text-brand">Assistant</Link>
+      </div>
       <p className="text-muted">{lessons.length} upcoming lessons</p>
       {!setup && (
         <Link href="/app/setup" className="mt-4 block rounded-2xl bg-brand-soft p-3 text-sm font-semibold text-brand-dark">

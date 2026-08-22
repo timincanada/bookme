@@ -1,12 +1,13 @@
-export type Capability = "list_availability" | "message_student" | "mutate_schedule";
+export type Capability = "list_availability" | "draft_email" | "draft_reschedule";
 
 export type ClientHit = { id: string; name: string };
-export type LessonHit = { id: string; clientId: string; clientName: string; startAt: string; status: string };
+export type LessonHit = { id: string; clientId: string; clientName: string; startAt: string; status: string; location?: string };
 
 export type AssistantAction =
-  | { type: "list_availability"; dateKey: string }
-  | { type: "message_student"; clientId: string; body: string }
-  | { type: "mutate_schedule"; op: "cancel" | "move"; lessonId: string; start?: string };
+  | { type: "list_availability"; dateKey: string; days: number }
+  | { type: "draft_email"; lessonId: string; body: string }
+  | { type: "draft_reschedule"; op: "move"; lessonId: string; start: string }
+  | { type: "draft_reschedule"; op: "block"; dateKey: string; startMin: number; endMin: number };
 
 export type ParseResult =
   | { ok: true; action: AssistantAction; summary: string; needsConfirm: boolean }
@@ -52,42 +53,50 @@ export function dateKeyFromText(text: string, todayKey: string) {
   const iso = t.match(/\b(20\d{2}-\d{2}-\d{2})\b/);
   if (iso) return iso[1];
   for (let i = 0; i < WEEKDAYS.length; i++) {
-    if (t.includes(WEEKDAYS[i])) return nextWeekdayKey(todayKey, i);
+    if (t.includes(WEEKDAYS[i]) || t.includes(WEEKDAYS[i].slice(0, 3))) return nextWeekdayKey(todayKey, i);
   }
   return todayKey;
 }
 
-function messageBody(text: string, clientName: string) {
-  const re = new RegExp("(?:message|email|text|tell|remind)\\s+" + clientName + "\\s*[:\\-]?\\s*", "i");
-  const cut = text.trim().replace(re, "").trim();
-  if (cut && cut.toLowerCase() !== clientName.toLowerCase()) return cut;
-  return "Hi " + clientName + ", a note from your coach.";
+function afternoonRange(text: string) {
+  const t = norm(text);
+  if (/\bmorning\b/.test(t)) return { startMin: 8 * 60, endMin: 12 * 60, label: "8:00 a.m.–12:00 p.m." };
+  if (/\bevening\b/.test(t)) return { startMin: 17 * 60, endMin: 21 * 60, label: "5:00–9:00 p.m." };
+  return { startMin: 12 * 60, endMin: 18 * 60, label: "12:00–6:00 p.m." };
+}
+
+function emailDraft(lesson: LessonHit, extra?: string) {
+  const when = lesson.startAt;
+  const loc = lesson.location ? " at " + lesson.location : "";
+  const extraBit = extra && extra.length > 2 ? extra : "just a reminder about our lesson";
+  return "Hi " + lesson.clientName.split(" ")[0] + ", " + extraBit + ". See you then.";
 }
 
 export function parseAssistant(text: string, ctx: { todayKey: string; clients: ClientHit[]; lessons: LessonHit[] }): ParseResult {
   const raw = String(text || "").trim();
   if (!raw) return { ok: false, error: "Say something to your assistant." };
   const t = norm(raw);
-  const wantsList = /\b(availab|open slot|open time|what.?s open|free time|my hours|open|slots?)\b/.test(t);
-  const wantsMsg = /\b(message|email|text|tell|remind)\b/.test(t);
-  const wantsCancel = /\bcancel\b/.test(t);
+
+  const wantsList = /\b(availab|opening|openings|open slot|open time|what.?s open|free time|this week)\b/.test(t) || t === "openings this week";
+  const wantsEmail = /\b(email|message|tell|remind)\b/.test(t);
+  const wantsBlock = /\b(block|close|change hours|hours)\b/.test(t);
   const wantsMove = /\b(move|reschedule)\b/.test(t);
 
-  if (wantsMsg) {
+  if (wantsEmail) {
     const client = findClient(ctx.clients, raw);
-    if (!client) return { ok: false, error: "Name the student to message." };
-    const body = messageBody(raw, client.name);
-    return { ok: true, needsConfirm: true, action: { type: "message_student", clientId: client.id, body }, summary: "Email " + client.name + ": " + body };
+    if (!client) return { ok: false, error: "Name the student on the lesson to email." };
+    const lesson = nextLessonForClient(ctx.lessons, client.id);
+    if (!lesson) return { ok: false, error: "No upcoming confirmed lesson for " + client.name + " to email about." };
+    const rest = raw.replace(new RegExp("(?:email|message|tell|remind)\\s+" + client.name.split(" ")[0], "i"), "").trim();
+    const body = emailDraft(lesson, rest.replace(client.name, "").trim());
+    return { ok: true, needsConfirm: true, action: { type: "draft_email", lessonId: lesson.id, body }, summary: "Email " + client.name + " about their lesson." };
   }
 
-  if (wantsCancel || wantsMove) {
+  if (wantsMove) {
     const client = findClient(ctx.clients, raw);
-    if (!client) return { ok: false, error: "Name the student to change the lesson." };
+    if (!client) return { ok: false, error: "Name the student to reschedule." };
     const lesson = nextLessonForClient(ctx.lessons, client.id);
     if (!lesson) return { ok: false, error: "No upcoming confirmed lesson for " + client.name + "." };
-    if (wantsCancel) {
-      return { ok: true, needsConfirm: true, action: { type: "mutate_schedule", op: "cancel", lessonId: lesson.id }, summary: "Cancel the lesson with " + client.name + "." };
-    }
     const dateKey = dateKeyFromText(raw, ctx.todayKey);
     const hm = t.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
     if (!hm) return { ok: false, error: "Say the new time, like Thursday 5:00 pm." };
@@ -95,16 +104,23 @@ export function parseAssistant(text: string, ctx: { todayKey: string; clients: C
     const min = hm[2] ? Number(hm[2]) : 0;
     if (hm[3] === "pm" && hour < 12) hour += 12;
     if (hm[3] === "am" && hour === 12) hour = 0;
-    const hh = String(hour).padStart(2, "0");
-    const mm = String(min).padStart(2, "0");
-    const start = new Date(dateKey + "T" + hh + ":" + mm + ":00-04:00");
-    return { ok: true, needsConfirm: true, action: { type: "mutate_schedule", op: "move", lessonId: lesson.id, start: start.toISOString() }, summary: "Move the lesson with " + client.name + "." };
+    const start = new Date(dateKey + "T" + String(hour).padStart(2, "0") + ":" + String(min).padStart(2, "0") + ":00-04:00");
+    return { ok: true, needsConfirm: true, action: { type: "draft_reschedule", op: "move", lessonId: lesson.id, start: start.toISOString() }, summary: "Move the lesson with " + client.name + "." };
+  }
+
+  if (wantsBlock) {
+    const hasDay = /\b(today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)\b/.test(t);
+    if (!hasDay) return { ok: false, error: "Which day should I block?" };
+    const dateKey = dateKeyFromText(raw, ctx.todayKey);
+    const range = afternoonRange(raw);
+    return { ok: true, needsConfirm: true, action: { type: "draft_reschedule", op: "block", dateKey, startMin: range.startMin, endMin: range.endMin }, summary: "Block " + dateKey + " " + range.label + "." };
   }
 
   if (wantsList) {
-    const dateKey = dateKeyFromText(raw, ctx.todayKey);
-    return { ok: true, needsConfirm: false, action: { type: "list_availability", dateKey }, summary: "Open times on " + dateKey + "." };
+    const days = /\bweek\b/.test(t) ? 7 : 1;
+    const dateKey = days === 7 ? ctx.todayKey : dateKeyFromText(raw, ctx.todayKey);
+    return { ok: true, needsConfirm: false, action: { type: "list_availability", dateKey, days }, summary: days === 7 ? "Openings this week." : "Open times on " + dateKey + "." };
   }
 
-  return { ok: false, error: "Try: open times tomorrow, message Emma practice serve, or cancel Emma." };
+  return { ok: false, error: "Try: openings this week, email Alex about Tuesday, or block Thursday afternoon." };
 }
