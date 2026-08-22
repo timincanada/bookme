@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getStripe } from "@/lib/stripe";
-import { isHoldOpen } from "@/lib/hold";
+import { canConfirmCheckout } from "@/lib/hold";
 
 export const runtime = "nodejs";
 
@@ -32,29 +32,18 @@ export async function POST(req: NextRequest) {
     });
     if (!lesson) return NextResponse.json({ received: true });
     if (lesson.status === "confirmed") return NextResponse.json({ received: true });
-    if (lesson.status === "held" && !isHoldOpen(lesson.holdUntil) && lesson.status !== "confirmed") {
-      // Hold expired; confirm only if the slot was not taken by someone else.
-      const clash = await prisma.lesson.findFirst({
-        where: {
-          coachId: lesson.coachId,
-          id: { not: lesson.id },
-          status: { in: ["held", "confirmed"] },
-          startAt: { lt: lesson.endAt },
-          endAt: { gt: lesson.startAt },
-        },
-      });
-      if (clash) {
-        const pi = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
-        if (pi) await stripe.refunds.create({ payment_intent: pi });
-        await prisma.lesson.update({ where: { id: lesson.id }, data: { status: "expired" } });
-        await prisma.payment.update({
-          where: { lessonId: lesson.id },
-          data: { status: "refunded", stripePaymentIntentId: pi ?? undefined },
-        });
-        return NextResponse.json({ received: true });
-      }
-    }
     const pi = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
+    if (!canConfirmCheckout(lesson.status, lesson.holdUntil)) {
+      if (pi) await stripe.refunds.create({ payment_intent: pi });
+      if (lesson.status === "held") {
+        await prisma.lesson.update({ where: { id: lesson.id }, data: { status: "expired" } });
+      }
+      await prisma.payment.update({
+        where: { lessonId: lesson.id },
+        data: { status: "refunded", stripePaymentIntentId: pi ?? undefined },
+      });
+      return NextResponse.json({ received: true, rejected: "hold_expired" });
+    }
     await prisma.lesson.update({ where: { id: lesson.id }, data: { status: "confirmed" } });
     await prisma.payment.update({
       where: { lessonId: lesson.id },

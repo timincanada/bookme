@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { openSlots } from "@/lib/slots";
 import { getStripe } from "@/lib/stripe";
+import { canSelfReschedule } from "@/lib/hold";
 
 export async function POST(req: NextRequest) {
   const { lessonId, email, start, action } = await req.json();
@@ -12,9 +13,9 @@ export async function POST(req: NextRequest) {
   if (!lesson || lesson.client.email.toLowerCase() !== String(email).toLowerCase()) {
     return NextResponse.json({ error: "Lesson not found for that email" }, { status: 404 });
   }
-  const hours = (lesson.startAt.getTime() - Date.now()) / 36e5;
+  const selfServe = canSelfReschedule(lesson.startAt);
   if (action === "cancel") {
-    if (hours < 24 && lesson.payment?.method === "card") {
+    if (!selfServe && lesson.payment?.method === "card") {
       await prisma.payment.update({ where: { lessonId }, data: { status: "no_refund" } });
     } else if (lesson.payment?.method === "card") {
       const stripe = getStripe();
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
     await prisma.lesson.update({ where: { id: lessonId }, data: { status: "cancelled" } });
     return NextResponse.json({ ok: true });
   }
-  if (hours < 24) {
+  if (!selfServe) {
     return NextResponse.json({ error: "Within 24 hours, reschedule needs the coach. Email them or cancel." }, { status: 400 });
   }
   const startAt = new Date(start);
