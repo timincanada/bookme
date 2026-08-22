@@ -1,0 +1,24 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
+import { SESSION_COOKIE, sessionCookieOptions, signSession, verifyPassword } from "@/lib/auth";
+
+export async function POST(req: NextRequest) {
+  const { email, password } = await req.json();
+  if (!email || !password) {
+    return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
+  }
+  const coach = await prisma.coach.findUnique({
+    where: { email: String(email).toLowerCase() },
+    include: { services: true, locations: true, hours: true },
+  });
+  if (!coach || !verifyPassword(password, coach.passwordHash)) {
+    return NextResponse.json({ error: "Wrong email or password" }, { status: 401 });
+  }
+  const res = NextResponse.json({
+    id: coach.id,
+    slug: coach.slug,
+    setup: Boolean(coach.title && coach.services[0] && coach.locations.length && coach.hours.length),
+  });
+  res.cookies.set(SESSION_COOKIE, signSession(coach.id), sessionCookieOptions());
+  return res;
+}

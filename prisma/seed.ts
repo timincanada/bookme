@@ -1,5 +1,11 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
+import { randomBytes, scryptSync } from "crypto";
+
+function hashPassword(password: string) {
+  const salt = randomBytes(16).toString("hex");
+  return `${salt}:${scryptSync(password, salt, 32).toString("hex")}`;
+}
 const prisma = new PrismaClient();
 
 async function main() {
@@ -21,6 +27,7 @@ async function main() {
       timezone: "America/Toronto",
       languages: "English / 中文",
       email: "tim@bookme.test",
+      passwordHash: hashPassword("coach123"),
       services: {
         create: { name: "Private tennis", duration: 60, priceCad: 80 },
       },

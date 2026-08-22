@@ -9,7 +9,8 @@ export default function Home() {
       <p className="mt-3 text-slate-500">Book and pay private lessons — or pay cash at the court.</p>
       <div className="mt-8 space-y-3">
         <Link href="/tim-zhang" className="block rounded-xl bg-[#10B981] py-3 text-center font-semibold text-white">Book Tim Zhang</Link>
-        <Link href="/app/schedule" className="block rounded-xl border border-slate-200 py-3 text-center font-semibold">Coach schedule</Link>
+        <Link href="/app/register" className="block rounded-xl border border-slate-200 py-3 text-center font-semibold">Open for business</Link>
+        <Link href="/app/login" className="block rounded-xl border border-slate-200 py-3 text-center font-semibold">Coach sign in</Link>
         <Link href="/manage" className="block rounded-xl border border-slate-200 py-3 text-center font-semibold">Find a booking by email</Link>
       </div>
     </main>

@@ -2,15 +2,23 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Brand } from "@/components/Brand";
 import { prisma } from "@/lib/db";
-import { canAcceptNewBookings } from "@/lib/subscription";
+import { canCopyBookingLink, isSetupComplete } from "@/lib/setup";
 
 export default async function CoachPage({ params }: { params: { slug: string } }) {
   const coach = await prisma.coach.findUnique({
     where: { slug: params.slug },
-    include: { services: true, locations: { where: { active: true } } },
+    include: { services: true, locations: { where: { active: true } }, hours: true },
   });
   if (!coach) notFound();
   const service = coach.services[0];
+  const setup = isSetupComplete({
+    title: coach.title,
+    timezone: coach.timezone,
+    service: service || null,
+    locationCount: coach.locations.length,
+    hourCount: coach.hours.length,
+  });
+  const open = canCopyBookingLink(setup, coach.subscriptionStatus);
   return (
     <main className="phone px-5 pb-8">
       <Brand />
@@ -30,7 +38,7 @@ export default async function CoachPage({ params }: { params: { slug: string } }
           <li key={l.id} className="py-3">{l.name}</li>
         ))}
       </ul>
-      {canAcceptNewBookings(coach.subscriptionStatus) ? (
+      {open ? (
         <Link href={`/book?coach=${coach.slug}`} className="mt-8 block rounded-xl bg-[#10B981] py-3 text-center font-semibold text-white">Book a lesson</Link>
       ) : (
         <p className="mt-8 text-center text-sm text-slate-500">This coach is not taking new bookings right now.</p>

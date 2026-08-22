@@ -1,6 +1,6 @@
 "use client";
 import { Brand } from "@/components/Brand";
-import Link from "next/link";
+import { TabBar } from "@/components/TabBar";
 import { useEffect, useState } from "react";
 
 const TIERS = [
@@ -10,18 +10,28 @@ const TIERS = [
 ];
 
 export default function BillingPage() {
+  const [slug, setSlug] = useState("");
   const [status, setStatus] = useState("none");
   const [plan, setPlan] = useState("none");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("/api/billing/status?slug=tim-zhang")
-      .then((r) => r.json())
-      .then((d) => {
-        setStatus(d.status || "none");
-        setPlan(d.plan || "none");
-      });
+    fetch("/api/coach/me").then(async (r) => {
+      if (r.status === 401) {
+        window.location.href = "/app/login";
+        return null;
+      }
+      return r.json();
+    }).then((me) => {
+      if (!me) return;
+      setSlug(me.slug);
+      return fetch(`/api/billing/status?slug=${me.slug}`).then((r) => r.json());
+    }).then((d) => {
+      if (!d) return;
+      setStatus(d.status || "none");
+      setPlan(d.plan || "none");
+    });
   }, []);
 
   async function start() {
@@ -30,7 +40,7 @@ export default function BillingPage() {
     const res = await fetch("/api/billing/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug: "tim-zhang" }),
+      body: JSON.stringify({ slug }),
     });
     const data = await res.json();
     setBusy(false);
@@ -46,7 +56,7 @@ export default function BillingPage() {
     const res = await fetch("/api/billing/cancel", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug: "tim-zhang" }),
+      body: JSON.stringify({ slug }),
     });
     setBusy(false);
     if (res.ok) {
@@ -73,7 +83,7 @@ export default function BillingPage() {
       <div className="mt-4 rounded-xl border border-slate-200 p-4 text-sm">Status: {status}{plan !== "none" ? ` · ${plan}` : ""}</div>
       {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
       {!open && (
-        <button disabled={busy} onClick={start} className="mt-6 w-full rounded-xl bg-[#10B981] py-3 font-semibold text-white disabled:opacity-40">
+        <button disabled={busy || !slug} onClick={start} className="mt-6 w-full rounded-xl bg-[#10B981] py-3 font-semibold text-white disabled:opacity-40">
           Start 3-day Light trial
         </button>
       )}
@@ -82,12 +92,7 @@ export default function BillingPage() {
           Cancel plan
         </button>
       )}
-      <nav className="fixed bottom-0 left-1/2 flex w-full max-w-[430px] -translate-x-1/2 justify-around border-t bg-white py-3 text-xs">
-        <Link href="/app/schedule">Schedule</Link>
-        <Link href="/manage">Bookings</Link>
-        <Link href="/">Clients</Link>
-        <span className="font-semibold text-[#10B981]">More</span>
-      </nav>
+      <TabBar active="more" />
     </main>
   );
 }
