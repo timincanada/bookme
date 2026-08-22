@@ -14,7 +14,10 @@ export function CollectButton({ lessonId }: { lessonId: string }) {
   }
   if (done) return <PayChip kind="offline" text="Collected offline" />;
   return (
-    <button onClick={mark} className="rounded-full border border-warn px-2.5 py-0.5 text-xs font-medium text-warn">
+    <button
+      onClick={mark}
+      className="w-full rounded-xl bg-warn px-4 py-2.5 text-sm font-semibold text-ink"
+    >
       Mark collected
     </button>
   );
