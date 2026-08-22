@@ -20,5 +20,7 @@ export async function GET(req: NextRequest) {
     coachName: coach.name,
     duration,
     priceCad: coach.services[0]?.priceCad || 80,
+    acceptCard: coach.acceptCard,
+    acceptCash: coach.acceptCash,
   });
 }

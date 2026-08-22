@@ -24,6 +24,8 @@ model Coach {
   plan                  String       @default("none")
   trialEndsAt           DateTime?
   passwordHash          String?
+  acceptCard            Boolean      @default(true)
+  acceptCash            Boolean      @default(true)
   services  Service[]
   locations Location[]
   hours     WeeklyHour[]

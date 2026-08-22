@@ -5,6 +5,7 @@ import { holdExpiresAt } from "@/lib/hold";
 import { appUrl, getStripe } from "@/lib/stripe";
 import { canAcceptNewBookings } from "@/lib/subscription";
 import { notifyLessonConfirmed } from "@/lib/mail-send";
+import { canUseMethod } from "@/lib/payments";
 
 export async function POST(req: NextRequest) {
   const { slug, start, name, email, method } = await req.json();
@@ -21,6 +22,10 @@ export async function POST(req: NextRequest) {
   if (!service || !location) return NextResponse.json({ error: "Coach is not set up" }, { status: 400 });
   if (!canAcceptNewBookings(coach.subscriptionStatus)) {
     return NextResponse.json({ error: "This coach is not accepting new bookings" }, { status: 403 });
+  }
+  const payMethod = method === "card" ? "card" : "cash";
+  if (!canUseMethod(payMethod, coach.acceptCard, coach.acceptCash)) {
+    return NextResponse.json({ error: "That payment method is not available" }, { status: 400 });
   }
 
   const startAt = new Date(start);

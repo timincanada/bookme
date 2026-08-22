@@ -26,10 +26,19 @@ export default function MorePage() {
       <h1 className="text-2xl font-bold">More</h1>
       <ul className="mt-5 divide-y divide-slate-100 rounded-xl border border-slate-200">
         <li>
-          <Link href="/app/setup" className="block p-4 font-semibold">Open for business</Link>
+          <Link href="/app/more/hours" className="block p-4 font-semibold">Weekly hours</Link>
+        </li>
+        <li>
+          <Link href="/app/more/locations" className="block p-4 font-semibold">Locations</Link>
+        </li>
+        <li>
+          <Link href="/app/more/payments" className="block p-4 font-semibold">Accepted payments</Link>
         </li>
         <li>
           <Link href="/app/billing" className="block p-4 font-semibold">Subscription & billing</Link>
+        </li>
+        <li>
+          <Link href="/app/setup" className="block p-4 font-semibold">Open for business</Link>
         </li>
       </ul>
       {me && (

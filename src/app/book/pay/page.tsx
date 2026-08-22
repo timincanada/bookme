@@ -18,7 +18,11 @@ export default function PayPage() {
   useEffect(() => {
     fetch(`/api/slots?coach=${slug}&date=${start.slice(0, 10)}`)
       .then((r) => r.json())
-      .then(setMeta);
+      .then((d) => {
+        setMeta(d);
+        if (d.acceptCash === false && d.acceptCard !== false) setMethod("card");
+        else if (d.acceptCard === false) setMethod("cash");
+      });
   }, [slug, start]);
 
   async function submit() {
@@ -59,8 +63,12 @@ export default function PayPage() {
       <input value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2" placeholder="you@email.com" />
       <p className="mt-5 font-semibold">Payment</p>
       <div className="mt-2 grid grid-cols-2 gap-2">
-        <button onClick={() => setMethod("cash")} className={`rounded-xl border py-2 ${method === "cash" ? "border-[#10B981] bg-[#D1FAE5]" : "border-slate-200"}`}>Cash</button>
-        <button onClick={() => setMethod("card")} className={`rounded-xl border py-2 ${method === "card" ? "border-[#10B981] bg-[#D1FAE5]" : "border-slate-200"}`}>Card</button>
+        {meta?.acceptCash !== false && (
+          <button onClick={() => setMethod("cash")} className={`rounded-xl border py-2 ${method === "cash" ? "border-[#10B981] bg-[#D1FAE5]" : "border-slate-200"}`}>Cash</button>
+        )}
+        {meta?.acceptCard !== false && (
+          <button onClick={() => setMethod("card")} className={`rounded-xl border py-2 ${method === "card" ? "border-[#10B981] bg-[#D1FAE5]" : "border-slate-200"}`}>Card</button>
+        )}
       </div>
       {method === "card" && <p className="mt-2 text-sm text-slate-500">Pay by card (CAD). Your time is held for 15 minutes while you check out.</p>}
       {method === "cash" && <p className="mt-2 text-sm text-slate-500">Pay the coach in person. Your spot is confirmed now.</p>}
