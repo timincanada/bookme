@@ -73,6 +73,7 @@ export async function POST(req: NextRequest) {
   });
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
+    adaptive_pricing: { enabled: false },
     expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
     customer_email: lesson.client.email,
     line_items: [

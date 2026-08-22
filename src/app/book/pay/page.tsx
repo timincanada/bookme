@@ -2,6 +2,8 @@
 import { Brand } from "@/components/Brand";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { formatWhen } from "@/lib/time";
+import { looksLikeEmail } from "@/lib/email";
 
 export default function PayPage() {
   const params = useSearchParams();
@@ -31,6 +33,10 @@ export default function PayPage() {
   }, [slug, start]);
 
   async function submit() {
+    if (!looksLikeEmail(email)) {
+      setError("Enter a valid email");
+      return;
+    }
     setBusy(true);
     setError("");
     const res = await fetch("/api/book", {
@@ -51,7 +57,7 @@ export default function PayPage() {
     router.push(`/book/done?id=${data.id}`);
   }
 
-  const when = start ? new Date(start).toLocaleString("en-CA", { weekday: "long", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+  const when = start ? formatWhen(new Date(start)) : "";
 
   return (
     <main className="phone px-5 pb-8">
@@ -66,7 +72,7 @@ export default function PayPage() {
       <label className="mt-5 block text-sm">Your name</label>
       <input value={name} onChange={(e) => setName(e.target.value)} className="field mt-1" />
       <label className="mt-3 block text-sm">Email</label>
-      <input value={email} onChange={(e) => setEmail(e.target.value)} className="field mt-1" placeholder="you@email.com" />
+      <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="field mt-1" placeholder="you@email.com" inputMode="email" autoComplete="email" />
       <p className="mt-5 font-semibold">Payment</p>
       <div className="mt-2 space-y-2">
         {meta?.acceptCard !== false && (

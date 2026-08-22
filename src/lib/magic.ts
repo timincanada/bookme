@@ -22,6 +22,4 @@ export function isMagicOpen(
   return link.expiresAt.getTime() > now.getTime();
 }
 
-export function normalizeEmail(email: string) {
-  return String(email || "").trim().toLowerCase();
-}
+export { normalizeEmail } from "./email";
