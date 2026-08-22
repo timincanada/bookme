@@ -35,6 +35,10 @@ export default function PayPage() {
       setError(data.error || "Could not book");
       return;
     }
+    if (method === "card" && data.checkoutUrl) {
+      window.location.href = data.checkoutUrl;
+      return;
+    }
     router.push(`/book/done?id=${data.id}`);
   }
 
@@ -58,7 +62,7 @@ export default function PayPage() {
         <button onClick={() => setMethod("cash")} className={`rounded-xl border py-2 ${method === "cash" ? "border-[#10B981] bg-[#D1FAE5]" : "border-slate-200"}`}>Cash</button>
         <button onClick={() => setMethod("card")} className={`rounded-xl border py-2 ${method === "card" ? "border-[#10B981] bg-[#D1FAE5]" : "border-slate-200"}`}>Card</button>
       </div>
-      {method === "card" && <p className="mt-2 text-sm text-slate-500">Card checkout is stubbed in V1 — use Cash to confirm without Stripe keys.</p>}
+      {method === "card" && <p className="mt-2 text-sm text-slate-500">Pay by card (CAD). Your time is held for 15 minutes while you check out.</p>}
       {method === "cash" && <p className="mt-2 text-sm text-slate-500">Pay the coach in person. Your spot is confirmed now.</p>}
       {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
       <button disabled={busy || !name || !email} onClick={submit} className="mt-6 w-full rounded-xl bg-[#10B981] py-3 font-semibold text-white disabled:opacity-40">

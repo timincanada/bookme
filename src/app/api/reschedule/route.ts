@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { openSlots } from "@/lib/slots";
+import { getStripe } from "@/lib/stripe";
 
 export async function POST(req: NextRequest) {
   const { lessonId, email, start, action } = await req.json();
@@ -16,6 +17,10 @@ export async function POST(req: NextRequest) {
     if (hours < 24 && lesson.payment?.method === "card") {
       await prisma.payment.update({ where: { lessonId }, data: { status: "no_refund" } });
     } else if (lesson.payment?.method === "card") {
+      const stripe = getStripe();
+      if (stripe && lesson.payment.stripePaymentIntentId && lesson.payment.status === "paid") {
+        await stripe.refunds.create({ payment_intent: lesson.payment.stripePaymentIntentId });
+      }
       await prisma.payment.update({ where: { lessonId }, data: { status: "refunded" } });
     }
     await prisma.lesson.update({ where: { id: lessonId }, data: { status: "cancelled" } });

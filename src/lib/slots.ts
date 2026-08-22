@@ -1,6 +1,20 @@
 import { prisma } from "./db";
+import { isHoldOpen } from "./hold";
+
+export async function expireHolds(coachId?: string) {
+  const now = new Date();
+  await prisma.lesson.updateMany({
+    where: {
+      status: "held",
+      holdUntil: { lt: now },
+      ...(coachId ? { coachId } : {}),
+    },
+    data: { status: "expired" },
+  });
+}
 
 export async function openSlots(coachId: string, dateKey: string, durationMin: number) {
+  await expireHolds(coachId);
   const date = new Date(`${dateKey}T12:00:00-04:00`);
   const weekday = date.getDay();
   const hours = await prisma.weeklyHour.findMany({ where: { coachId, weekday } });
@@ -23,9 +37,10 @@ export async function openSlots(coachId: string, dateKey: string, durationMin: n
       const start = new Date(dayStart.getTime() + m * 60 * 1000);
       const end = new Date(start.getTime() + durationMin * 60 * 1000);
       if (start < new Date()) continue;
-      const clash = taken.some(
-        (l) => l.startAt < end && l.endAt > start
-      );
+      const clash = taken.some((l) => {
+        if (l.status === "held" && !isHoldOpen(l.holdUntil)) return false;
+        return l.startAt < end && l.endAt > start;
+      });
       if (!clash) slots.push(start.toISOString());
     }
   }
