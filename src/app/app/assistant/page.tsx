@@ -156,12 +156,33 @@ function AssistantInner() {
         </div>
       </div>
       {locked && (
-        <div className="absolute inset-0 z-10 flex items-end justify-center bg-ink/40 px-5 pb-[calc(8.5rem+env(safe-area-inset-bottom))] pt-20">
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-ink/40 px-5 pb-28 pt-16">
           <div className="w-full rounded-3xl bg-white p-6 text-center shadow-lg">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-brand text-lg font-bold text-white">B</div>
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand text-white">
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor"><path d="M12 3l1.2 3.9L17 8.1l-3.8 1.2L12 13.2l-1.2-3.9L7 8.1l3.8-1.2L12 3z"/><path d="M18.5 12.2l.7 2.1 2.1.7-2.1.7-.7 2.1-.7-2.1-2.1-.7 2.1-.7.7-2.1z"/><path d="M6.2 13.4l.5 1.5 1.5.5-1.5.5-.5 1.5-.5-1.5-1.5-.5 1.5-.5.5-1.5z"/></svg>
+            </div>
             <h2 className="mt-3 text-xl font-bold">Assistant is on Coach</h2>
-            <p className="mt-2 text-sm text-muted">List openings, email a student, and change hours.</p>
-            <p className="mt-1 text-sm text-muted">Your plan is Light.</p>
+            <ul className="mt-4 space-y-3 text-left text-sm">
+              <li className="flex items-center gap-3">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 7h11M8 12h11M8 17h8"/><circle cx="5" cy="7" r="1" fill="currentColor" stroke="none"/><circle cx="5" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="5" cy="17" r="1" fill="currentColor" stroke="none"/></svg>
+                </span>
+                List openings
+              </li>
+              <li className="flex items-center gap-3">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3.5" y="6" width="17" height="12" rx="2"/><path d="M4 8l8 6 8-6"/></svg>
+                </span>
+                Email a student
+              </li>
+              <li className="flex items-center gap-3">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2"/></svg>
+                </span>
+                Change hours
+              </li>
+            </ul>
+            <p className="mt-4 text-sm">Your plan is Light.</p>
             <Link href="/app/billing" className="mt-5 block rounded-2xl bg-brand py-3 font-semibold text-white">Upgrade to Coach</Link>
             <button type="button" onClick={() => setDismissed(true)} className="mt-3 w-full py-2 font-semibold text-brand">Not now</button>
           </div>
