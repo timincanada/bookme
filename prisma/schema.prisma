@@ -8,15 +8,16 @@ datasource db {
 }
 
 model Coach {
-  id        String       @id @default(cuid())
-  slug      String       @unique
-  name      String
-  title     String
-  city      String
-  timezone  String       @default("America/Toronto")
-  languages String       @default("English")
-  photoUrl  String?
-  email     String       @unique
+  id              String       @id @default(cuid())
+  slug            String       @unique
+  name            String
+  title           String
+  city            String
+  timezone        String       @default("America/Toronto")
+  languages       String       @default("English")
+  photoUrl        String?
+  email           String       @unique
+  stripeAccountId String?
   services  Service[]
   locations Location[]
   hours     WeeklyHour[]
@@ -88,10 +89,12 @@ model Lesson {
 }
 
 model Payment {
-  id        String @id @default(cuid())
-  lessonId  String @unique
-  lesson    Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  method    String
-  status    String
-  amountCad Int
+  id                       String  @id @default(cuid())
+  lessonId                 String  @unique
+  lesson                   Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  method                   String
+  status                   String
+  amountCad                Int
+  stripeCheckoutSessionId  String?
+  stripePaymentIntentId    String?
 }

@@ -21,6 +21,8 @@ Open http://localhost:3000
 ## V1 notes
 
 - Cash bookings confirm immediately as unpaid / pay in person.
-- Card checkout is stubbed until Stripe keys are added.
+- Card checkout uses Stripe Checkout (CAD). The slot is held 15 minutes until payment completes.
 - Reschedule is free until 24 hours before the lesson.
 - Seed coach: Tim Zhang, `tim-zhang`, CA$80 / 60 min, America/Toronto.
+
+Card checkout needs STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET. Webhook: /api/stripe/webhook. Connect application_fee_amount=0.
