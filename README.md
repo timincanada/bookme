@@ -36,3 +36,5 @@ Card checkout needs STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET. Webhook: /api/s
 - Coach lesson detail `/app/lessons/[id]`: reschedule, cancel (card always refunds), book same time next week.
 
 - More: edit weekly hours, locations, and accepted payments (card / cash / both; at least one on). Checkout only shows enabled methods.
+
+- Student booking: if the coach has 2+ locations, pick one (S3). A single location is attached automatically. Never defaults to the first of many.

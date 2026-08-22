@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   const date = req.nextUrl.searchParams.get("date");
   const coach = await prisma.coach.findUnique({
     where: { slug },
-    include: { services: true },
+    include: { services: true, locations: { where: { active: true } } },
   });
   if (!coach || !date) return NextResponse.json({ slots: [] });
   const accepting = canAcceptNewBookings(coach.subscriptionStatus);
@@ -22,5 +22,11 @@ export async function GET(req: NextRequest) {
     priceCad: coach.services[0]?.priceCad || 80,
     acceptCard: coach.acceptCard,
     acceptCash: coach.acceptCash,
+    locations: coach.locations.map((l) => ({
+      id: l.id,
+      name: l.name,
+      address: l.address,
+      kind: l.kind,
+    })),
   });
 }
