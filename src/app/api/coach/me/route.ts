@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { currentCoach } from "@/lib/session";
 import { canCopyBookingLink, isSetupComplete } from "@/lib/setup";
-import { planCapabilities } from "@/lib/subscription";
+import { planCapabilities, effectiveSubscriptionStatus } from "@/lib/subscription";
+import { expireStaleTrial } from "@/lib/subscription-sync";
 
 export async function GET() {
-  const coach = await currentCoach();
-  if (!coach) return NextResponse.json({ error: "Sign in required" }, { status: 401 });
+  const raw = await currentCoach();
+  if (!raw) return NextResponse.json({ error: "Sign in required" }, { status: 401 });
+  const coach = await expireStaleTrial(raw);
   const setup = isSetupComplete({
     title: coach.title,
     timezone: coach.timezone,
@@ -21,15 +23,15 @@ export async function GET() {
     title: coach.title,
     city: coach.city,
     timezone: coach.timezone,
-    subscriptionStatus: coach.subscriptionStatus,
+    subscriptionStatus: effectiveSubscriptionStatus(coach.subscriptionStatus, coach.trialEndsAt),
     plan: coach.plan,
     setup,
-    canCopyLink: canCopyBookingLink(setup, coach.subscriptionStatus),
+    canCopyLink: canCopyBookingLink(setup, coach.subscriptionStatus, coach.trialEndsAt),
     service: coach.services[0] || null,
     acceptCard: coach.acceptCard,
     acceptCash: coach.acceptCash,
     locations: coach.locations,
     hours: coach.hours,
-    capabilities: planCapabilities(coach.plan, coach.subscriptionStatus),
+    capabilities: planCapabilities(coach.plan, coach.subscriptionStatus, coach.trialEndsAt),
   });
 }

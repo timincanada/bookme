@@ -1,6 +1,6 @@
 import type Stripe from "stripe";
 import { prisma } from "./db";
-import { lastMonthRange, planForConfirmedCount, planFromPriceId, PLANS, priceIdForPlan } from "./subscription";
+import { lastMonthRange, planForConfirmedCount, planFromPriceId, PLANS, priceIdForPlan, isTrialing } from "./subscription";
 import { getStripe } from "./stripe";
 
 export function planAmountCents(plan: keyof typeof PLANS) {
@@ -96,4 +96,30 @@ export async function reconcilePlanForNextCycle(
     }
   }
   await prisma.coach.update({ where: { id: coachId }, data: { plan: desired } });
+}
+
+export async function expireStaleTrial<T extends {
+  id: string;
+  subscriptionStatus: string;
+  trialEndsAt: Date | null;
+  stripeSubscriptionId?: string | null;
+}>(coach: T): Promise<T> {
+  if (coach.subscriptionStatus !== "trialing") return coach;
+  if (isTrialing(coach.subscriptionStatus, coach.trialEndsAt)) return coach;
+  const stripe = getStripe();
+  if (stripe && coach.stripeSubscriptionId) {
+    try {
+      const sub = await stripe.subscriptions.retrieve(coach.stripeSubscriptionId);
+      await syncCoachSubscription(sub, coach.id);
+      const fresh = await prisma.coach.findUnique({ where: { id: coach.id } });
+      if (fresh && !(fresh.subscriptionStatus === "trialing" && !isTrialing(fresh.subscriptionStatus, fresh.trialEndsAt))) return { ...coach, subscriptionStatus: fresh.subscriptionStatus, trialEndsAt: fresh.trialEndsAt, plan: fresh.plan, stripeSubscriptionId: fresh.stripeSubscriptionId };
+    } catch {
+      // Stripe missed trial end; fall through.
+    }
+  }
+  const saved = await prisma.coach.update({
+    where: { id: coach.id },
+    data: { subscriptionStatus: "active" },
+  });
+  return { ...coach, subscriptionStatus: saved.subscriptionStatus };
 }

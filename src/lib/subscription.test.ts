@@ -6,6 +6,8 @@ import {
   PLANS,
   hasCapability,
   planCapabilities,
+  isTrialing,
+  effectiveSubscriptionStatus,
   shouldPriceInvoiceFromLastMonth,
   TRIAL_DAYS,
 } from "./subscription";
@@ -71,4 +73,9 @@ assert.equal(hasCapability("light", "list_availability", "active"), false);
 assert.equal(hasCapability("coach", "draft_email"), true);
 assert.equal(hasCapability("busy", "draft_reschedule"), true);
 
+assert.equal(isTrialing("trialing", new Date("2026-08-25T00:00:00Z"), new Date("2026-08-27T12:00:00Z")), false);
+assert.equal(isTrialing("trialing", new Date("2026-08-30T00:00:00Z"), new Date("2026-08-27T12:00:00Z")), true);
+assert.equal(effectiveSubscriptionStatus("trialing", new Date("2026-08-25T00:00:00Z"), new Date("2026-08-27T12:00:00Z")), "active");
+assert.deepEqual(planCapabilities("light", "trialing", new Date("2026-08-25T00:00:00Z"), new Date("2026-08-27T12:00:00Z")), []);
+assert.deepEqual(planCapabilities("light", "trialing", new Date("2026-08-30T00:00:00Z"), new Date("2026-08-27T12:00:00Z")), ["list_availability", "draft_email", "draft_reschedule"]);
 console.log("subscription tests ok");
