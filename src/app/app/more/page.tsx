@@ -3,6 +3,7 @@ import { Brand } from "@/components/Brand";
 import { TabBar } from "@/components/TabBar";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { publicAppUrl } from "@/lib/app-url";
 
 export default function MorePage() {
   const [me, setMe] = useState<any>(null);
@@ -18,7 +19,7 @@ export default function MorePage() {
     });
   }, []);
 
-  const link = me ? `${typeof window !== "undefined" ? window.location.origin : ""}/${me.slug}` : "";
+  const link = me ? `${publicAppUrl()}/${me.slug}` : "";
 
   return (
     <main className="phone px-5 pb-24">

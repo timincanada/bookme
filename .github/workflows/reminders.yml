@@ -15,7 +15,7 @@ jobs:
           APP_URL: ${{ vars.BOOKME_APP_URL }}
         run: |
           set -euo pipefail
-          url="${APP_URL:-https://bookme-flax.vercel.app}"
+          url="${APP_URL:-https://bookme.training}"
           curl -fsS -X POST "$url/api/cron/reminders" \
             -H "Authorization: Bearer $CRON_SECRET" \
             -H "Content-Type: application/json"

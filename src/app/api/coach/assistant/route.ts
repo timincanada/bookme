@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentCoach } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { hasCapability, planCapabilities, type Capability } from "@/lib/subscription";
-import { parseAssistant, shiftDateKey, type AssistantAction } from "@/lib/assistant";
+import { shiftDateKey, type AssistantAction } from "@/lib/assistant";
+import { assistantProvider } from "@/lib/assistant-provider";
 import { openSlots } from "@/lib/slots";
 import { formatTime, formatWhen, torontoDateKey } from "@/lib/time";
 import { canMoveLesson, statusAfterReschedule } from "@/lib/hold";
@@ -149,7 +150,7 @@ export async function POST(req: NextRequest) {
   const lessons = await prisma.lesson.findMany({ where: { coachId: coach.id, status: { in: ["confirmed", "held"] } }, include: { client: true, location: true }, orderBy: { startAt: "asc" } });
   const clients = new Map();
   for (const l of lessons) clients.set(l.client.id, { id: l.client.id, name: l.client.name });
-  const parsed = parseAssistant(String(body.text || ""), {
+  const parsed = assistantProvider.parse(String(body.text || ""), {
     todayKey: torontoDateKey(),
     clients: [...clients.values()],
     lessons: lessons.map((l) => ({ id: l.id, clientId: l.clientId, clientName: l.client.name, startAt: l.startAt.toISOString(), status: l.status, location: l.location.name })),
