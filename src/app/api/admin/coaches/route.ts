@@ -1,14 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import {
-  conversionLabel,
-  formatPlanLabel,
-  formatStatusLabel,
-  grantLabel,
-  isAdminEmail,
-  paidSubscription,
-  stripeFeeLabel,
-} from "@/lib/admin";
+import { conversionLabel, formatPlanLabel, formatStatusLabel, grantLabel, paidSubscription, stripeFeeLabel } from "@/lib/admin";
 import { requireAdmin } from "@/lib/session";
 import { getStripe } from "@/lib/stripe";
 import { effectiveSubscriptionStatus } from "@/lib/subscription";
@@ -18,38 +10,26 @@ export async function GET(req: NextRequest) {
   if (!auth.ok) return auth.response;
 
   const paidOnly = req.nextUrl.searchParams.get("paid") === "1";
-  const coaches = await prisma.coach.findMany({
-    orderBy: { name: "asc" },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      slug: true,
-      plan: true,
-      subscriptionStatus: true,
-      trialEndsAt: true,
-      banned: true,
-      accessGrant: true,
-      stripeCustomerId: true,
-      stripeSubscriptionId: true,
-    },
-  });
-
-  const registered = coaches.length;
-  let trialing = 0;
-  let active = 0;
-  for (const c of coaches) {
-    if (c.banned) continue;
-    const status = effectiveSubscriptionStatus(c.subscriptionStatus, c.trialEndsAt);
-    if (status === "trialing") trialing += 1;
-    else if (status === "active") active += 1;
-  }
-  let publicVisitors = 0;
-  try {
-    publicVisitors = await prisma.publicVisitor.count();
-  } catch (err) {
-    console.error("public visitor count failed", err);
-  }
+  const [registeredCoaches, publicUniqueVisitors, coaches] = await Promise.all([
+    prisma.coach.count(),
+    prisma.publicVisitor.count().catch(() => 0),
+    prisma.coach.findMany({
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        slug: true,
+        plan: true,
+        subscriptionStatus: true,
+        trialEndsAt: true,
+        banned: true,
+        stripeCustomerId: true,
+        stripeSubscriptionId: true,
+        accessGrant: true,
+      },
+    }),
+  ]);
 
   const filtered = paidOnly
     ? coaches.filter((c) => paidSubscription(c.subscriptionStatus, c.trialEndsAt))
@@ -66,7 +46,7 @@ export async function GET(req: NextRequest) {
         try {
           const invoices = await stripe.invoices.list({ customer: coach.stripeCustomerId, limit: 10 });
           const paidInv = invoices.data.find((inv) => inv.status === "paid" && inv.amount_paid != null);
-          if (paidInv && paidInv.amount_paid != null) {
+          if (paidInv && paidInv.amount_paid != null && paidInv.currency) {
             feeLabel = stripeFeeLabel({
               hasRecord: true,
               amountPaid: paidInv.amount_paid,
@@ -75,6 +55,7 @@ export async function GET(req: NextRequest) {
           }
         } catch (err) {
           console.error("admin invoices failed", coach.id, err);
+          feeLabel = stripeFeeLabel({ hasRecord: false });
         }
       }
 
@@ -87,6 +68,7 @@ export async function GET(req: NextRequest) {
         }
       }
 
+      const mapped = effectiveSubscriptionStatus(coach.subscriptionStatus, coach.trialEndsAt);
       return {
         id: coach.id,
         name: coach.name,
@@ -94,7 +76,7 @@ export async function GET(req: NextRequest) {
         slug: coach.slug,
         plan: coach.plan,
         planLabel: formatPlanLabel(coach.plan),
-        subscriptionStatus: effectiveSubscriptionStatus(coach.subscriptionStatus, coach.trialEndsAt),
+        subscriptionStatus: mapped,
         stripeSubscriptionStatus: stripeRaw,
         statusLabel: formatStatusLabel(coach.subscriptionStatus, coach.trialEndsAt, stripeRaw),
         trialEndsAt: coach.trialEndsAt ? coach.trialEndsAt.toISOString() : null,
@@ -103,17 +85,23 @@ export async function GET(req: NextRequest) {
         banned: coach.banned,
         accessGrant: coach.accessGrant || "",
         grantLabel: grantLabel(coach.accessGrant),
-        isAdmin: isAdminEmail(coach.email),
       };
     }),
   );
 
+  const onTrial = coaches.filter(
+    (c) => effectiveSubscriptionStatus(c.subscriptionStatus, c.trialEndsAt) === "trialing",
+  ).length;
+  const subscribed = coaches.filter(
+    (c) => effectiveSubscriptionStatus(c.subscriptionStatus, c.trialEndsAt) === "active",
+  ).length;
+
   const stats = {
-    registered,
-    publicVisitors,
-    trialing,
-    active,
-    conversionLabel: conversionLabel(active, registered),
+    registeredCoaches,
+    publicUniqueVisitors,
+    onTrial,
+    subscribed,
+    conversionLabel: conversionLabel(subscribed, registeredCoaches),
   };
 
   return NextResponse.json({

@@ -124,7 +124,6 @@ model ManageLink {
   createdAt DateTime  @default(now())
 }
 
-model SiteStat {
-  key   String @id
-  value Int    @default(0)
+model PublicVisitor {
+  id String @id
 }

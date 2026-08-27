@@ -64,6 +64,5 @@ export function canCopyBookingLink(
     trialEndsAt,
     banned,
     accessGrant: grant,
-    purpose: "copy",
   });
 }

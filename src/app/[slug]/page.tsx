@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Brand } from "@/components/Brand";
+import { VisitBeacon } from "@/components/VisitBeacon";
 import { prisma } from "@/lib/db";
 import { canCopyBookingLink, isSetupComplete } from "@/lib/setup";
-import { incrementBookingViews } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +13,6 @@ export default async function CoachPage({ params }: { params: { slug: string } }
     include: { services: true, locations: { where: { active: true } }, hours: true },
   });
   if (!coach) notFound();
-  incrementBookingViews();
   const service = coach.services[0];
   const setup = isSetupComplete({
     title: coach.title,
@@ -28,6 +27,7 @@ export default async function CoachPage({ params }: { params: { slug: string } }
   });
   return (
     <main className="phone px-5 pb-8">
+      <VisitBeacon />
       <Brand />
       <div className="flex flex-col items-center text-center">
         <div className="flex h-28 w-28 items-center justify-center rounded-full bg-brand-soft text-4xl font-semibold text-brand-dark">

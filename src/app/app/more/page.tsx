@@ -26,6 +26,11 @@ export default function MorePage() {
       <Brand />
       <h1 className="text-2xl font-bold">More</h1>
       <ul className="mt-5 divide-y divide-line rounded-xl border border-line">
+        {me?.admin && (
+          <li>
+            <Link href="/app/admin" className="block p-4 font-semibold">Admin</Link>
+          </li>
+        )}
         <li>
           <Link href="/app/assistant" className="block p-4 font-semibold">Assistant</Link>
         </li>

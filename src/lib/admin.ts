@@ -30,18 +30,19 @@ export function stripeFeeLabel(input: {
   amountPaid?: number | null;
   currency?: string | null;
 }) {
-  if (!input.hasRecord) return "Stripe：无账单记录";
-  const cents = input.amountPaid ?? 0;
-  const currency = String(input.currency || "cad").toLowerCase();
-  const amount = (cents / 100).toFixed(2);
+  if (!input.hasRecord || input.amountPaid == null || !input.currency) {
+    return "No Stripe record";
+  }
+  const amount = (input.amountPaid / 100).toFixed(2);
+  const currency = String(input.currency).toLowerCase();
   const prefix = CURRENCY_PREFIX[currency];
   return prefix ? `${prefix}${amount}` : `${currency.toUpperCase()} ${amount}`;
 }
 
 export function conversionLabel(active: number, registered: number) {
-  if (!registered) return "0% (0 active / 0 registered)";
+  if (!registered) return "—";
   const pct = Math.round((active / registered) * 100);
-  return `${pct}% (${active} active / ${registered} registered)`;
+  return `${pct}% (${active} active ÷ ${registered} registered coaches)`;
 }
 
 export function grantLabel(grant?: string | null) {
@@ -50,7 +51,10 @@ export function grantLabel(grant?: string | null) {
   return "Grant: none";
 }
 
-const KNOWN_STATUS = new Set(["none", "trialing", "active", "canceled"]);
+export function planAfterPaidGrant(plan?: string | null) {
+  if (plan === "coach" || plan === "busy") return plan;
+  return "light";
+}
 
 export function formatStatusLabel(
   status?: string | null,
@@ -58,29 +62,21 @@ export function formatStatusLabel(
   stripeRaw?: string | null,
 ) {
   const mapped = effectiveSubscriptionStatus(status, trialEndsAt);
-  const raw = stripeRaw || status || "none";
-  const shown = KNOWN_STATUS.has(mapped) ? mapped : "active";
-  if (raw !== shown) return `${shown} (Stripe: ${raw})`;
-  return shown;
+  if (stripeRaw && stripeRaw !== mapped) return `${mapped} (Stripe: ${stripeRaw})`;
+  return mapped;
 }
 
-export type PublishPurpose = "copy" | "accept";
-
+/** Banned blocks; unpaid grant blocks; paid grant needs setup only; else Stripe trialing|active + setup. */
 export function canPublish(opts: {
   setup: boolean;
   status?: string | null;
   trialEndsAt?: Date | string | null;
   banned?: boolean;
   accessGrant?: string | null;
-  purpose?: PublishPurpose;
 }) {
   if (opts.banned) return false;
-  const grant = opts.accessGrant || "";
-  if (grant === "unpaid") return false;
-  const purpose = opts.purpose ?? "copy";
-  if (grant === "paid") {
-    return purpose === "accept" ? true : Boolean(opts.setup);
-  }
-  const open = canAcceptNewBookings(opts.status, opts.trialEndsAt);
-  return purpose === "accept" ? open : Boolean(opts.setup) && open;
+  if (opts.accessGrant === "unpaid") return false;
+  if (!opts.setup) return false;
+  if (opts.accessGrant === "paid") return true;
+  return canAcceptNewBookings(opts.status, opts.trialEndsAt);
 }
