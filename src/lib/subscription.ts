@@ -12,20 +12,32 @@ export const PLANS = {
 
 export type PlanId = keyof typeof PLANS;
 
-export function planCapabilities(plan: string | null | undefined, status?: string | null): Capability[] {
-  if (status === "trialing") return [...ASSISTANT];
+export function isTrialing(status?: string | null, trialEndsAt?: Date | string | null, now = new Date()) {
+  if (status !== "trialing") return false;
+  if (!trialEndsAt) return true;
+  const end = trialEndsAt instanceof Date ? trialEndsAt : new Date(trialEndsAt);
+  return end.getTime() > now.getTime();
+}
+
+export function effectiveSubscriptionStatus(status?: string | null, trialEndsAt?: Date | string | null, now = new Date()) {
+  if (status === "trialing" && !isTrialing(status, trialEndsAt, now)) return "active";
+  return status || "none";
+}
+
+export function planCapabilities(plan: string | null | undefined, status?: string | null, trialEndsAt?: Date | string | null, now = new Date()): Capability[] {
+  if (isTrialing(status, trialEndsAt, now)) return [...ASSISTANT];
   if (plan === "coach" || plan === "busy") return [...PLANS[plan].capabilities];
   return [];
 }
 
-export function hasCapability(plan: string | null | undefined, cap: Capability, status?: string | null) {
-  return planCapabilities(plan, status).includes(cap);
+export function hasCapability(plan: string | null | undefined, cap: Capability, status?: string | null, trialEndsAt?: Date | string | null) {
+  return planCapabilities(plan, status, trialEndsAt).includes(cap);
 }
 
 const OPEN = new Set(["trialing", "active"]);
 
-export function canAcceptNewBookings(status: string | null | undefined) {
-  return OPEN.has(status || "none");
+export function canAcceptNewBookings(status: string | null | undefined, trialEndsAt?: Date | string | null) {
+  return OPEN.has(effectiveSubscriptionStatus(status, trialEndsAt));
 }
 
 export function isSubscribed(status: string | null | undefined) {

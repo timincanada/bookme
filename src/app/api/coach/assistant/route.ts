@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentCoach } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { hasCapability, planCapabilities, type Capability } from "@/lib/subscription";
+import { expireStaleTrial } from "@/lib/subscription-sync";
 import { shiftDateKey, type AssistantAction } from "@/lib/assistant";
 import { assistantProvider } from "@/lib/assistant-provider";
 import { openSlots } from "@/lib/slots";
@@ -27,10 +28,10 @@ function clock(min: number) {
   return hr + ":" + String(m).padStart(2, "0") + " " + ap;
 }
 
-async function runAction(coach: { id: string; name: string; email: string; plan: string; subscriptionStatus: string }, action: AssistantAction) {
+async function runAction(coach: { id: string; name: string; email: string; plan: string; subscriptionStatus: string; trialEndsAt: Date | null }, action: AssistantAction) {
   const status = coach.subscriptionStatus;
   if (action.type === "list_availability") {
-    if (!hasCapability(coach.plan, "list_availability", status)) return { error: "Missing capability", status: 403 };
+    if (!hasCapability(coach.plan, "list_availability", status, coach.trialEndsAt)) return { error: "Missing capability", status: 403 };
     const me = await prisma.coach.findUnique({ where: { id: coach.id }, include: { services: true, locations: { where: { active: true } } } });
     const duration = me?.services[0]?.duration || 60;
     const locName = (me?.locations.find((l) => l.kind !== "online") || me?.locations[0])?.name || "";
@@ -49,7 +50,7 @@ async function runAction(coach: { id: string; name: string; email: string; plan:
   }
 
   if (action.type === "draft_email") {
-    if (!hasCapability(coach.plan, "draft_email", status)) return { error: "Missing capability", status: 403 };
+    if (!hasCapability(coach.plan, "draft_email", status, coach.trialEndsAt)) return { error: "Missing capability", status: 403 };
     const lesson = await prisma.lesson.findUnique({ where: { id: action.lessonId }, include: { client: true, location: true } });
     if (!lesson || lesson.coachId !== coach.id) return { error: "That lesson is not yours.", status: 404 };
     await sendMail(studentMessageMail({ studentEmail: lesson.client.email, studentName: lesson.client.name, coachName: coach.name, body: action.body }));
@@ -57,7 +58,7 @@ async function runAction(coach: { id: string; name: string; email: string; plan:
   }
 
   if (action.type === "draft_reschedule" && action.op === "block") {
-    if (!hasCapability(coach.plan, "draft_reschedule", status)) return { error: "Missing capability", status: 403 };
+    if (!hasCapability(coach.plan, "draft_reschedule", status, coach.trialEndsAt)) return { error: "Missing capability", status: 403 };
     const data = { coachId: coach.id, date: action.dateKey, startMin: action.startMin, endMin: action.endMin };
     const existing = await prisma.dateBlock.findFirst({ where: { coachId: coach.id, date: action.dateKey } });
     if (existing) await prisma.dateBlock.update({ where: { id: existing.id }, data: { startMin: data.startMin, endMin: data.endMin } });
@@ -66,7 +67,7 @@ async function runAction(coach: { id: string; name: string; email: string; plan:
   }
 
   if (action.type === "draft_reschedule" && action.op === "move") {
-    if (!hasCapability(coach.plan, "draft_reschedule", status)) return { error: "Missing capability", status: 403 };
+    if (!hasCapability(coach.plan, "draft_reschedule", status, coach.trialEndsAt)) return { error: "Missing capability", status: 403 };
     const lesson = await prisma.lesson.findUnique({ where: { id: action.lessonId }, include: { client: true, service: true, coach: true } });
     if (!lesson || lesson.coachId !== coach.id) return { error: "Lesson not found", status: 404 };
     if (!canMoveLesson(lesson.status)) return { error: "That lesson cannot be moved", status: 400 };
@@ -134,14 +135,15 @@ async function previewFor(coachId: string, coachName: string, action: AssistantA
 }
 
 export async function POST(req: NextRequest) {
-  const coach = await currentCoach();
-  if (!coach) return NextResponse.json({ error: "Sign in required" }, { status: 401 });
-  const caps = planCapabilities(coach.plan, coach.subscriptionStatus);
+  const raw = await currentCoach();
+  if (!raw) return NextResponse.json({ error: "Sign in required" }, { status: 401 });
+  const coach = await expireStaleTrial(raw);
+  const caps = planCapabilities(coach.plan, coach.subscriptionStatus, coach.trialEndsAt);
   if (caps.length === 0) return upgradeResponse();
   const body = await req.json();
 
   if (body.confirm && body.action) {
-    if (!hasCapability(coach.plan, capFor(body.action), coach.subscriptionStatus)) return upgradeResponse();
+    if (!hasCapability(coach.plan, capFor(body.action), coach.subscriptionStatus, coach.trialEndsAt)) return upgradeResponse();
     const ran = await runAction(coach, body.action as AssistantAction);
     if ("error" in ran && ran.error) return NextResponse.json({ error: ran.error }, { status: ran.status || 400 });
     return NextResponse.json({ ok: true, text: ran.text, preview: "preview" in ran ? ran.preview : undefined });
@@ -156,7 +158,7 @@ export async function POST(req: NextRequest) {
     lessons: lessons.map((l) => ({ id: l.id, clientId: l.clientId, clientName: l.client.name, startAt: l.startAt.toISOString(), status: l.status, location: l.location.name })),
   });
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
-  if (!hasCapability(coach.plan, capFor(parsed.action), coach.subscriptionStatus)) return upgradeResponse();
+  if (!hasCapability(coach.plan, capFor(parsed.action), coach.subscriptionStatus, coach.trialEndsAt)) return upgradeResponse();
   if (!parsed.needsConfirm) {
     const ran = await runAction(coach, parsed.action);
     if ("error" in ran && ran.error) return NextResponse.json({ error: ran.error }, { status: ran.status || 400 });
