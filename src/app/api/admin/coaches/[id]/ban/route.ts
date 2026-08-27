@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { isAdminEmail, requireAdmin } from "@/lib/admin";
+import { isAdminEmail } from "@/lib/admin";
+import { requireAdmin } from "@/lib/session";
 
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   const auth = await requireAdmin();

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { formatPlanLabel, paidSubscription, requireAdmin, stripeFeeLabel } from "@/lib/admin";
+import { formatPlanLabel, paidSubscription, stripeFeeLabel } from "@/lib/admin";
+import { requireAdmin } from "@/lib/session";
 import { getStripe } from "@/lib/stripe";
 import { effectiveSubscriptionStatus } from "@/lib/subscription";
 
@@ -40,18 +41,17 @@ export async function GET(req: NextRequest) {
       if (stripe && coach.stripeCustomerId) {
         try {
           const invoices = await stripe.invoices.list({ customer: coach.stripeCustomerId, limit: 10 });
-          const paidInv =
-            invoices.data.find((inv) => inv.status === "paid" && inv.amount_paid != null) ||
-            invoices.data.find((inv) => inv.amount_paid != null);
-          if (paidInv && paidInv.amount_paid != null) {
+          const paidInv = invoices.data.find((inv) => inv.status === "paid" && inv.amount_paid != null);
+          if (paidInv && paidInv.amount_paid != null && paidInv.currency) {
             feeLabel = stripeFeeLabel({
+              hasRecord: true,
               amountPaid: paidInv.amount_paid,
               currency: paidInv.currency,
-              hasRecord: true,
             });
           }
         } catch (err) {
           console.error("admin invoices failed", coach.id, err);
+          feeLabel = stripeFeeLabel({ hasRecord: false });
         }
       }
 

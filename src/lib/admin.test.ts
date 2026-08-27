@@ -33,9 +33,10 @@ assert.equal(stripeFeeLabel({ hasRecord: false, amountPaid: 4900, currency: "cad
 assert.equal(stripeFeeLabel({ hasRecord: true, amountPaid: 1900, currency: "cad" }), "CA$19.00");
 assert.equal(stripeFeeLabel({ hasRecord: true, amountPaid: 2900, currency: "cad" }), "CA$29.00");
 assert.equal(stripeFeeLabel({ hasRecord: true, amountPaid: 0, currency: "cad" }), "CA$0.00");
+assert.equal(stripeFeeLabel({ hasRecord: true, amountPaid: 1234, currency: "usd" }), "US$12.34");
+assert.equal(stripeFeeLabel({ hasRecord: true, amountPaid: 500, currency: null }), "Stripe：无账单记录");
 assert.notEqual(stripeFeeLabel({ hasRecord: false }), `CA$${PLANS.light.cad.toFixed(2)}`);
 assert.notEqual(stripeFeeLabel({ hasRecord: false }), `CA$${PLANS.coach.cad.toFixed(2)}`);
 assert.notEqual(stripeFeeLabel({ hasRecord: false }), `CA$${PLANS.busy.cad.toFixed(2)}`);
-assert.equal(stripeFeeLabel({ hasRecord: true, amountPaid: 1234, currency: "usd" }), "US$12.34");
 
 console.log("admin tests ok");

@@ -1,5 +1,6 @@
 "use client";
 
+import { isAdminEmail } from "@/lib/admin";
 import { useCallback, useEffect, useState } from "react";
 
 type CoachRow = {
@@ -57,18 +58,10 @@ export function AdminList() {
   return (
     <>
       <div className="mt-4 flex gap-2">
-        <button
-          type="button"
-          className={`choice ${!paid ? "choice-on" : ""}`}
-          onClick={() => setPaid(false)}
-        >
+        <button type="button" className={`choice ${!paid ? "choice-on" : ""}`} onClick={() => setPaid(false)}>
           All
         </button>
-        <button
-          type="button"
-          className={`choice ${paid ? "choice-on" : ""}`}
-          onClick={() => setPaid(true)}
-        >
+        <button type="button" className={`choice ${paid ? "choice-on" : ""}`} onClick={() => setPaid(true)}>
           Paid
         </button>
       </div>
@@ -88,13 +81,8 @@ export function AdminList() {
               <span className="mt-3 inline-block rounded-full bg-danger/10 px-3 py-1 text-sm font-semibold text-danger">
                 Banned
               </span>
-            ) : (
-              <button
-                type="button"
-                disabled={busyId === c.id}
-                onClick={() => ban(c.id)}
-                className="btn-danger mt-3"
-              >
+            ) : isAdminEmail(c.email) ? null : (
+              <button type="button" disabled={busyId === c.id} onClick={() => ban(c.id)} className="btn-danger mt-3">
                 Ban
               </button>
             )}

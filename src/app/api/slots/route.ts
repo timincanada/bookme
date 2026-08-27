@@ -12,10 +12,11 @@ export async function GET(req: NextRequest) {
   });
   if (!coach || !date) return NextResponse.json({ slots: [] });
   const duration = coach.services[0]?.duration || 60;
-  const slots = await openSlots(coach.id, date, duration);
+  const accepting = !coach.banned && canAcceptNewBookings(coach.subscriptionStatus, coach.trialEndsAt);
+  const slots = coach.banned ? [] : await openSlots(coach.id, date, duration);
   return NextResponse.json({
     slots,
-    accepting: !coach.banned && canAcceptNewBookings(coach.subscriptionStatus, coach.trialEndsAt),
+    accepting,
     coachName: coach.name,
     duration,
     locations: coach.locations.map((l) => ({
