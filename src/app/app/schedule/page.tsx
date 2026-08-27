@@ -6,14 +6,8 @@ import { currentCoach } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { formatTime } from "@/lib/time";
 import { canCopyBookingLink, isSetupComplete } from "@/lib/setup";
+import { payLabel, lessonStatusLabel } from "@/lib/bookings";
 import Link from "next/link";
-
-function payLabel(status?: string | null, method?: string | null) {
-  if (status === "paid") return { text: "Paid", kind: "paid" };
-  if (status === "marked_offline") return { text: "Collected offline", kind: "offline" };
-  if (method === "cash" && status === "unpaid") return { text: "Unpaid", kind: "unpaid" };
-  return { text: status || "Unpaid", kind: "other" };
-}
 
 export default async function SchedulePage() {
   const coach = await currentCoach();
@@ -66,7 +60,7 @@ export default async function SchedulePage() {
                 <div className="text-sm text-muted">{l.location.name}</div>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <PayChip kind={pay.kind} text={pay.text} />
-                  <StatusChip>Confirmed</StatusChip>
+                  <StatusChip>{lessonStatusLabel(l.status)}</StatusChip>
                 </div>
               </Link>
             </li>
