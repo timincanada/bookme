@@ -19,7 +19,7 @@ export default async function SchedulePage() {
     locationCount: coach.locations.filter((l) => l.active).length,
     hourCount: coach.hours.length,
   });
-  const publish = canCopyBookingLink(setup, coach.subscriptionStatus, coach.trialEndsAt);
+  const publish = canCopyBookingLink(setup, coach.subscriptionStatus, coach.trialEndsAt, coach.banned);
   const lessons = await prisma.lesson.findMany({
     where: { coachId: coach.id, status: "confirmed" },
     include: { client: true, location: true, service: true },

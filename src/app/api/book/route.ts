@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   const picked = pickLocation(coach.locations, locationId);
   if (!picked.ok) return NextResponse.json({ error: picked.error }, { status: 400 });
   const location = picked.location;
-  if (!canAcceptNewBookings(coach.subscriptionStatus, coach.trialEndsAt)) {
+  if (coach.banned || !canAcceptNewBookings(coach.subscriptionStatus, coach.trialEndsAt)) {
     return NextResponse.json({ error: "This coach is not accepting new bookings" }, { status: 403 });
   }
 

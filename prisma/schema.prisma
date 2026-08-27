@@ -27,6 +27,7 @@ model Coach {
   passwordHash          String?
   acceptCard            Boolean      @default(true)
   acceptCash            Boolean      @default(true)
+  banned                Boolean      @default(false)
   services  Service[]
   locations Location[]
   hours     WeeklyHour[]

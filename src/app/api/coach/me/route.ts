@@ -26,7 +26,7 @@ export async function GET() {
     subscriptionStatus: effectiveSubscriptionStatus(coach.subscriptionStatus, coach.trialEndsAt),
     plan: coach.plan,
     setup,
-    canCopyLink: canCopyBookingLink(setup, coach.subscriptionStatus, coach.trialEndsAt),
+    canCopyLink: canCopyBookingLink(setup, coach.subscriptionStatus, coach.trialEndsAt, coach.banned),
     service: coach.services[0] || null,
     stripeConnected: !!coach.stripeAccountId,
     acceptCard: coach.acceptCard,

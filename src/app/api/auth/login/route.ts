@@ -15,6 +15,9 @@ export async function POST(req: NextRequest) {
     if (!coach || !verifyPassword(password, coach.passwordHash)) {
       return NextResponse.json({ error: "Wrong email or password" }, { status: 401 });
     }
+    if (coach.banned) {
+      return NextResponse.json({ error: "This account is closed" }, { status: 401 });
+    }
     const res = NextResponse.json({
       id: coach.id,
       slug: coach.slug,

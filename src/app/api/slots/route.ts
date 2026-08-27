@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   const slots = await openSlots(coach.id, date, duration);
   return NextResponse.json({
     slots,
-    accepting: canAcceptNewBookings(coach.subscriptionStatus, coach.trialEndsAt),
+    accepting: !coach.banned && canAcceptNewBookings(coach.subscriptionStatus, coach.trialEndsAt),
     coachName: coach.name,
     duration,
     locations: coach.locations.map((l) => ({
