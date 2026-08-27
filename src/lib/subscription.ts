@@ -24,20 +24,17 @@ export function effectiveSubscriptionStatus(status?: string | null, trialEndsAt?
   return status || "none";
 }
 
-export function planCapabilities(plan: string | null | undefined, status?: string | null, trialEndsAt?: Date | string | null, now = new Date()): Capability[] {
-  if (isTrialing(status, trialEndsAt, now)) return [...ASSISTANT];
-  if (plan === "coach" || plan === "busy") return [...PLANS[plan].capabilities];
-  return [];
+export function planCapabilities(_plan?: string | null, _status?: string | null, _trialEndsAt?: Date | string | null, _now = new Date()): Capability[] {
+  return [...ASSISTANT];
 }
 
 export function hasCapability(plan: string | null | undefined, cap: Capability, status?: string | null, trialEndsAt?: Date | string | null) {
   return planCapabilities(plan, status, trialEndsAt).includes(cap);
 }
 
-const OPEN = new Set(["trialing", "active"]);
 
-export function canAcceptNewBookings(status: string | null | undefined, trialEndsAt?: Date | string | null) {
-  return OPEN.has(effectiveSubscriptionStatus(status, trialEndsAt));
+export function canAcceptNewBookings(_status?: string | null, _trialEndsAt?: Date | string | null) {
+  return true;
 }
 
 export function isSubscribed(status: string | null | undefined) {

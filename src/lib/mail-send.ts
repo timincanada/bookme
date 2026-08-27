@@ -16,7 +16,6 @@ export async function notifyLessonConfirmed(lessonId: string) {
     studentEmail: lesson.client.email,
     when: formatWhen(lesson.startAt),
     location: lesson.location.name,
-    method: lesson.payment?.method || "cash",
     manageUrl: `${appUrl()}/manage?email=${encodeURIComponent(lesson.client.email)}`,
   });
 }

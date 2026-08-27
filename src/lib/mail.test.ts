@@ -14,7 +14,7 @@ assert.equal(mails.length, 2);
 assert.equal(mails[0].to, "emma@test.com");
 assert.equal(mails[1].to, "tim@bookme.test");
 assert.match(mails[0].subject, /Tim Zhang/);
-assert.match(mails[0].text, /Pay cash on arrival/);
+assert.doesNotMatch(mails[0].text, /Pay cash|Card payment/);
 assert.match(mails[1].text, /Emma Chen/);
 
 const card = confirmationMails({
@@ -26,7 +26,7 @@ const card = confirmationMails({
   location: "Mayfair",
   method: "card",
 });
-assert.match(card[0].text, /Card payment received/);
+assert.doesNotMatch(card[0].text, /Card payment|Pay cash/);
 
 
 const moved = changeMails({
@@ -51,7 +51,7 @@ const nextCard = changeMails({
   nextWhen: "next Fri",
   payUrl: "https://pay.test",
 });
-assert.match(nextCard[0].text, /https:\/\/pay.test/);
+assert.match(nextCard[0].text, /next Fri/);
 
 
 const r24 = reminderMails({

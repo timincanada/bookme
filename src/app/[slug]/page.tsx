@@ -31,7 +31,7 @@ export default async function CoachPage({ params }: { params: { slug: string } }
       </div>
       <ul className="mt-8 divide-y divide-line text-left">
         <li className="py-3">{service?.name} · All levels</li>
-        <li className="py-3">{service?.duration} min · CA${service?.priceCad}</li>
+        <li className="py-3">{service?.duration} min</li>
         <li className="py-3">{coach.languages}</li>
       </ul>
       <h2 className="mt-6 font-semibold">Teaching locations</h2>

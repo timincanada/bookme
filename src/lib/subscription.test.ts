@@ -21,7 +21,7 @@ assert.equal(planForConfirmedCount(21), "coach");
 assert.equal(planForConfirmedCount(61), "busy");
 assert.equal(PLANS.busy.cad * 100, 4900);
 assert.equal(canAcceptNewBookings("trialing"), true);
-assert.equal(canAcceptNewBookings("canceled"), false);
+assert.equal(canAcceptNewBookings("canceled"), true);
 const sept = new Date("2026-09-01T00:00:00Z");
 const { start, end } = lastMonthRange(sept);
 assert.equal(start.toISOString(), "2026-08-01T00:00:00.000Z");
@@ -68,14 +68,14 @@ assert.equal(
 );
 
 assert.deepEqual(planCapabilities("light", "trialing"), ["list_availability", "draft_email", "draft_reschedule"]);
-assert.deepEqual(planCapabilities("light", "active"), []);
-assert.equal(hasCapability("light", "list_availability", "active"), false);
+assert.deepEqual(planCapabilities("light", "active"), ["list_availability", "draft_email", "draft_reschedule"]);
+assert.equal(hasCapability("light", "list_availability", "active"), true);
 assert.equal(hasCapability("coach", "draft_email"), true);
 assert.equal(hasCapability("busy", "draft_reschedule"), true);
 
 assert.equal(isTrialing("trialing", new Date("2026-08-25T00:00:00Z"), new Date("2026-08-27T12:00:00Z")), false);
 assert.equal(isTrialing("trialing", new Date("2026-08-30T00:00:00Z"), new Date("2026-08-27T12:00:00Z")), true);
 assert.equal(effectiveSubscriptionStatus("trialing", new Date("2026-08-25T00:00:00Z"), new Date("2026-08-27T12:00:00Z")), "active");
-assert.deepEqual(planCapabilities("light", "trialing", new Date("2026-08-25T00:00:00Z"), new Date("2026-08-27T12:00:00Z")), []);
+assert.deepEqual(planCapabilities("light", "trialing", new Date("2026-08-25T00:00:00Z"), new Date("2026-08-27T12:00:00Z")), ["list_availability", "draft_email", "draft_reschedule"]);
 assert.deepEqual(planCapabilities("light", "trialing", new Date("2026-08-30T00:00:00Z"), new Date("2026-08-27T12:00:00Z")), ["list_availability", "draft_email", "draft_reschedule"]);
 console.log("subscription tests ok");

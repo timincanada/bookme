@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { openSlots } from "@/lib/slots";
-import { holdExpiresAt } from "@/lib/hold";
-import { appUrl, getStripe } from "@/lib/stripe";
-import { canAcceptNewBookings } from "@/lib/subscription";
 import { notifyLessonConfirmed } from "@/lib/mail-send";
-import { canUseMethod, connectPaymentIntentData } from "@/lib/payments";
 import { pickLocation } from "@/lib/location";
 import { looksLikeEmail, normalizeEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { slug, start, name, method, locationId } = body;
+  const { slug, start, name, locationId } = body;
   const email = normalizeEmail(body.email);
   if (!slug || !start || !name || !email) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
@@ -29,13 +25,6 @@ export async function POST(req: NextRequest) {
   const picked = pickLocation(coach.locations, locationId);
   if (!picked.ok) return NextResponse.json({ error: picked.error }, { status: 400 });
   const location = picked.location;
-  if (!canAcceptNewBookings(coach.subscriptionStatus)) {
-    return NextResponse.json({ error: "This coach is not accepting new bookings" }, { status: 403 });
-  }
-  const payMethod = method === "card" ? "card" : "cash";
-  if (!canUseMethod(payMethod, coach.acceptCard, coach.acceptCash, coach.stripeAccountId)) {
-    return NextResponse.json({ error: "That payment method is not available" }, { status: 400 });
-  }
 
   const startAt = new Date(start);
   const dateKey = startAt.toISOString().slice(0, 10);
@@ -51,43 +40,6 @@ export async function POST(req: NextRequest) {
   });
 
   const endAt = new Date(startAt.getTime() + service.duration * 60 * 1000);
-  const cash = method !== "card";
-
-  if (cash) {
-    const lesson = await prisma.lesson.create({
-      data: {
-        coachId: coach.id,
-        serviceId: service.id,
-        locationId: location.id,
-        clientId: client.id,
-        startAt,
-        endAt,
-        status: "confirmed",
-        payment: {
-          create: {
-            method: "cash",
-            status: "unpaid",
-            amountCad: service.priceCad,
-          },
-        },
-      },
-    });
-    await notifyLessonConfirmed(lesson.id);
-    return NextResponse.json({ id: lesson.id });
-  }
-
-  const stripe = getStripe();
-  if (!stripe) {
-    return NextResponse.json(
-      { error: "Card checkout is not configured. Set STRIPE_SECRET_KEY." },
-      { status: 503 }
-    );
-  }
-  if (!coach.stripeAccountId) {
-    return NextResponse.json({ error: "Card is not available until the coach connects Stripe" }, { status: 400 });
-  }
-
-  const holdUntil = holdExpiresAt();
   const lesson = await prisma.lesson.create({
     data: {
       coachId: coach.id,
@@ -96,51 +48,9 @@ export async function POST(req: NextRequest) {
       clientId: client.id,
       startAt,
       endAt,
-      status: "held",
-      holdUntil,
-      payment: {
-        create: {
-          method: "card",
-          status: "unpaid",
-          amountCad: service.priceCad,
-        },
-      },
+      status: "confirmed",
     },
   });
-
-  const sessionParams: Parameters<typeof stripe.checkout.sessions.create>[0] = {
-    mode: "payment",
-    // Keep presentment in CAD. Adaptive Pricing otherwise shows USD first.
-    adaptive_pricing: { enabled: false },
-    // Stripe Checkout minimum expiry is 30 minutes; our slot hold is 15.
-    expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
-    customer_email: email,
-    line_items: [
-      {
-        quantity: 1,
-        price_data: {
-          currency: "cad",
-          unit_amount: service.priceCad * 100,
-          product_data: { name: `${service.name} with ${coach.name}` },
-        },
-      },
-    ],
-    metadata: { lessonId: lesson.id },
-    success_url: `${appUrl()}/book/done?id=${lesson.id}`,
-    cancel_url: `${appUrl()}/book/pay?coach=${slug}&start=${encodeURIComponent(start)}&location=${location.id}`,
-  };
-  sessionParams.payment_intent_data = connectPaymentIntentData(coach.stripeAccountId, service.priceCad);
-
-  try {
-    const session = await stripe.checkout.sessions.create(sessionParams);
-    await prisma.payment.update({
-      where: { lessonId: lesson.id },
-      data: { stripeCheckoutSessionId: session.id },
-    });
-    return NextResponse.json({ id: lesson.id, checkoutUrl: session.url });
-  } catch (err) {
-    await prisma.lesson.update({ where: { id: lesson.id }, data: { status: "cancelled" } });
-    const message = err instanceof Error ? err.message : "Stripe error";
-    return NextResponse.json({ error: message }, { status: 502 });
-  }
+  await notifyLessonConfirmed(lesson.id);
+  return NextResponse.json({ id: lesson.id });
 }

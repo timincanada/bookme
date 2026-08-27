@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
 import { Brand } from "@/components/Brand";
 import { TabBar } from "@/components/TabBar";
-import { PayChip, StatusChip } from "@/components/PayChip";
+import { StatusChip } from "@/components/PayChip";
 import { currentCoach } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { formatTime } from "@/lib/time";
 import { canCopyBookingLink, isSetupComplete } from "@/lib/setup";
-import { payLabel, lessonStatusLabel } from "@/lib/bookings";
+import { lessonStatusLabel } from "@/lib/bookings";
 import Link from "next/link";
 
 export default async function SchedulePage() {
@@ -21,8 +21,8 @@ export default async function SchedulePage() {
   });
   const publish = canCopyBookingLink(setup, coach.subscriptionStatus);
   const lessons = await prisma.lesson.findMany({
-    where: { coachId: coach.id, status: { in: ["confirmed", "held"] } },
-    include: { client: true, location: true, payment: true, service: true },
+    where: { coachId: coach.id, status: "confirmed" },
+    include: { client: true, location: true, service: true },
     orderBy: { startAt: "asc" },
   });
   return (
@@ -45,27 +45,23 @@ export default async function SchedulePage() {
         </Link>
       )}
       {setup && !publish && (
-        <Link href="/app/billing" className="mt-4 block rounded-2xl bg-brand-soft p-3 text-sm font-semibold text-brand-dark">
-          Start a trial to copy your booking link
+        <Link href="/app/setup" className="mt-4 block rounded-2xl bg-brand-soft p-3 text-sm font-semibold text-brand-dark">
+          Finish setup to copy your booking link
         </Link>
       )}
       <ul className="mt-5 space-y-3">
-        {lessons.map((l) => {
-          const pay = payLabel(l.payment?.status, l.payment?.method);
-          return (
-            <li key={l.id}>
-              <Link href={`/app/lessons/${l.id}`} className="block card">
-                <div className="font-semibold">{formatTime(l.startAt)}</div>
-                <div>Private · {l.client.name}</div>
-                <div className="text-sm text-muted">{l.location.name}</div>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <PayChip kind={pay.kind} text={pay.text} />
-                  <StatusChip>{lessonStatusLabel(l.status)}</StatusChip>
-                </div>
-              </Link>
-            </li>
-          );
-        })}
+        {lessons.map((l) => (
+          <li key={l.id}>
+            <Link href={`/app/lessons/${l.id}`} className="block card">
+              <div className="font-semibold">{formatTime(l.startAt)}</div>
+              <div>Private · {l.client.name}</div>
+              <div className="text-sm text-muted">{l.location.name}</div>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <StatusChip>{lessonStatusLabel(l.status)}</StatusChip>
+              </div>
+            </Link>
+          </li>
+        ))}
         {lessons.length === 0 && <p className="text-muted">No lessons yet.</p>}
       </ul>
       <TabBar active="schedule" />
