@@ -4,7 +4,7 @@ import { Brand } from "@/components/Brand";
 import { TabBar } from "@/components/TabBar";
 import { currentCoach } from "@/lib/session";
 import { prisma } from "@/lib/db";
-import { bookingBucket, payLabel } from "@/lib/bookings";
+import { bookingBucket, payLabel, lessonStatusLabel } from "@/lib/bookings";
 import { formatWhen } from "@/lib/time";
 import { PayChip, StatusChip } from "@/components/PayChip";
 
@@ -57,9 +57,9 @@ export default async function BookingsPage({
               <div className="font-semibold">{formatWhen(l.startAt)}</div>
               <div>Private · {l.client.name}</div>
               <div className="text-sm text-muted">{l.location.name}</div>
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mt-2 flex flex-wrap items-center gap-2">
                 <PayChip kind={pay.kind} text={pay.text} />
-                <StatusChip>{l.status}</StatusChip>
+                <StatusChip>{lessonStatusLabel(l.status)}</StatusChip>
               </div>
               </Link>
             </li>

@@ -1,8 +1,9 @@
 "use client";
 import { useState } from "react";
-import { PayChip } from "./PayChip";
+import { useRouter } from "next/navigation";
 
 export function CollectButton({ lessonId }: { lessonId: string }) {
+  const router = useRouter();
   const [done, setDone] = useState(false);
   async function mark() {
     const res = await fetch("/api/lessons/collect", {
@@ -10,9 +11,9 @@ export function CollectButton({ lessonId }: { lessonId: string }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ lessonId }),
     });
-    if (res.ok) setDone(true);
+    if (res.ok) { setDone(true); router.refresh(); }
   }
-  if (done) return <PayChip kind="offline" text="Collected offline" />;
+  if (done) return null;
   return (
     <button
       onClick={mark}

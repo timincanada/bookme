@@ -8,7 +8,7 @@ import { LessonActions } from "@/components/LessonActions";
 import { currentCoach } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { formatWhen } from "@/lib/time";
-import { payLabel } from "@/lib/bookings";
+import { payLabel, lessonStatusLabel } from "@/lib/bookings";
 import { canAcceptNewBookings } from "@/lib/subscription";
 
 export default async function LessonDetailPage({ params }: { params: { id: string } }) {
@@ -33,18 +33,15 @@ export default async function LessonDetailPage({ params }: { params: { id: strin
         <div className="mt-0.5 text-sm text-muted">{lesson.client.email}</div>
         <div className="mt-3 text-sm text-muted">{lesson.location.name}</div>
         <div className="mt-1 text-sm">CA${lesson.payment?.amountCad || lesson.service.priceCad} · {lesson.service.duration} min</div>
-        <div className="mt-5">
-          <StatusChip>{lesson.status}</StatusChip>
+        <div className="mt-5 flex flex-wrap items-center gap-2">
+          <StatusChip>{lessonStatusLabel(lesson.status)}</StatusChip>
+          <PayChip kind={pay.kind} text={pay.text} />
         </div>
         {cashUnpaid ? (
           <div className="mt-3">
             <CollectButton lessonId={lesson.id} />
           </div>
-        ) : (
-          <div className="mt-3">
-            <PayChip kind={pay.kind} text={pay.text} />
-          </div>
-        )}
+        ) : null}
       </div>
       {canMove && (
         <LessonActions
