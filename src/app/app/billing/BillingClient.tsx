@@ -67,7 +67,7 @@ export function BillingClient({ initialStatus, initialPlan }: { initialStatus: s
     <main className="phone px-5 pb-24">
       <Brand />
       <h1 className="text-2xl font-bold">BookMe plan</h1>
-      <p className="mt-2 text-muted">3-day trial on Light (card required), then auto-renew. Tier follows last month&apos;s confirmed lessons at the next cycle. Student lesson payments are separate.</p>
+      <p className="mt-2 text-muted">3-day trial on Light (card required), then auto-renew. Tier follows last month&apos;s confirmed lessons at the next cycle. Students book without paying.</p>
       <ul className="mt-4 space-y-2 text-sm">
         {TIERS.map((t) => (
           <li key={t.id} className={`rounded-xl border p-3 ${plan === t.id ? "border-brand bg-brand-soft" : "border-line"}`}>

@@ -4,6 +4,7 @@ import { openSlots } from "@/lib/slots";
 import { notifyLessonConfirmed } from "@/lib/mail-send";
 import { pickLocation } from "@/lib/location";
 import { looksLikeEmail, normalizeEmail } from "@/lib/email";
+import { canAcceptNewBookings } from "@/lib/subscription";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -25,6 +26,9 @@ export async function POST(req: NextRequest) {
   const picked = pickLocation(coach.locations, locationId);
   if (!picked.ok) return NextResponse.json({ error: picked.error }, { status: 400 });
   const location = picked.location;
+  if (!canAcceptNewBookings(coach.subscriptionStatus, coach.trialEndsAt)) {
+    return NextResponse.json({ error: "This coach is not accepting new bookings" }, { status: 403 });
+  }
 
   const startAt = new Date(start);
   const dateKey = startAt.toISOString().slice(0, 10);

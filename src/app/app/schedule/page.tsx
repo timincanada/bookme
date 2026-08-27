@@ -19,7 +19,7 @@ export default async function SchedulePage() {
     locationCount: coach.locations.filter((l) => l.active).length,
     hourCount: coach.hours.length,
   });
-  const publish = canCopyBookingLink(setup, coach.subscriptionStatus);
+  const publish = canCopyBookingLink(setup, coach.subscriptionStatus, coach.trialEndsAt);
   const lessons = await prisma.lesson.findMany({
     where: { coachId: coach.id, status: "confirmed" },
     include: { client: true, location: true, service: true },
@@ -45,8 +45,8 @@ export default async function SchedulePage() {
         </Link>
       )}
       {setup && !publish && (
-        <Link href="/app/setup" className="mt-4 block rounded-2xl bg-brand-soft p-3 text-sm font-semibold text-brand-dark">
-          Finish setup to copy your booking link
+        <Link href="/app/billing" className="mt-4 block rounded-2xl bg-brand-soft p-3 text-sm font-semibold text-brand-dark">
+          Start a trial to copy your booking link
         </Link>
       )}
       <ul className="mt-5 space-y-3">

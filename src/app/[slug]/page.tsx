@@ -18,7 +18,7 @@ export default async function CoachPage({ params }: { params: { slug: string } }
     locationCount: coach.locations.length,
     hourCount: coach.hours.length,
   });
-  const open = canCopyBookingLink(setup, coach.subscriptionStatus);
+  const open = canCopyBookingLink(setup, coach.subscriptionStatus, coach.trialEndsAt);
   return (
     <main className="phone px-5 pb-8">
       <Brand />

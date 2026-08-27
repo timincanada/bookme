@@ -36,6 +36,9 @@ export default function MorePage() {
           <Link href="/app/more/locations" className="block p-4 font-semibold">Locations</Link>
         </li>
         <li>
+          <Link href="/app/billing" className="block p-4 font-semibold">Subscription & billing</Link>
+        </li>
+        <li>
           <Link href="/app/setup" className="block p-4 font-semibold">Open for business</Link>
         </li>
       </ul>
@@ -54,7 +57,7 @@ export default function MorePage() {
               {copied ? "Copied" : "Copy link"}
             </button>
           ) : (
-            <p className="mt-2 text-muted">Finish setup to copy this link.</p>
+            <p className="mt-2 text-muted">Finish setup and start a trial to copy this link.</p>
           )}
         </div>
       )}
