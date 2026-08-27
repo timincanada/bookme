@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { Brand } from "@/components/Brand";
 import { prisma } from "@/lib/db";
 import { canCopyBookingLink, isSetupComplete } from "@/lib/setup";
+import { incrementBookingViews } from "@/lib/stats";
+
+export const dynamic = "force-dynamic";
 
 export default async function CoachPage({ params }: { params: { slug: string } }) {
   const coach = await prisma.coach.findUnique({
@@ -10,6 +13,7 @@ export default async function CoachPage({ params }: { params: { slug: string } }
     include: { services: true, locations: { where: { active: true } }, hours: true },
   });
   if (!coach) notFound();
+  incrementBookingViews();
   const service = coach.services[0];
   const setup = isSetupComplete({
     title: coach.title,
@@ -18,7 +22,10 @@ export default async function CoachPage({ params }: { params: { slug: string } }
     locationCount: coach.locations.length,
     hourCount: coach.hours.length,
   });
-  const open = canCopyBookingLink(setup, coach.subscriptionStatus, coach.trialEndsAt, coach.banned);
+  const open = canCopyBookingLink(setup, coach.subscriptionStatus, coach.trialEndsAt, {
+    banned: coach.banned,
+    accessGrant: coach.accessGrant,
+  });
   return (
     <main className="phone px-5 pb-8">
       <Brand />

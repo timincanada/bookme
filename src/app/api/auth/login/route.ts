@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { SESSION_COOKIE, sessionCookieOptions, signSession, verifyPassword } from "@/lib/auth";
+import { isAdminEmail } from "@/lib/admin";
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,6 +23,7 @@ export async function POST(req: NextRequest) {
       id: coach.id,
       slug: coach.slug,
       setup: Boolean(coach.title && coach.services[0] && coach.locations.length && coach.hours.length),
+      admin: isAdminEmail(coach.email),
     });
     res.cookies.set(SESSION_COOKIE, signSession(coach.id), sessionCookieOptions());
     return res;

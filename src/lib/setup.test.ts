@@ -25,5 +25,8 @@ assert.equal(canCopyBookingLink(true, "canceled"), false);
 assert.equal(canCopyBookingLink(true, "trialing", null, true), false);
 assert.equal(canCopyBookingLink(true, "active", null, true), false);
 assert.equal(canCopyBookingLink(true, "trialing", null, false), true);
+assert.equal(canCopyBookingLink(true, "none", null, false, "paid"), true);
+assert.equal(canCopyBookingLink(true, "trialing", null, false, "unpaid"), false);
+assert.equal(canCopyBookingLink(true, "none", null, true, "paid"), false);
 
 console.log("setup tests ok");

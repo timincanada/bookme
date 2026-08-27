@@ -1,4 +1,4 @@
-import { effectiveSubscriptionStatus } from "./subscription";
+import { canAcceptNewBookings, effectiveSubscriptionStatus } from "./subscription";
 
 export const ADMIN_EMAIL = "zhouxiyin1024@gmail.com";
 
@@ -30,11 +30,57 @@ export function stripeFeeLabel(input: {
   amountPaid?: number | null;
   currency?: string | null;
 }) {
-  if (!input.hasRecord || input.amountPaid == null || !input.currency) {
-    return "Stripe：无账单记录";
-  }
-  const amount = (input.amountPaid / 100).toFixed(2);
-  const currency = String(input.currency).toLowerCase();
+  if (!input.hasRecord) return "Stripe：无账单记录";
+  const cents = input.amountPaid ?? 0;
+  const currency = String(input.currency || "cad").toLowerCase();
+  const amount = (cents / 100).toFixed(2);
   const prefix = CURRENCY_PREFIX[currency];
   return prefix ? `${prefix}${amount}` : `${currency.toUpperCase()} ${amount}`;
+}
+
+export function conversionLabel(active: number, registered: number) {
+  if (!registered) return "0% (0 active / 0 registered)";
+  const pct = Math.round((active / registered) * 100);
+  return `${pct}% (${active} active / ${registered} registered)`;
+}
+
+export function grantLabel(grant?: string | null) {
+  if (grant === "paid") return "Grant: paid";
+  if (grant === "unpaid") return "Grant: unpaid";
+  return "Grant: none";
+}
+
+const KNOWN_STATUS = new Set(["none", "trialing", "active", "canceled"]);
+
+export function formatStatusLabel(
+  status?: string | null,
+  trialEndsAt?: Date | string | null,
+  stripeRaw?: string | null,
+) {
+  const mapped = effectiveSubscriptionStatus(status, trialEndsAt);
+  const raw = stripeRaw || status || "none";
+  const shown = KNOWN_STATUS.has(mapped) ? mapped : "active";
+  if (raw !== shown) return `${shown} (Stripe: ${raw})`;
+  return shown;
+}
+
+export type PublishPurpose = "copy" | "accept";
+
+export function canPublish(opts: {
+  setup: boolean;
+  status?: string | null;
+  trialEndsAt?: Date | string | null;
+  banned?: boolean;
+  accessGrant?: string | null;
+  purpose?: PublishPurpose;
+}) {
+  if (opts.banned) return false;
+  const grant = opts.accessGrant || "";
+  if (grant === "unpaid") return false;
+  const purpose = opts.purpose ?? "copy";
+  if (grant === "paid") {
+    return purpose === "accept" ? true : Boolean(opts.setup);
+  }
+  const open = canAcceptNewBookings(opts.status, opts.trialEndsAt);
+  return purpose === "accept" ? open : Boolean(opts.setup) && open;
 }

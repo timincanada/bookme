@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { formatPlanLabel, paidSubscription, stripeFeeLabel } from "@/lib/admin";
+import {
+  conversionLabel,
+  formatPlanLabel,
+  formatStatusLabel,
+  grantLabel,
+  isAdminEmail,
+  paidSubscription,
+  stripeFeeLabel,
+} from "@/lib/admin";
 import { requireAdmin } from "@/lib/session";
 import { getStripe } from "@/lib/stripe";
 import { effectiveSubscriptionStatus } from "@/lib/subscription";
@@ -21,10 +29,27 @@ export async function GET(req: NextRequest) {
       subscriptionStatus: true,
       trialEndsAt: true,
       banned: true,
+      accessGrant: true,
       stripeCustomerId: true,
       stripeSubscriptionId: true,
     },
   });
+
+  const registered = coaches.length;
+  let trialing = 0;
+  let active = 0;
+  for (const c of coaches) {
+    if (c.banned) continue;
+    const status = effectiveSubscriptionStatus(c.subscriptionStatus, c.trialEndsAt);
+    if (status === "trialing") trialing += 1;
+    else if (status === "active") active += 1;
+  }
+  let publicVisitors = 0;
+  try {
+    publicVisitors = await prisma.publicVisitor.count();
+  } catch (err) {
+    console.error("public visitor count failed", err);
+  }
 
   const filtered = paidOnly
     ? coaches.filter((c) => paidSubscription(c.subscriptionStatus, c.trialEndsAt))
@@ -34,7 +59,6 @@ export async function GET(req: NextRequest) {
 
   const rows = await Promise.all(
     filtered.map(async (coach) => {
-      const mapped = effectiveSubscriptionStatus(coach.subscriptionStatus, coach.trialEndsAt);
       let stripeRaw: string | null = null;
       let feeLabel = stripeFeeLabel({ hasRecord: false });
 
@@ -42,7 +66,7 @@ export async function GET(req: NextRequest) {
         try {
           const invoices = await stripe.invoices.list({ customer: coach.stripeCustomerId, limit: 10 });
           const paidInv = invoices.data.find((inv) => inv.status === "paid" && inv.amount_paid != null);
-          if (paidInv && paidInv.amount_paid != null && paidInv.currency) {
+          if (paidInv && paidInv.amount_paid != null) {
             feeLabel = stripeFeeLabel({
               hasRecord: true,
               amountPaid: paidInv.amount_paid,
@@ -51,7 +75,6 @@ export async function GET(req: NextRequest) {
           }
         } catch (err) {
           console.error("admin invoices failed", coach.id, err);
-          feeLabel = stripeFeeLabel({ hasRecord: false });
         }
       }
 
@@ -64,9 +87,6 @@ export async function GET(req: NextRequest) {
         }
       }
 
-      const statusLabel =
-        stripeRaw && stripeRaw !== mapped ? `${mapped} (Stripe: ${stripeRaw})` : mapped;
-
       return {
         id: coach.id,
         name: coach.name,
@@ -74,16 +94,31 @@ export async function GET(req: NextRequest) {
         slug: coach.slug,
         plan: coach.plan,
         planLabel: formatPlanLabel(coach.plan),
-        subscriptionStatus: mapped,
+        subscriptionStatus: effectiveSubscriptionStatus(coach.subscriptionStatus, coach.trialEndsAt),
         stripeSubscriptionStatus: stripeRaw,
-        statusLabel,
+        statusLabel: formatStatusLabel(coach.subscriptionStatus, coach.trialEndsAt, stripeRaw),
         trialEndsAt: coach.trialEndsAt ? coach.trialEndsAt.toISOString() : null,
         trialEndsLabel: coach.trialEndsAt ? coach.trialEndsAt.toISOString().slice(0, 10) : "—",
         feeLabel,
         banned: coach.banned,
+        accessGrant: coach.accessGrant || "",
+        grantLabel: grantLabel(coach.accessGrant),
+        isAdmin: isAdminEmail(coach.email),
       };
     }),
   );
 
-  return NextResponse.json({ coaches: rows });
+  const stats = {
+    registered,
+    publicVisitors,
+    trialing,
+    active,
+    conversionLabel: conversionLabel(active, registered),
+  };
+
+  return NextResponse.json({
+    ...stats,
+    stats,
+    coaches: rows,
+  });
 }
