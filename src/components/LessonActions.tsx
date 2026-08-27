@@ -57,7 +57,7 @@ export function LessonActions({
     <div className="mt-6 space-y-4">
       <section>
         <h2 className="font-semibold">Reschedule</h2>
-        <p className="text-sm text-muted">Same price. A held card stay held, not confirmed.</p>
+        <p className="text-sm text-muted">Pick a new open time.</p>
         <input type="date" value={day} onChange={(e) => setDay(e.target.value)} className="field mt-2" />
         <div className="mt-2 grid grid-cols-2 gap-2">
           {slots.map((s) => (
@@ -91,9 +91,6 @@ export function LessonActions({
         >
           Book same time next week
         </button>
-      )}
-      {!canBookNext && confirmed && (
-        <p className="text-sm text-muted">Start a trial to book next week.</p>
       )}
       <button
         disabled={busy}

@@ -273,7 +273,7 @@ export default function SetupPage() {
 
       {step === 3 && (
         <section className="mt-6">
-          <p className="text-muted">Your booking link publishes only after a trial or paid plan is active.</p>
+          <p className="text-muted">Your booking link is ready to share after setup.</p>
           <div className="mt-4 card text-sm">
             <div className="text-muted">Share this link</div>
             <div className="mt-1 break-all font-semibold">{link}</div>

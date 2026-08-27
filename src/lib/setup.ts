@@ -1,4 +1,3 @@
-import { canAcceptNewBookings } from "./subscription";
 
 export const VERTICALS = [
   "Tennis",
@@ -42,7 +41,6 @@ export function isSetupComplete(input: {
   );
 }
 
-/** Booking link can be copied only after setup is complete AND trial/paid is active. */
-export function canCopyBookingLink(setupComplete: boolean, subscriptionStatus: string | null | undefined, trialEndsAt?: Date | string | null) {
-  return setupComplete && canAcceptNewBookings(subscriptionStatus, trialEndsAt);
+export function canCopyBookingLink(setupComplete: boolean, _subscriptionStatus?: string | null, _trialEndsAt?: Date | string | null) {
+  return setupComplete;
 }

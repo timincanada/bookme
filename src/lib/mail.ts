@@ -7,21 +7,20 @@ export function confirmationMails(input: {
   studentEmail: string;
   when: string;
   location: string;
-  method: "cash" | "card" | string;
+  method?: "cash" | "card" | string;
   manageUrl?: string;
 }): Mail[] {
-  const pay = input.method === "cash" ? "Pay cash on arrival." : "Card payment received.";
   const manage = input.manageUrl ? ` Manage: ${input.manageUrl}` : "";
   return [
     {
       to: input.studentEmail,
       subject: `Booked with ${input.coachName}`,
-      text: `Hi ${input.studentName}, your private lesson with ${input.coachName} is confirmed for ${input.when} at ${input.location}. ${pay}${manage}`,
+      text: `Hi ${input.studentName}, your private lesson with ${input.coachName} is confirmed for ${input.when} at ${input.location}.${manage}`,
     },
     {
       to: input.coachEmail,
       subject: `New lesson: ${input.studentName}`,
-      text: `${input.studentName} booked a private lesson on ${input.when} at ${input.location}. ${pay}`,
+      text: `${input.studentName} booked a private lesson on ${input.when} at ${input.location}.`,
     },
   ];
 }
@@ -52,7 +51,6 @@ export async function sendLessonConfirmations(input: Parameters<typeof confirmat
   }
 }
 
-
 export function changeMails(input: {
   kind: "rescheduled" | "cancelled" | "next_week_cash" | "next_week_card";
   coachName: string;
@@ -68,7 +66,7 @@ export function changeMails(input: {
       {
         to: input.studentEmail,
         subject: `Lesson moved with ${input.coachName}`,
-        text: `Hi ${input.studentName}, your lesson with ${input.coachName} moved to ${input.nextWhen}. Same price, no extra charge.`,
+        text: `Hi ${input.studentName}, your lesson with ${input.coachName} moved to ${input.nextWhen}.`,
       },
     ];
   }
@@ -77,7 +75,7 @@ export function changeMails(input: {
       {
         to: input.studentEmail,
         subject: `Lesson cancelled with ${input.coachName}`,
-        text: `Hi ${input.studentName}, ${input.coachName} cancelled your lesson on ${input.when}. If you paid by card, the refund is on the way.`,
+        text: `Hi ${input.studentName}, ${input.coachName} cancelled your lesson on ${input.when}.`,
       },
     ];
   }
@@ -86,24 +84,23 @@ export function changeMails(input: {
       {
         to: input.studentEmail,
         subject: `Booked next week with ${input.coachName}`,
-        text: `Hi ${input.studentName}, ${input.coachName} booked you for ${input.nextWhen}. Pay cash on arrival.`,
+        text: `Hi ${input.studentName}, ${input.coachName} booked you for ${input.nextWhen}.`,
       },
       {
         to: input.coachEmail,
         subject: `Next week booked: ${input.studentName}`,
-        text: `${input.studentName} is booked for ${input.nextWhen}. Cash, unpaid.`,
+        text: `${input.studentName} is booked for ${input.nextWhen}.`,
       },
     ];
   }
   return [
     {
       to: input.studentEmail,
-      subject: `Pay to confirm next week with ${input.coachName}`,
-      text: `Hi ${input.studentName}, ${input.coachName} offered ${input.nextWhen}. Pay to confirm: ${input.payUrl || ""}`,
+      subject: `Next week with ${input.coachName}`,
+      text: `Hi ${input.studentName}, ${input.coachName} booked you for ${input.nextWhen}.`,
     },
   ];
 }
-
 
 export function reminderMails(input: {
   kind: "24h" | "2h";
@@ -130,7 +127,6 @@ export function reminderMails(input: {
     },
   ];
 }
-
 
 export function manageLinkMail(input: { email: string; link: string; code: string }): Mail {
   return {

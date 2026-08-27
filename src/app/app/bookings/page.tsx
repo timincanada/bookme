@@ -4,9 +4,9 @@ import { Brand } from "@/components/Brand";
 import { TabBar } from "@/components/TabBar";
 import { currentCoach } from "@/lib/session";
 import { prisma } from "@/lib/db";
-import { bookingBucket, payLabel, lessonStatusLabel } from "@/lib/bookings";
+import { bookingBucket, lessonStatusLabel } from "@/lib/bookings";
 import { formatWhen } from "@/lib/time";
-import { PayChip, StatusChip } from "@/components/PayChip";
+import { StatusChip } from "@/components/PayChip";
 
 const TABS = ["upcoming", "completed", "cancelled"] as const;
 
@@ -22,7 +22,7 @@ export default async function BookingsPage({
     : "upcoming") as (typeof TABS)[number];
   const lessons = await prisma.lesson.findMany({
     where: { coachId: coach.id },
-    include: { client: true, location: true, payment: true },
+    include: { client: true, location: true },
     orderBy: { startAt: "asc" },
   });
   const now = new Date();
@@ -49,22 +49,18 @@ export default async function BookingsPage({
         ))}
       </div>
       <ul className="mt-5 space-y-3">
-        {rows.map((l) => {
-          const pay = payLabel(l.payment?.status, l.payment?.method);
-          return (
-            <li key={l.id}>
-              <Link href={`/app/lessons/${l.id}`} className="block card">
+        {rows.map((l) => (
+          <li key={l.id}>
+            <Link href={`/app/lessons/${l.id}`} className="block card">
               <div className="font-semibold">{formatWhen(l.startAt)}</div>
               <div>Private · {l.client.name}</div>
               <div className="text-sm text-muted">{l.location.name}</div>
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <PayChip kind={pay.kind} text={pay.text} />
                 <StatusChip>{lessonStatusLabel(l.status)}</StatusChip>
               </div>
-              </Link>
-            </li>
-          );
-        })}
+            </Link>
+          </li>
+        ))}
         {rows.length === 0 && <p className="text-muted">No {tab} lessons.</p>}
       </ul>
       <TabBar active="bookings" />
