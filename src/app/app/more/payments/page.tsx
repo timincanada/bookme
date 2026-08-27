@@ -25,17 +25,32 @@ export default function MorePaymentsPage() {
     });
   }, []);
 
+  async function readJson(res: Response) {
+    const text = await res.text();
+    if (!text) return {} as { url?: string; error?: string; needsConnect?: boolean; acceptCard?: boolean; acceptCash?: boolean };
+    try {
+      return JSON.parse(text) as { url?: string; error?: string; needsConnect?: boolean; acceptCard?: boolean; acceptCash?: boolean };
+    } catch {
+      return {} as { url?: string; error?: string; needsConnect?: boolean; acceptCard?: boolean; acceptCash?: boolean };
+    }
+  }
+
   async function connect() {
     setBusy(true);
     setError("");
-    const res = await fetch("/api/coach/connect", { method: "POST" });
-    const data = await res.json();
-    if (!res.ok || !data.url) {
+    try {
+      const res = await fetch("/api/coach/connect", { method: "POST" });
+      const data = await readJson(res);
+      if (!res.ok || !data.url) {
+        setBusy(false);
+        setError(data.error || "Could not start Stripe Connect");
+        return;
+      }
+      window.location.href = data.url;
+    } catch {
       setBusy(false);
-      setError(data.error || "Could not start Stripe Connect");
-      return;
+      setError("Could not start Stripe Connect");
     }
-    window.location.href = data.url;
   }
 
   async function save(nextCard: boolean, nextCash: boolean) {
@@ -51,7 +66,7 @@ export default function MorePaymentsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ acceptCard: nextCard, acceptCash: nextCash }),
     });
-    const data = await res.json();
+    const data = await readJson(res);
     setBusy(false);
     if (!res.ok) {
       if (data.needsConnect) {
@@ -61,8 +76,8 @@ export default function MorePaymentsPage() {
       setError(data.error || "Keep at least one method on");
       return;
     }
-    setAcceptCard(data.acceptCard);
-    setAcceptCash(data.acceptCash);
+    setAcceptCard(!!data.acceptCard);
+    setAcceptCash(!!data.acceptCash);
     setSaved("Saved");
   }
 
