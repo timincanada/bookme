@@ -6,6 +6,7 @@ import { currentCoach } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { formatTime } from "@/lib/time";
 import { canCopyBookingLink, isSetupComplete } from "@/lib/setup";
+import { isAdminEmail } from "@/lib/admin";
 import { lessonStatusLabel } from "@/lib/bookings";
 import Link from "next/link";
 
@@ -19,7 +20,10 @@ export default async function SchedulePage() {
     locationCount: coach.locations.filter((l) => l.active).length,
     hourCount: coach.hours.length,
   });
-  const publish = canCopyBookingLink(setup, coach.subscriptionStatus, coach.trialEndsAt);
+  const publish = canCopyBookingLink(setup, coach.subscriptionStatus, coach.trialEndsAt, {
+    banned: coach.banned,
+    accessGrant: coach.accessGrant,
+  });
   const lessons = await prisma.lesson.findMany({
     where: { coachId: coach.id, status: "confirmed" },
     include: { client: true, location: true, service: true },
@@ -29,8 +33,13 @@ export default async function SchedulePage() {
     <main className="phone px-5 pb-24">
       <Brand
         right={
-          <div className="h-8 w-8 rounded-full bg-brand-soft text-center text-sm leading-8 font-semibold text-brand-dark">
-            {coach.name.slice(0, 1)}
+          <div className="flex items-center gap-3">
+            {isAdminEmail(coach.email) && (
+              <Link href="/app/admin" className="text-sm font-semibold text-brand">Admin</Link>
+            )}
+            <div className="h-8 w-8 rounded-full bg-brand-soft text-center text-sm leading-8 font-semibold text-brand-dark">
+              {coach.name.slice(0, 1)}
+            </div>
           </div>
         }
       />

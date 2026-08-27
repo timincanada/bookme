@@ -4,7 +4,7 @@ import { openSlots } from "@/lib/slots";
 import { notifyLessonConfirmed } from "@/lib/mail-send";
 import { pickLocation } from "@/lib/location";
 import { looksLikeEmail, normalizeEmail } from "@/lib/email";
-import { canAcceptNewBookings } from "@/lib/subscription";
+import { canCopyBookingLink, isSetupComplete } from "@/lib/setup";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   }
   const coach = await prisma.coach.findUnique({
     where: { slug },
-    include: { services: true, locations: { where: { active: true } } },
+    include: { services: true, locations: { where: { active: true } }, hours: true },
   });
   if (!coach) return NextResponse.json({ error: "Coach not found" }, { status: 404 });
   const service = coach.services[0];
@@ -26,7 +26,14 @@ export async function POST(req: NextRequest) {
   const picked = pickLocation(coach.locations, locationId);
   if (!picked.ok) return NextResponse.json({ error: picked.error }, { status: 400 });
   const location = picked.location;
-  if (!canAcceptNewBookings(coach.subscriptionStatus, coach.trialEndsAt)) {
+  const setup = isSetupComplete({
+    title: coach.title,
+    timezone: coach.timezone,
+    service,
+    locationCount: coach.locations.length,
+    hourCount: coach.hours.length,
+  });
+  if (!canCopyBookingLink(setup, coach.subscriptionStatus, coach.trialEndsAt, coach.banned, coach.accessGrant)) {
     return NextResponse.json({ error: "This coach is not accepting new bookings" }, { status: 403 });
   }
 

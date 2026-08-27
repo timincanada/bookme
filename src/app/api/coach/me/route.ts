@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentCoach } from "@/lib/session";
 import { canCopyBookingLink, isSetupComplete } from "@/lib/setup";
+import { isAdminEmail } from "@/lib/admin";
 import { planCapabilities, effectiveSubscriptionStatus } from "@/lib/subscription";
 import { expireStaleTrial } from "@/lib/subscription-sync";
 
@@ -26,7 +27,11 @@ export async function GET() {
     subscriptionStatus: effectiveSubscriptionStatus(coach.subscriptionStatus, coach.trialEndsAt),
     plan: coach.plan,
     setup,
-    canCopyLink: canCopyBookingLink(setup, coach.subscriptionStatus, coach.trialEndsAt),
+    admin: isAdminEmail(coach.email),
+    canCopyLink: canCopyBookingLink(setup, coach.subscriptionStatus, coach.trialEndsAt, {
+      banned: coach.banned,
+      accessGrant: coach.accessGrant,
+    }),
     service: coach.services[0] || null,
     stripeConnected: !!coach.stripeAccountId,
     acceptCard: coach.acceptCard,

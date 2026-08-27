@@ -1,4 +1,4 @@
-import { canAcceptNewBookings } from "./subscription";
+import { canPublish } from "./admin";
 
 export const VERTICALS = [
   "Tennis",
@@ -42,7 +42,27 @@ export function isSetupComplete(input: {
   );
 }
 
-/** Booking link can be copied only after setup is complete AND trial/paid is active. */
-export function canCopyBookingLink(setupComplete: boolean, subscriptionStatus: string | null | undefined, trialEndsAt?: Date | string | null) {
-  return setupComplete && canAcceptNewBookings(subscriptionStatus, trialEndsAt);
+/** Booking link can be copied after setup AND trial/paid, or a paid grant. Banned / unpaid grant always block. */
+export function canCopyBookingLink(
+  setupComplete: boolean,
+  subscriptionStatus: string | null | undefined,
+  trialEndsAt?: Date | string | null,
+  bannedOrExtra: boolean | { banned?: boolean; accessGrant?: string | null } = false,
+  accessGrant = "",
+) {
+  let banned = false;
+  let grant = accessGrant;
+  if (typeof bannedOrExtra === "object" && bannedOrExtra) {
+    banned = Boolean(bannedOrExtra.banned);
+    if (bannedOrExtra.accessGrant != null) grant = bannedOrExtra.accessGrant;
+  } else {
+    banned = Boolean(bannedOrExtra);
+  }
+  return canPublish({
+    setup: setupComplete,
+    status: subscriptionStatus,
+    trialEndsAt,
+    banned,
+    accessGrant: grant,
+  });
 }

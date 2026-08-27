@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Brand } from "@/components/Brand";
+import { VisitBeacon } from "@/components/VisitBeacon";
 import { prisma } from "@/lib/db";
 import { canCopyBookingLink, isSetupComplete } from "@/lib/setup";
+
+export const dynamic = "force-dynamic";
 
 export default async function CoachPage({ params }: { params: { slug: string } }) {
   const coach = await prisma.coach.findUnique({
@@ -18,9 +21,13 @@ export default async function CoachPage({ params }: { params: { slug: string } }
     locationCount: coach.locations.length,
     hourCount: coach.hours.length,
   });
-  const open = canCopyBookingLink(setup, coach.subscriptionStatus, coach.trialEndsAt);
+  const open = canCopyBookingLink(setup, coach.subscriptionStatus, coach.trialEndsAt, {
+    banned: coach.banned,
+    accessGrant: coach.accessGrant,
+  });
   return (
     <main className="phone px-5 pb-8">
+      <VisitBeacon />
       <Brand />
       <div className="flex flex-col items-center text-center">
         <div className="flex h-28 w-28 items-center justify-center rounded-full bg-brand-soft text-4xl font-semibold text-brand-dark">

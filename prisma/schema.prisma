@@ -27,6 +27,8 @@ model Coach {
   passwordHash          String?
   acceptCard            Boolean      @default(true)
   acceptCash            Boolean      @default(true)
+  banned                Boolean      @default(false)
+  accessGrant           String       @default("")
   services  Service[]
   locations Location[]
   hours     WeeklyHour[]
@@ -120,4 +122,8 @@ model ManageLink {
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
+}
+
+model PublicVisitor {
+  id String @id
 }
