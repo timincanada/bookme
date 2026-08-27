@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { openSlots } from "@/lib/slots";
+import { canAcceptNewBookings } from "@/lib/subscription";
 
 export async function GET(req: NextRequest) {
   const slug = req.nextUrl.searchParams.get("coach") || "tim-zhang";
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest) {
   const slots = await openSlots(coach.id, date, duration);
   return NextResponse.json({
     slots,
-    accepting: true,
+    accepting: canAcceptNewBookings(coach.subscriptionStatus, coach.trialEndsAt),
     coachName: coach.name,
     duration,
     locations: coach.locations.map((l) => ({

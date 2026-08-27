@@ -19,8 +19,8 @@ assert.equal(isSetupComplete({ ...ready, service: null }), false);
 
 assert.equal(canCopyBookingLink(true, "trialing"), true);
 assert.equal(canCopyBookingLink(true, "active"), true);
-assert.equal(canCopyBookingLink(true, "none"), true);
+assert.equal(canCopyBookingLink(true, "none"), false);
 assert.equal(canCopyBookingLink(false, "trialing"), false);
-assert.equal(canCopyBookingLink(true, "canceled"), true);
+assert.equal(canCopyBookingLink(true, "canceled"), false);
 
 console.log("setup tests ok");

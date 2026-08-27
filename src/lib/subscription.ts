@@ -33,8 +33,10 @@ export function hasCapability(plan: string | null | undefined, cap: Capability, 
 }
 
 
-export function canAcceptNewBookings(_status?: string | null, _trialEndsAt?: Date | string | null) {
-  return true;
+const OPEN = new Set(["trialing", "active"]);
+
+export function canAcceptNewBookings(status: string | null | undefined, trialEndsAt?: Date | string | null) {
+  return OPEN.has(effectiveSubscriptionStatus(status, trialEndsAt));
 }
 
 export function isSubscribed(status: string | null | undefined) {
