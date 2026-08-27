@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function MorePaymentsPage() {
-  const [acceptCard, setAcceptCard] = useState(true);
+  const [acceptCard, setAcceptCard] = useState(false);
   const [acceptCash, setAcceptCash] = useState(true);
+  const [connected, setConnected] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState("");
   const [busy, setBusy] = useState(false);
@@ -18,12 +19,30 @@ export default function MorePaymentsPage() {
         return;
       }
       const d = await r.json();
-      setAcceptCard(d.acceptCard !== false);
+      setConnected(!!d.stripeConnected);
+      setAcceptCard(!!d.stripeConnected && !!d.acceptCard);
       setAcceptCash(d.acceptCash !== false);
     });
   }, []);
 
+  async function connect() {
+    setBusy(true);
+    setError("");
+    const res = await fetch("/api/coach/connect", { method: "POST" });
+    const data = await res.json();
+    if (!res.ok || !data.url) {
+      setBusy(false);
+      setError(data.error || "Could not start Stripe Connect");
+      return;
+    }
+    window.location.href = data.url;
+  }
+
   async function save(nextCard: boolean, nextCash: boolean) {
+    if (nextCard && !connected) {
+      await connect();
+      return;
+    }
     setBusy(true);
     setError("");
     setSaved("");
@@ -35,6 +54,10 @@ export default function MorePaymentsPage() {
     const data = await res.json();
     setBusy(false);
     if (!res.ok) {
+      if (data.needsConnect) {
+        await connect();
+        return;
+      }
       setError(data.error || "Keep at least one method on");
       return;
     }
@@ -48,12 +71,12 @@ export default function MorePaymentsPage() {
       <Brand />
       <Link href="/app/more" className="text-sm font-semibold text-brand">More</Link>
       <h1 className="mt-2 text-2xl font-bold">Accepted payments</h1>
-      <p className="text-muted">Checkout only shows what you turn on. Keep at least one.</p>
+      <p className="text-muted">Checkout only shows what you turn on. Keep at least one. Card needs Stripe Connect. BookMe keeps 5% on cards. Cash has no fee.</p>
       <div className="mt-5 space-y-3">
         <label className="flex items-center justify-between card">
           <div>
             <div className="font-semibold">Card</div>
-            <div className="text-sm text-muted">Stripe, CAD, pay to confirm</div>
+            <div className="text-sm text-muted">{connected ? "Stripe, CAD, pay to confirm" : "Connect Stripe to take cards"}</div>
           </div>
           <input
             type="checkbox"

@@ -6,6 +6,7 @@ import { canAcceptNewBookings } from "@/lib/subscription";
 import { holdExpiresAt } from "@/lib/hold";
 import { nextWeekStart } from "@/lib/change";
 import { appUrl, getStripe } from "@/lib/stripe";
+import { connectPaymentIntentData } from "@/lib/payments";
 import { changeMails, sendMail } from "@/lib/mail";
 import { formatWhen } from "@/lib/time";
 import { notifyLessonConfirmed } from "@/lib/mail-send";
@@ -58,6 +59,9 @@ export async function POST(req: NextRequest) {
   if (!stripe) {
     return NextResponse.json({ error: "Card checkout is not configured" }, { status: 503 });
   }
+  if (!lesson.coach.stripeAccountId) {
+    return NextResponse.json({ error: "Connect Stripe to take cards" }, { status: 400 });
+  }
   const created = await prisma.lesson.create({
     data: {
       coachId: lesson.coachId,
@@ -89,6 +93,7 @@ export async function POST(req: NextRequest) {
     metadata: { lessonId: created.id },
     success_url: `${appUrl()}/book/done?id=${created.id}`,
     cancel_url: `${appUrl()}/manage?email=${encodeURIComponent(lesson.client.email)}`,
+    payment_intent_data: connectPaymentIntentData(lesson.coach.stripeAccountId, amount),
   });
   await prisma.payment.update({
     where: { lessonId: created.id },

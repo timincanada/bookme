@@ -5,7 +5,7 @@ import { holdExpiresAt } from "@/lib/hold";
 import { appUrl, getStripe } from "@/lib/stripe";
 import { canAcceptNewBookings } from "@/lib/subscription";
 import { notifyLessonConfirmed } from "@/lib/mail-send";
-import { canUseMethod } from "@/lib/payments";
+import { canUseMethod, connectPaymentIntentData } from "@/lib/payments";
 import { pickLocation } from "@/lib/location";
 import { looksLikeEmail, normalizeEmail } from "@/lib/email";
 
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "This coach is not accepting new bookings" }, { status: 403 });
   }
   const payMethod = method === "card" ? "card" : "cash";
-  if (!canUseMethod(payMethod, coach.acceptCard, coach.acceptCash)) {
+  if (!canUseMethod(payMethod, coach.acceptCard, coach.acceptCash, coach.stripeAccountId)) {
     return NextResponse.json({ error: "That payment method is not available" }, { status: 400 });
   }
 
@@ -83,6 +83,9 @@ export async function POST(req: NextRequest) {
       { status: 503 }
     );
   }
+  if (!coach.stripeAccountId) {
+    return NextResponse.json({ error: "Card is not available until the coach connects Stripe" }, { status: 400 });
+  }
 
   const holdUntil = holdExpiresAt();
   const lesson = await prisma.lesson.create({
@@ -126,12 +129,7 @@ export async function POST(req: NextRequest) {
     success_url: `${appUrl()}/book/done?id=${lesson.id}`,
     cancel_url: `${appUrl()}/book/pay?coach=${slug}&start=${encodeURIComponent(start)}&location=${location.id}`,
   };
-  if (coach.stripeAccountId) {
-    sessionParams.payment_intent_data = {
-      application_fee_amount: 0,
-      transfer_data: { destination: coach.stripeAccountId },
-    };
-  }
+  sessionParams.payment_intent_data = connectPaymentIntentData(coach.stripeAccountId, service.priceCad);
 
   try {
     const session = await stripe.checkout.sessions.create(sessionParams);

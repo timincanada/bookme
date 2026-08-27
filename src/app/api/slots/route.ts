@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { openSlots } from "@/lib/slots";
 import { canAcceptNewBookings } from "@/lib/subscription";
+import { canTakeCard } from "@/lib/payments";
 
 export async function GET(req: NextRequest) {
   const slug = req.nextUrl.searchParams.get("coach") || "tim-zhang";
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
     coachName: coach.name,
     duration,
     priceCad: coach.services[0]?.priceCad || 80,
-    acceptCard: coach.acceptCard,
+    acceptCard: canTakeCard(coach.acceptCard, coach.stripeAccountId),
     acceptCash: coach.acceptCash,
     locations: coach.locations.map((l) => ({
       id: l.id,

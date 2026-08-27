@@ -28,6 +28,7 @@ export async function GET() {
     setup,
     canCopyLink: canCopyBookingLink(setup, coach.subscriptionStatus, coach.trialEndsAt),
     service: coach.services[0] || null,
+    stripeConnected: !!coach.stripeAccountId,
     acceptCard: coach.acceptCard,
     acceptCash: coach.acceptCash,
     locations: coach.locations,
