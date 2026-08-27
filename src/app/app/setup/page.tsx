@@ -3,6 +3,7 @@ import { Brand } from "@/components/Brand";
 import { DURATIONS, VERTICALS } from "@/lib/setup";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { publicAppUrl } from "@/lib/app-url";
 
 const STEPS = ["Basics", "Locations", "Hours", "Link"];
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -139,7 +140,7 @@ export default function SetupPage() {
     setHours((prev) => prev.map((h) => (h.weekday === weekday ? { ...h, [field]: value } : h)));
   }
 
-  const link = typeof window !== "undefined" ? `${window.location.origin}/${slug}` : `/${slug}`;
+  const link = `${publicAppUrl()}/${slug}`;
   const activeLocations = locations.filter((l) => l.active);
 
   return (

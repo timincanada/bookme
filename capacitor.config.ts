@@ -5,10 +5,9 @@ const config: CapacitorConfig = {
   appName: "BookMe",
   webDir: "public",
   server: {
-    url: "https://bookme-flax.vercel.app",
+    url: "https://bookme.training",
     androidScheme: "https",
     allowNavigation: [
-      "bookme-flax.vercel.app",
       "bookme.training",
       "www.bookme.training",
       "*.stripe.com",
