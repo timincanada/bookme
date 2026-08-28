@@ -2,8 +2,56 @@ import { canAcceptNewBookings, effectiveSubscriptionStatus } from "./subscriptio
 
 export const ADMIN_EMAIL = "zhouxiyin1024@gmail.com";
 
+export function normalizeEmail(email?: string | null) {
+  return String(email || "").trim().toLowerCase();
+}
+
 export function isAdminEmail(email?: string | null) {
-  return String(email || "").trim().toLowerCase() === ADMIN_EMAIL;
+  return normalizeEmail(email) === ADMIN_EMAIL;
+}
+
+/** Staff emails are never coaches in the staff console. Default is the first staff email. */
+export function isStaffEmail(email?: string | null, staffEmails: string[] = [ADMIN_EMAIL]) {
+  const needle = normalizeEmail(email);
+  if (!needle) return false;
+  return staffEmails.some((e) => normalizeEmail(e) === needle);
+}
+
+export function visibleCoaches<T extends { email: string }>(coaches: T[], staffEmails: string[] = [ADMIN_EMAIL]) {
+  return coaches.filter((c) => !isStaffEmail(c.email, staffEmails));
+}
+
+/** 401 if the staff cookie is missing; 403 if the id is not a Staff row. Never uses coach email. */
+export function staffAuthStatus(sessionId: string | null | undefined, staffFound: boolean) {
+  if (!sessionId) return 401;
+  if (!staffFound) return 403;
+  return 200;
+}
+
+export type CoachStatRow = {
+  email: string;
+  banned?: boolean;
+  subscriptionStatus?: string | null;
+  trialEndsAt?: Date | string | null;
+};
+
+/** Registered = non-staff coaches. Trialing/active skip banned and skip staff emails. */
+export function coachStats(coaches: CoachStatRow[], staffEmails: string[] = [ADMIN_EMAIL], now = new Date()) {
+  const visible = visibleCoaches(coaches, staffEmails);
+  const registeredCoaches = visible.length;
+  const countable = visible.filter((c) => !c.banned);
+  const onTrial = countable.filter(
+    (c) => effectiveSubscriptionStatus(c.subscriptionStatus, c.trialEndsAt, now) === "trialing",
+  ).length;
+  const subscribed = countable.filter(
+    (c) => effectiveSubscriptionStatus(c.subscriptionStatus, c.trialEndsAt, now) === "active",
+  ).length;
+  return {
+    registeredCoaches,
+    onTrial,
+    subscribed,
+    conversionLabel: conversionLabel(subscribed, registeredCoaches),
+  };
 }
 
 export function paidSubscription(status?: string | null, trialEndsAt?: Date | string | null, now = new Date()) {

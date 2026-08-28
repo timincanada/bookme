@@ -6,7 +6,6 @@ import { currentCoach } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { formatTime } from "@/lib/time";
 import { canCopyBookingLink, isSetupComplete } from "@/lib/setup";
-import { isAdminEmail } from "@/lib/admin";
 import { lessonStatusLabel } from "@/lib/bookings";
 import Link from "next/link";
 
@@ -33,13 +32,8 @@ export default async function SchedulePage() {
     <main className="phone px-5 pb-24">
       <Brand
         right={
-          <div className="flex items-center gap-3">
-            {isAdminEmail(coach.email) && (
-              <Link href="/app/admin" className="text-sm font-semibold text-brand">Admin</Link>
-            )}
-            <div className="h-8 w-8 rounded-full bg-brand-soft text-center text-sm leading-8 font-semibold text-brand-dark">
-              {coach.name.slice(0, 1)}
-            </div>
+          <div className="h-8 w-8 rounded-full bg-brand-soft text-center text-sm leading-8 font-semibold text-brand-dark">
+            {coach.name.slice(0, 1)}
           </div>
         }
       />

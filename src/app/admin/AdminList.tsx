@@ -1,6 +1,6 @@
 "use client";
 
-import { isAdminEmail } from "@/lib/admin";
+import { isStaffEmail } from "@/lib/admin";
 import { useCallback, useEffect, useState } from "react";
 
 type CoachRow = {
@@ -36,7 +36,7 @@ export function AdminList() {
     setError("");
     const res = await fetch(`/api/admin/coaches${nextSubscribed ? "?paid=1" : ""}`);
     if (res.status === 401) {
-      window.location.href = "/app/login";
+      window.location.href = "/admin";
       return;
     }
     if (!res.ok) {
@@ -160,7 +160,7 @@ export function AdminList() {
               <span className="mt-3 inline-block rounded-full bg-danger/10 px-3 py-1 text-sm font-semibold text-danger">
                 Banned
               </span>
-            ) : isAdminEmail(c.email) ? null : (
+            ) : isStaffEmail(c.email) ? null : (
               <button type="button" disabled={busyId === c.id} onClick={() => ban(c.id)} className="btn-danger mt-3">
                 Ban
               </button>

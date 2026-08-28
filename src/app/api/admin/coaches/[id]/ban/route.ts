@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { isAdminEmail } from "@/lib/admin";
+import { ADMIN_EMAIL, isStaffEmail } from "@/lib/admin";
 import { requireAdmin } from "@/lib/session";
 
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
@@ -9,7 +9,10 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 
   const coach = await prisma.coach.findUnique({ where: { id: params.id } });
   if (!coach) return NextResponse.json({ error: "Coach not found" }, { status: 404 });
-  if (isAdminEmail(coach.email)) {
+
+  const staffRows = await prisma.staff.findMany({ select: { email: true } });
+  const staffEmails = [ADMIN_EMAIL, ...staffRows.map((s) => s.email)];
+  if (isStaffEmail(coach.email, staffEmails)) {
     return NextResponse.json({ error: "Cannot ban this account" }, { status: 400 });
   }
 
