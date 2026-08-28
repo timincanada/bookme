@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import {
   ADMIN_EMAIL,
+  NO_ACCESS_COPY,
+  appAdminView,
   canPublish,
   coachStats,
   conversionLabel,
@@ -10,14 +12,17 @@ import {
   isStaffEmail,
   paidSubscription,
   planAfterPaidGrant,
+  staffAdminView,
   staffAuthStatus,
   stripeFeeLabel,
   visibleCoaches,
 } from "./admin";
+import { SESSION_COOKIE, STAFF_COOKIE } from "./auth";
 import { canCopyBookingLink } from "./setup";
 import { PLANS } from "./subscription";
 
 assert.equal(ADMIN_EMAIL, "zhouxiyin1024@gmail.com");
+assert.equal(NO_ACCESS_COPY, "You don't have access");
 assert.equal(isAdminEmail("zhouxiyin1024@gmail.com"), true);
 assert.equal(isAdminEmail("ZhouXiyin1024@Gmail.com"), true);
 assert.equal(isAdminEmail("  zhouxiyin1024@gmail.com  "), true);
@@ -61,6 +66,15 @@ assert.equal(staffAuthStatus("", false), 401);
 assert.equal(staffAuthStatus("staff-id", false), 403);
 assert.equal(staffAuthStatus("staff-id", true), 200);
 assert.equal(staffAuthStatus(null, isAdminEmail("zhouxiyin1024@gmail.com")), 401);
+
+assert.equal(STAFF_COOKIE, "bookme_staff");
+assert.equal(SESSION_COOKIE, "bookme_coach");
+assert.notEqual(STAFF_COOKIE, SESSION_COOKIE);
+assert.equal(staffAdminView(true, false), "403");
+assert.equal(staffAdminView(true, true), "403");
+assert.equal(staffAdminView(false, false), "login");
+assert.equal(staffAdminView(false, true), "list");
+assert.equal(appAdminView(), "403");
 
 assert.equal(paidSubscription("trialing"), true);
 assert.equal(paidSubscription("active"), true);

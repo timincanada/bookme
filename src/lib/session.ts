@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "./db";
@@ -18,18 +19,18 @@ export async function currentCoach() {
 export async function ensureStaff() {
   const email = ADMIN_EMAIL;
   const password = process.env.STAFF_PASSWORD;
-  const passwordHash = password ? hashPassword(password) : "";
   if (password) {
+    const passwordHash = hashPassword(password);
     return prisma.staff.upsert({
       where: { email },
       create: { email, passwordHash },
       update: { passwordHash },
     });
   }
-  return prisma.staff.upsert({
-    where: { email },
-    create: { email, passwordHash: "" },
-    update: {},
+  const existing = await prisma.staff.findUnique({ where: { email } });
+  if (existing) return existing;
+  return prisma.staff.create({
+    data: { email, passwordHash: hashPassword(randomBytes(24).toString("hex")) },
   });
 }
 
