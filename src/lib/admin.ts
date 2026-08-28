@@ -1,6 +1,7 @@
 import { canAcceptNewBookings, effectiveSubscriptionStatus } from "./subscription";
 
 export const ADMIN_EMAIL = "zhouxiyin1024@gmail.com";
+export const NO_ACCESS_COPY = "You don't have access";
 
 export function normalizeEmail(email?: string | null) {
   return String(email || "").trim().toLowerCase();
@@ -26,6 +27,17 @@ export function staffAuthStatus(sessionId: string | null | undefined, staffFound
   if (!sessionId) return 401;
   if (!staffFound) return 403;
   return 200;
+}
+
+/** /admin: coach session always 403 (no Staff login form). /app/admin is always 403. */
+export function staffAdminView(coachSignedIn: boolean, staffSignedIn: boolean): "403" | "login" | "list" {
+  if (coachSignedIn) return "403";
+  if (staffSignedIn) return "list";
+  return "login";
+}
+
+export function appAdminView(): "403" {
+  return "403";
 }
 
 export type CoachStatRow = {
