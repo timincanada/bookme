@@ -25,10 +25,6 @@ export default function LoginPage() {
       setError(data.error || "Could not sign in");
       return;
     }
-    if (data.admin) {
-      router.push("/app/admin");
-      return;
-    }
     router.push(data.setup ? "/app/schedule" : "/app/setup");
   }
 

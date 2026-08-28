@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { conversionLabel, formatPlanLabel, formatStatusLabel, grantLabel, paidSubscription, stripeFeeLabel } from "@/lib/admin";
+import {
+  ADMIN_EMAIL,
+  coachStats,
+  formatPlanLabel,
+  formatStatusLabel,
+  grantLabel,
+  paidSubscription,
+  stripeFeeLabel,
+  visibleCoaches,
+} from "@/lib/admin";
 import { requireAdmin } from "@/lib/session";
 import { getStripe } from "@/lib/stripe";
 import { effectiveSubscriptionStatus } from "@/lib/subscription";
@@ -10,8 +19,8 @@ export async function GET(req: NextRequest) {
   if (!auth.ok) return auth.response;
 
   const paidOnly = req.nextUrl.searchParams.get("paid") === "1";
-  const [registeredCoaches, publicUniqueVisitors, coaches] = await Promise.all([
-    prisma.coach.count(),
+  const [staffRows, publicUniqueVisitors, coaches] = await Promise.all([
+    prisma.staff.findMany({ select: { email: true } }),
     prisma.publicVisitor.count().catch(() => 0),
     prisma.coach.findMany({
       orderBy: { name: "asc" },
@@ -31,9 +40,11 @@ export async function GET(req: NextRequest) {
     }),
   ]);
 
+  const staffEmails = [ADMIN_EMAIL, ...staffRows.map((s) => s.email)];
+  const visible = visibleCoaches(coaches, staffEmails);
   const filtered = paidOnly
-    ? coaches.filter((c) => paidSubscription(c.subscriptionStatus, c.trialEndsAt))
-    : coaches;
+    ? visible.filter((c) => paidSubscription(c.subscriptionStatus, c.trialEndsAt))
+    : visible;
 
   const stripe = getStripe();
 
@@ -89,19 +100,13 @@ export async function GET(req: NextRequest) {
     }),
   );
 
-  const onTrial = coaches.filter(
-    (c) => effectiveSubscriptionStatus(c.subscriptionStatus, c.trialEndsAt) === "trialing",
-  ).length;
-  const subscribed = coaches.filter(
-    (c) => effectiveSubscriptionStatus(c.subscriptionStatus, c.trialEndsAt) === "active",
-  ).length;
-
+  const counted = coachStats(coaches, staffEmails);
   const stats = {
-    registeredCoaches,
+    registeredCoaches: counted.registeredCoaches,
     publicUniqueVisitors,
-    onTrial,
-    subscribed,
-    conversionLabel: conversionLabel(subscribed, registeredCoaches),
+    onTrial: counted.onTrial,
+    subscribed: counted.subscribed,
+    conversionLabel: counted.conversionLabel,
   };
 
   return NextResponse.json({

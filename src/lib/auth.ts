@@ -1,6 +1,7 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 export const SESSION_COOKIE = "bookme_coach";
 export const STUDENT_COOKIE = "bookme_student";
+export const STAFF_COOKIE = "bookme_staff";
 
 function secret() {
   return process.env.AUTH_SECRET || "bookme-dev-secret";

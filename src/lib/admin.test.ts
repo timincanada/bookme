@@ -2,13 +2,17 @@ import assert from "node:assert/strict";
 import {
   ADMIN_EMAIL,
   canPublish,
+  coachStats,
   conversionLabel,
   formatPlanLabel,
   grantLabel,
   isAdminEmail,
+  isStaffEmail,
   paidSubscription,
   planAfterPaidGrant,
+  staffAuthStatus,
   stripeFeeLabel,
+  visibleCoaches,
 } from "./admin";
 import { canCopyBookingLink } from "./setup";
 import { PLANS } from "./subscription";
@@ -20,6 +24,43 @@ assert.equal(isAdminEmail("  zhouxiyin1024@gmail.com  "), true);
 assert.equal(isAdminEmail("coach@example.com"), false);
 assert.equal(isAdminEmail(""), false);
 assert.equal(isAdminEmail(null), false);
+
+assert.equal(isStaffEmail("zhouxiyin1024@gmail.com"), true);
+assert.equal(isStaffEmail("  ZhouXiyin1024@Gmail.com  "), true);
+assert.equal(isStaffEmail("coach@example.com"), false);
+assert.equal(isStaffEmail(""), false);
+assert.equal(isStaffEmail(null), false);
+assert.equal(isStaffEmail("other@x.com", ["other@x.com"]), true);
+assert.equal(isStaffEmail("coach@example.com", ["zhouxiyin1024@gmail.com"]), false);
+
+const coaches = [
+  { email: "zhouxiyin1024@gmail.com", banned: false, subscriptionStatus: "active" },
+  { email: "a@test.com", banned: false, subscriptionStatus: "trialing" },
+  { email: "b@test.com", banned: true, subscriptionStatus: "active" },
+  { email: "c@test.com", banned: false, subscriptionStatus: "active" },
+];
+const staffEmails = ["zhouxiyin1024@gmail.com"];
+const visible = visibleCoaches(coaches, staffEmails);
+assert.equal(visible.length, 3);
+assert.equal(visible.some((c) => isStaffEmail(c.email, staffEmails)), false);
+assert.equal(
+  visibleCoaches(coaches, staffEmails).some((c) => isAdminEmail(c.email)),
+  false,
+);
+
+const stats = coachStats(coaches, staffEmails);
+assert.equal(stats.registeredCoaches, 3);
+assert.equal(stats.onTrial, 1);
+assert.equal(stats.subscribed, 1);
+assert.equal(stats.conversionLabel, conversionLabel(1, 3));
+assert.equal(coachStats([], staffEmails).registeredCoaches, 0);
+assert.equal(coachStats([], staffEmails).conversionLabel, "—");
+
+assert.equal(staffAuthStatus(null, true), 401);
+assert.equal(staffAuthStatus("", false), 401);
+assert.equal(staffAuthStatus("staff-id", false), 403);
+assert.equal(staffAuthStatus("staff-id", true), 200);
+assert.equal(staffAuthStatus(null, isAdminEmail("zhouxiyin1024@gmail.com")), 401);
 
 assert.equal(paidSubscription("trialing"), true);
 assert.equal(paidSubscription("active"), true);
