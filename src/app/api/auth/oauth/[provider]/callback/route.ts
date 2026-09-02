@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, sessionCookieOptions, signSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import {
+  OAUTH_CANCEL,
+  OAUTH_DENY,
+  OAUTH_NO_EMAIL,
   OAUTH_STATE_COOKIE,
   errorReturnPath,
   exchangeOAuthCode,
   isOAuthProvider,
+  oauthDownCopy,
+  oauthMissingEmailCopy,
   oauthRedirectUri,
   readOAuthState,
   resolveCoachFromOAuth,
@@ -64,8 +69,10 @@ export async function GET(req: NextRequest, { params }: { params: { provider: st
   }
   const provider: OAuthProvider = providerParam;
 
-  if (req.nextUrl.searchParams.get("error")) {
-    return fail(req, from, "Could not sign in");
+  const oauthError = req.nextUrl.searchParams.get("error");
+  if (oauthError) {
+    if (oauthError === "access_denied") return fail(req, from, OAUTH_CANCEL);
+    return fail(req, from, OAUTH_DENY);
   }
 
   if (!stored || stored.provider !== provider) {
@@ -84,7 +91,7 @@ export async function GET(req: NextRequest, { params }: { params: { provider: st
   try {
     profile = await exchangeOAuthCode(provider, code, redirectUri, stored.verifier);
   } catch {
-    return fail(req, from, "Could not sign in");
+    return fail(req, from, oauthDownCopy(provider));
   }
 
   let coach;
@@ -99,7 +106,8 @@ export async function GET(req: NextRequest, { params }: { params: { provider: st
       prismaOAuthStore(),
     );
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Could not sign in";
+    const raw = err instanceof Error ? err.message : "Could not sign in";
+    const message = raw === OAUTH_NO_EMAIL ? oauthMissingEmailCopy(provider) : raw;
     return fail(req, from, message);
   }
 

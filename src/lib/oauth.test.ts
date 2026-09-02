@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
 import {
-  OAUTH_CLOSED,
+  OAUTH_DISABLED,
   OAUTH_NO_EMAIL,
+  OAUTH_STAFF,
   PROVIDERS,
   isOAuthProvider,
+  oauthMissingEmailCopy,
   oauthRedirectUri,
   providerConfigured,
+  providerLabel,
   readOAuthState,
   resolveCoachFromOAuth,
   signOAuthState,
@@ -13,11 +16,15 @@ import {
   type OAuthStore,
 } from "./oauth";
 
-assert.deepEqual([...PROVIDERS], ["google", "facebook", "x"]);
+assert.deepEqual([...PROVIDERS], ["google", "facebook", "x", "instagram"]);
 assert.equal(isOAuthProvider("google"), true);
+assert.equal(isOAuthProvider("instagram"), true);
 assert.equal(isOAuthProvider("apple"), false);
+assert.equal(providerLabel("instagram"), "Instagram");
 assert.equal(OAUTH_NO_EMAIL, "That account did not share an email");
-assert.equal(OAUTH_CLOSED, "This account is closed");
+assert.equal(OAUTH_DISABLED, "This account is disabled.");
+assert.equal(OAUTH_STAFF, "This email is for the admin console. Use /admin.");
+assert.equal(oauthMissingEmailCopy("instagram"), "We need an email from Instagram to continue.");
 
 const prevUrl = process.env.NEXT_PUBLIC_APP_URL;
 delete process.env.NEXT_PUBLIC_APP_URL;
@@ -39,6 +46,19 @@ if (prevId === undefined) delete process.env.GOOGLE_CLIENT_ID;
 else process.env.GOOGLE_CLIENT_ID = prevId;
 if (prevSecret === undefined) delete process.env.GOOGLE_CLIENT_SECRET;
 else process.env.GOOGLE_CLIENT_SECRET = prevSecret;
+
+const prevIgId = process.env.INSTAGRAM_CLIENT_ID;
+const prevIgSecret = process.env.INSTAGRAM_CLIENT_SECRET;
+delete process.env.INSTAGRAM_CLIENT_ID;
+delete process.env.INSTAGRAM_CLIENT_SECRET;
+assert.equal(providerConfigured("instagram"), false);
+process.env.INSTAGRAM_CLIENT_ID = "id";
+process.env.INSTAGRAM_CLIENT_SECRET = "secret";
+assert.equal(providerConfigured("instagram"), true);
+if (prevIgId === undefined) delete process.env.INSTAGRAM_CLIENT_ID;
+else process.env.INSTAGRAM_CLIENT_ID = prevIgId;
+if (prevIgSecret === undefined) delete process.env.INSTAGRAM_CLIENT_SECRET;
+else process.env.INSTAGRAM_CLIENT_SECRET = prevIgSecret;
 
 const signed = signOAuthState({ provider: "facebook", from: "register", nonce: "n1", verifier: "v1" });
 assert.equal(readOAuthState(signed)?.provider, "facebook");
@@ -134,11 +154,11 @@ async function run() {
 
   await assert.rejects(
     () => resolveCoachFromOAuth({ provider: "google", providerUserId: "g-ban", email: "tim@example.com" }, memoryStore([coach({ banned: true })])),
-    (err: Error) => err.message === OAUTH_CLOSED,
+    (err: Error) => err.message === OAUTH_DISABLED,
   );
   await assert.rejects(
     () => resolveCoachFromOAuth({ provider: "x", providerUserId: "x-1", email: "tim@example.com" }, memoryStore([coach({ banned: true })], [{ coachId: "coach-1", provider: "x", providerUserId: "x-1" }])),
-    (err: Error) => err.message === OAUTH_CLOSED,
+    (err: Error) => err.message === OAUTH_DISABLED,
   );
   await assert.rejects(
     () => resolveCoachFromOAuth({ provider: "x", providerUserId: "x-no", email: "", name: "No Mail" }, memoryStore()),
@@ -149,6 +169,14 @@ async function run() {
     memoryStore([coach()], [{ coachId: "coach-1", provider: "google", providerUserId: "g-1" }]),
   );
   assert.equal(noEmailExisting.id, "coach-1");
+  await assert.rejects(
+    () => resolveCoachFromOAuth({ provider: "instagram", providerUserId: "ig-1", email: null, name: "ig" }, memoryStore()),
+    (err: Error) => err.message === OAUTH_NO_EMAIL,
+  );
+  await assert.rejects(
+    () => resolveCoachFromOAuth({ provider: "google", providerUserId: "g-staff", email: "zhouxiyin1024@gmail.com" }, memoryStore()),
+    (err: Error) => err.message === OAUTH_STAFF,
+  );
   console.log("oauth tests ok");
 }
 

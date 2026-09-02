@@ -10,11 +10,12 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [oauthError, setOauthError] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     const q = new URLSearchParams(window.location.search).get("error");
-    if (q) setError(q);
+    if (q) setOauthError(q);
   }, []);
 
   async function submit() {
@@ -37,18 +38,19 @@ export default function LoginPage() {
   return (
     <main className="phone px-5 pb-8">
       <Brand />
-      <h1 className="text-2xl font-bold">Coach sign in</h1>
-      <OauthButtons from="login" />
-      <label className="mt-5 block text-sm">Email</label>
+      <h1 className="text-2xl font-bold">Sign in</h1>
+      <p className="text-muted">Use your coach account.</p>
+      <OauthButtons from="login" error={oauthError} />
+      <label className="mt-4 block text-sm">Email</label>
       <input value={email} onChange={(e) => setEmail(e.target.value)} className="field mt-1" />
       <label className="mt-3 block text-sm">Password</label>
       <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="field mt-1" />
       {error && <p className="mt-3 text-sm text-danger">{error}</p>}
-      <button disabled={busy || !email || !password} onClick={submit} className="mt-6 w-full rounded-2xl bg-brand py-3 font-semibold text-white disabled:opacity-40">
+      <button disabled={busy || !email || !password} onClick={submit} className="mt-6 w-full rounded-2xl bg-brand py-4 font-semibold text-white disabled:opacity-40">
         Sign in
       </button>
       <p className="mt-4 text-center text-sm text-muted">
-        New coach? <Link href="/app/register" className="font-semibold text-brand">Open for business</Link>
+        New here? <Link href="/app/register" className="font-semibold text-brand">Create account</Link>
       </p>
     </main>
   );

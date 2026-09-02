@@ -12,11 +12,12 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [city, setCity] = useState("");
   const [error, setError] = useState("");
+  const [oauthError, setOauthError] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     const q = new URLSearchParams(window.location.search).get("error");
-    if (q) setError(q);
+    if (q) setOauthError(q);
   }, []);
 
   async function submit() {
@@ -41,8 +42,8 @@ export default function RegisterPage() {
       <Brand />
       <h1 className="text-2xl font-bold">Open for business</h1>
       <p className="text-muted">Create a coach account, then set your lesson and hours.</p>
-      <OauthButtons from="register" />
-      <label className="mt-5 block text-sm">Name</label>
+      <OauthButtons from="register" error={oauthError} />
+      <label className="mt-4 block text-sm">Name</label>
       <input value={name} onChange={(e) => setName(e.target.value)} className="field mt-1" />
       <label className="mt-3 block text-sm">Email</label>
       <input value={email} onChange={(e) => setEmail(e.target.value)} className="field mt-1" />
@@ -51,7 +52,7 @@ export default function RegisterPage() {
       <label className="mt-3 block text-sm">City</label>
       <input value={city} onChange={(e) => setCity(e.target.value)} className="field mt-1" placeholder="Markham, ON" />
       {error && <p className="mt-3 text-sm text-danger">{error}</p>}
-      <button disabled={busy || !name || !email || !password} onClick={submit} className="mt-6 w-full rounded-2xl bg-brand py-3 font-semibold text-white disabled:opacity-40">
+      <button disabled={busy || !name || !email || !password} onClick={submit} className="mt-6 w-full rounded-2xl bg-brand py-4 font-semibold text-white disabled:opacity-40">
         Create account
       </button>
       <p className="mt-4 text-center text-sm text-muted">

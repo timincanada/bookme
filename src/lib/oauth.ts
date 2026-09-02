@@ -1,17 +1,39 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "crypto";
+import { isStaffEmail } from "./admin";
 import { slugify } from "./setup";
 
-export const PROVIDERS = ["google", "facebook", "x"] as const;
+export const PROVIDERS = ["google", "facebook", "x", "instagram"] as const;
+export const OAUTH_PROVIDERS = PROVIDERS;
 export type OAuthProvider = (typeof PROVIDERS)[number];
 
 export const OAUTH_STATE_COOKIE = "bookme_oauth_state";
 export const OAUTH_NO_EMAIL = "That account did not share an email";
 export const OAUTH_CLOSED = "This account is closed";
+export const OAUTH_DISABLED = "This account is disabled.";
+export const OAUTH_STAFF = "This email is for the admin console. Use /admin.";
 export const OAUTH_NOT_CONFIGURED = "Not configured";
 
 export function isOAuthProvider(value: string | undefined | null): value is OAuthProvider {
   return PROVIDERS.includes(value as OAuthProvider);
 }
+
+export function providerLabel(provider: OAuthProvider) {
+  if (provider === "google") return "Google";
+  if (provider === "facebook") return "Facebook";
+  if (provider === "x") return "X";
+  return "Instagram";
+}
+
+export function oauthMissingEmailCopy(provider: OAuthProvider) {
+  return `We need an email from ${providerLabel(provider)} to continue.`;
+}
+
+export function oauthDownCopy(provider: OAuthProvider) {
+  return `Couldn't reach ${providerLabel(provider)}. Try email or try again.`;
+}
+
+export const OAUTH_CANCEL = "Sign-in canceled.";
+export const OAUTH_DENY = "Permission denied. Try email instead.";
 
 export type CoachOAuthRecord = {
   id: string;
@@ -58,16 +80,17 @@ export async function resolveCoachFromOAuth(
   if (existing) {
     const coach = await store.findCoachById(existing.coachId);
     if (!coach) throw new Error("Could not sign in");
-    if (coach.banned) throw new Error(OAUTH_CLOSED);
+    if (coach.banned) throw new Error(OAUTH_DISABLED);
     return coach;
   }
 
   const email = String(input.email || "").trim().toLowerCase();
   if (!email) throw new Error(OAUTH_NO_EMAIL);
+  if (isStaffEmail(email)) throw new Error(OAUTH_STAFF);
 
   const byEmail = await store.findCoachByEmail(email);
   if (byEmail) {
-    if (byEmail.banned) throw new Error(OAUTH_CLOSED);
+    if (byEmail.banned) throw new Error(OAUTH_DISABLED);
     await store.createAccount({
       coachId: byEmail.id,
       provider: input.provider,
@@ -104,6 +127,9 @@ export function providerConfigured(provider: OAuthProvider) {
   }
   if (provider === "facebook") {
     return Boolean(process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET);
+  }
+  if (provider === "instagram") {
+    return Boolean(process.env.INSTAGRAM_CLIENT_ID && process.env.INSTAGRAM_CLIENT_SECRET);
   }
   return Boolean(process.env.X_CLIENT_ID && process.env.X_CLIENT_SECRET);
 }
@@ -190,6 +216,11 @@ export function authorizeUrl(provider: OAuthProvider, redirectUri: string, state
     const scope = encodeURIComponent("email");
     return `https://www.facebook.com/v21.0/dialog/oauth?client_id=${clientId}&redirect_uri=${redirect}&state=${s}&scope=${scope}`;
   }
+  if (provider === "instagram") {
+    const clientId = encodeURIComponent(process.env.INSTAGRAM_CLIENT_ID || "");
+    const scope = encodeURIComponent("user_profile,user_media");
+    return `https://api.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirect}&response_type=code&scope=${scope}&state=${s}`;
+  }
   const clientId = encodeURIComponent(process.env.X_CLIENT_ID || "");
   const challenge = encodeURIComponent(pkceChallenge(state.verifier));
   const scope = encodeURIComponent("users.read tweet.read offline.access");
@@ -251,6 +282,37 @@ export async function exchangeOAuthCode(
     const user = (await userRes.json()) as { id?: string; email?: string; name?: string };
     if (!user.id) throw new Error("user");
     return { providerUserId: String(user.id), email: user.email, name: user.name };
+  }
+
+  if (provider === "instagram") {
+    const tokenRes = await fetchImpl("https://api.instagram.com/oauth/access_token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: process.env.INSTAGRAM_CLIENT_ID || "",
+        client_secret: process.env.INSTAGRAM_CLIENT_SECRET || "",
+        grant_type: "authorization_code",
+        redirect_uri: redirectUri,
+        code,
+      }),
+    });
+    if (!tokenRes.ok) throw new Error("token");
+    const token = (await tokenRes.json()) as {
+      access_token?: string;
+      user_id?: string | number;
+    };
+    if (!token.access_token || token.user_id == null) throw new Error("token");
+    const userRes = await fetchImpl(
+      `https://graph.instagram.com/me?fields=id,username&access_token=${encodeURIComponent(token.access_token)}`,
+    );
+    const user = userRes.ok
+      ? ((await userRes.json()) as { id?: string; username?: string })
+      : {};
+    return {
+      providerUserId: String(user.id || token.user_id),
+      email: null,
+      name: user.username || null,
+    };
   }
 
   const basic = Buffer.from(`${process.env.X_CLIENT_ID || ""}:${process.env.X_CLIENT_SECRET || ""}`).toString("base64");
