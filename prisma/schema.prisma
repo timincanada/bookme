@@ -34,6 +34,7 @@ model Coach {
   hours     WeeklyHour[]
   blocks    DateBlock[]
   lessons   Lesson[]
+  oauthAccounts CoachOAuthAccount[]
 }
 
 model Service {
@@ -132,4 +133,16 @@ model Staff {
   id           String @id @default(cuid())
   email        String @unique
   passwordHash String
+}
+
+model CoachOAuthAccount {
+  id             String   @id @default(cuid())
+  coachId        String
+  coach          Coach    @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  provider       String
+  providerUserId String
+  createdAt      DateTime @default(now())
+
+  @@unique([provider, providerUserId])
+  @@index([coachId])
 }
