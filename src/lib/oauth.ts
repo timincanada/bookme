@@ -1,0 +1,336 @@
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "crypto";
+import { isStaffEmail } from "./admin";
+import { isSetupComplete, slugify } from "./setup";
+
+export const OAUTH_PROVIDERS = ["google", "facebook", "x"] as const;
+export const PROVIDERS = OAUTH_PROVIDERS;
+export type OAuthProvider = (typeof OAUTH_PROVIDERS)[number];
+
+export const OAUTH_STATE_COOKIE = "bookme_oauth";
+export const OAUTH_NOT_CONFIGURED = "Not configured";
+
+export const OAUTH_COPY = {
+  cancel: "Sign-in canceled.",
+  deny: "Permission denied. Try email instead.",
+  staff: "This email is for the admin console. Use /admin.",
+  banned: "This account is disabled.",
+} as const;
+
+export function isOAuthProvider(value: string | undefined | null): value is OAuthProvider {
+  return OAUTH_PROVIDERS.includes(value as OAuthProvider);
+}
+
+export function providerLabel(provider: OAuthProvider) {
+  if (provider === "google") return "Google";
+  if (provider === "facebook") return "Facebook";
+  return "X";
+}
+
+export function missingEmailCopy(provider: OAuthProvider) {
+  return `We need an email from ${providerLabel(provider)} to continue.`;
+}
+
+export function providerDownCopy(provider: OAuthProvider) {
+  return `Couldn't reach ${providerLabel(provider)}. Try email or try again.`;
+}
+
+export function oauthErrorCopy(
+  kind: "cancel" | "deny" | "staff" | "banned" | "no_email" | "down",
+  provider: OAuthProvider,
+) {
+  if (kind === "no_email") return missingEmailCopy(provider);
+  if (kind === "down") return providerDownCopy(provider);
+  return OAUTH_COPY[kind];
+}
+
+export type CoachOAuthRecord = {
+  id: string;
+  email: string;
+  banned: boolean;
+  name: string;
+  title?: string | null;
+  timezone?: string | null;
+  subscriptionStatus?: string | null;
+  service?: { duration: number; priceCad: number } | null;
+  locationCount: number;
+  hourCount: number;
+};
+
+export type OAuthStore = {
+  findByProvider(provider: OAuthProvider, providerUserId: string): Promise<CoachOAuthRecord | null>;
+  findByEmail(email: string): Promise<CoachOAuthRecord | null>;
+  slugTaken(slug: string): Promise<boolean>;
+  createCoach(data: { name: string; email: string; slug: string }): Promise<CoachOAuthRecord>;
+  bind(coachId: string, provider: OAuthProvider, providerUserId: string): Promise<void>;
+};
+
+export type OAuthSuccess = {
+  ok: true;
+  coachId: string;
+  created: boolean;
+  setup: boolean;
+  coach: CoachOAuthRecord;
+};
+
+export type OAuthFailure = { ok: false; error: string; created: false };
+
+export type OAuthOutcome = OAuthSuccess | OAuthFailure;
+
+export function coachSetupDone(coach: CoachOAuthRecord) {
+  return isSetupComplete({
+    title: coach.title,
+    timezone: coach.timezone || "America/Toronto",
+    service: coach.service,
+    locationCount: coach.locationCount,
+    hourCount: coach.hourCount,
+  });
+}
+
+export async function completeCoachOAuth(
+  store: OAuthStore,
+  input: {
+    provider: OAuthProvider;
+    providerUserId: string;
+    email?: string | null;
+    name?: string | null;
+  },
+): Promise<OAuthOutcome> {
+  const email = String(input.email || "").trim().toLowerCase();
+  if (!email) {
+    return { ok: false, created: false, error: missingEmailCopy(input.provider) };
+  }
+  if (isStaffEmail(email)) {
+    return { ok: false, created: false, error: OAUTH_COPY.staff };
+  }
+
+  const byProvider = await store.findByProvider(input.provider, input.providerUserId);
+  if (byProvider) {
+    if (byProvider.banned) return { ok: false, created: false, error: OAUTH_COPY.banned };
+    return { ok: true, created: false, coachId: byProvider.id, setup: coachSetupDone(byProvider), coach: byProvider };
+  }
+
+  const byEmail = await store.findByEmail(email);
+  if (byEmail) {
+    if (byEmail.banned) return { ok: false, created: false, error: OAUTH_COPY.banned };
+    await store.bind(byEmail.id, input.provider, input.providerUserId);
+    return { ok: true, created: false, coachId: byEmail.id, setup: coachSetupDone(byEmail), coach: byEmail };
+  }
+
+  const name = String(input.name || "").trim() || email.split("@")[0] || "Coach";
+  let slug = slugify(name);
+  if (await store.slugTaken(slug)) slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
+  const created = await store.createCoach({ name, email, slug });
+  await store.bind(created.id, input.provider, input.providerUserId);
+  return { ok: true, created: true, coachId: created.id, setup: false, coach: created };
+}
+
+export function mapCallbackQueryError(params: {
+  error?: string | null;
+  errorDescription?: string | null;
+  errorReason?: string | null;
+}, provider: OAuthProvider): string | null {
+  const err = String(params.error || "").toLowerCase();
+  if (!err) return null;
+  const extra = `${params.errorDescription || ""} ${params.errorReason || ""}`.toLowerCase();
+  if (err.includes("cancel") || extra.includes("cancel") || extra.includes("user_denied")) {
+    return OAUTH_COPY.cancel;
+  }
+  if (err === "access_denied" || err === "user_denied" || extra.includes("denied") || extra.includes("permission")) {
+    return OAUTH_COPY.deny;
+  }
+  return providerDownCopy(provider);
+}
+
+export function providerConfigured(provider: OAuthProvider) {
+  if (provider === "google") {
+    return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+  }
+  if (provider === "facebook") {
+    return Boolean(process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET);
+  }
+  return Boolean(process.env.X_CLIENT_ID && process.env.X_CLIENT_SECRET);
+}
+
+function secret() {
+  return process.env.AUTH_SECRET || "bookme-dev-secret";
+}
+
+export type OAuthState = {
+  provider: OAuthProvider;
+  from: "login" | "register";
+  nonce: string;
+  verifier: string;
+};
+
+export function signOAuthState(state: OAuthState) {
+  const payload = Buffer.from(JSON.stringify(state), "utf8").toString("base64url");
+  const sig = createHmac("sha256", secret()).update(payload).digest("hex");
+  return `${payload}.${sig}`;
+}
+
+export function readOAuthState(token: string | undefined | null): OAuthState | null {
+  if (!token || !token.includes(".")) return null;
+  const [payload, sig] = token.split(".");
+  const expect = createHmac("sha256", secret()).update(payload).digest("hex");
+  try {
+    if (!timingSafeEqual(Buffer.from(sig), Buffer.from(expect))) return null;
+  } catch {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as OAuthState;
+    if (!isOAuthProvider(parsed.provider)) return null;
+    if (parsed.from !== "login" && parsed.from !== "register") return null;
+    if (!parsed.nonce || !parsed.verifier) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function newOAuthState(provider: OAuthProvider, from: "login" | "register"): OAuthState {
+  return {
+    provider,
+    from,
+    nonce: randomBytes(16).toString("hex"),
+    verifier: randomBytes(32).toString("base64url"),
+  };
+}
+
+export function pkceChallenge(verifier: string) {
+  return createHash("sha256").update(verifier).digest("base64url");
+}
+
+export function oauthStateCookieOptions() {
+  return {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge: 60 * 10,
+  };
+}
+
+export function returnPath(from: "login" | "register") {
+  return from === "register" ? "/app/register" : "/app/login";
+}
+
+export function errorPagePath(from: "login" | "register", message: string) {
+  return `${returnPath(from)}?error=${encodeURIComponent(message)}`;
+}
+
+export const errorReturnPath = errorPagePath;
+
+export function oauthRedirectUri(provider: OAuthProvider) {
+  const base = (process.env.NEXT_PUBLIC_APP_URL || "https://bookme.training").replace(/\/$/, "");
+  return `${base}/api/auth/oauth/${provider}/callback`;
+}
+
+export function authorizeUrl(provider: OAuthProvider, redirectUri: string, state: OAuthState) {
+  const s = encodeURIComponent(signOAuthState(state));
+  const redirect = encodeURIComponent(redirectUri);
+  if (provider === "google") {
+    const clientId = encodeURIComponent(process.env.GOOGLE_CLIENT_ID || "");
+    const scope = encodeURIComponent("openid email profile");
+    return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirect}&response_type=code&scope=${scope}&state=${s}&prompt=select_account`;
+  }
+  if (provider === "facebook") {
+    const clientId = encodeURIComponent(process.env.FACEBOOK_APP_ID || "");
+    const scope = encodeURIComponent("email");
+    return `https://www.facebook.com/v21.0/dialog/oauth?client_id=${clientId}&redirect_uri=${redirect}&state=${s}&scope=${scope}`;
+  }
+  const clientId = encodeURIComponent(process.env.X_CLIENT_ID || "");
+  const challenge = encodeURIComponent(pkceChallenge(state.verifier));
+  const scope = encodeURIComponent("users.read tweet.read offline.access users.email");
+  return `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirect}&scope=${scope}&state=${s}&code_challenge=${challenge}&code_challenge_method=S256`;
+}
+
+export type ProviderProfile = {
+  providerUserId: string;
+  email?: string | null;
+  name?: string | null;
+};
+
+export async function exchangeOAuthCode(
+  provider: OAuthProvider,
+  code: string,
+  redirectUri: string,
+  verifier: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<ProviderProfile> {
+  if (provider === "google") {
+    const tokenRes = await fetchImpl("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code,
+        client_id: process.env.GOOGLE_CLIENT_ID || "",
+        client_secret: process.env.GOOGLE_CLIENT_SECRET || "",
+        redirect_uri: redirectUri,
+        grant_type: "authorization_code",
+      }),
+    });
+    if (!tokenRes.ok) throw new Error("token");
+    const token = (await tokenRes.json()) as { access_token?: string };
+    if (!token.access_token) throw new Error("token");
+    const userRes = await fetchImpl("https://www.googleapis.com/oauth2/v2/userinfo", {
+      headers: { Authorization: `Bearer ${token.access_token}` },
+    });
+    if (!userRes.ok) throw new Error("user");
+    const user = (await userRes.json()) as { id?: string; email?: string; name?: string };
+    if (!user.id) throw new Error("user");
+    return { providerUserId: String(user.id), email: user.email, name: user.name };
+  }
+
+  if (provider === "facebook") {
+    const tokenUrl = new URL("https://graph.facebook.com/v21.0/oauth/access_token");
+    tokenUrl.searchParams.set("client_id", process.env.FACEBOOK_APP_ID || "");
+    tokenUrl.searchParams.set("client_secret", process.env.FACEBOOK_APP_SECRET || "");
+    tokenUrl.searchParams.set("redirect_uri", redirectUri);
+    tokenUrl.searchParams.set("code", code);
+    const tokenRes = await fetchImpl(tokenUrl.toString());
+    if (!tokenRes.ok) throw new Error("token");
+    const token = (await tokenRes.json()) as { access_token?: string };
+    if (!token.access_token) throw new Error("token");
+    const userUrl = new URL("https://graph.facebook.com/me");
+    userUrl.searchParams.set("fields", "id,name,email");
+    userUrl.searchParams.set("access_token", token.access_token);
+    const userRes = await fetchImpl(userUrl.toString());
+    if (!userRes.ok) throw new Error("user");
+    const user = (await userRes.json()) as { id?: string; email?: string; name?: string };
+    if (!user.id) throw new Error("user");
+    return { providerUserId: String(user.id), email: user.email, name: user.name };
+  }
+
+  const basic = Buffer.from(`${process.env.X_CLIENT_ID || ""}:${process.env.X_CLIENT_SECRET || ""}`).toString("base64");
+  const tokenRes = await fetchImpl("https://api.twitter.com/2/oauth2/token", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${basic}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      code,
+      grant_type: "authorization_code",
+      client_id: process.env.X_CLIENT_ID || "",
+      redirect_uri: redirectUri,
+      code_verifier: verifier,
+    }),
+  });
+  if (!tokenRes.ok) throw new Error("token");
+  const token = (await tokenRes.json()) as { access_token?: string };
+  if (!token.access_token) throw new Error("token");
+  const userRes = await fetchImpl("https://api.twitter.com/2/users/me?user.fields=confirmed_email,name,username", {
+    headers: { Authorization: `Bearer ${token.access_token}` },
+  });
+  if (!userRes.ok) throw new Error("user");
+  const body = (await userRes.json()) as {
+    data?: { id?: string; name?: string; username?: string; confirmed_email?: string; email?: string };
+  };
+  const user = body.data;
+  if (!user?.id) throw new Error("user");
+  return {
+    providerUserId: String(user.id),
+    email: user.confirmed_email || user.email,
+    name: user.name || user.username,
+  };
+}

@@ -1,8 +1,9 @@
 "use client";
 import { Brand } from "@/components/Brand";
+import { OauthButtons } from "@/components/OauthButtons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -12,6 +13,11 @@ export default function RegisterPage() {
   const [city, setCity] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("error");
+    if (q) setError(q);
+  }, []);
 
   async function submit() {
     setBusy(true);
@@ -47,6 +53,7 @@ export default function RegisterPage() {
       <button disabled={busy || !name || !email || !password} onClick={submit} className="mt-6 w-full rounded-2xl bg-brand py-3 font-semibold text-white disabled:opacity-40">
         Create account
       </button>
+      <OauthButtons from="register" />
       <p className="mt-4 text-center text-sm text-muted">
         Already coaching? <Link href="/app/login" className="font-semibold text-brand">Sign in</Link>
       </p>
