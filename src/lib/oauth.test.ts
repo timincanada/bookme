@@ -1,257 +1,155 @@
 import assert from "node:assert/strict";
 import {
-  completeCoachOAuth,
-  errorPagePath,
+  OAUTH_CLOSED,
+  OAUTH_NO_EMAIL,
+  PROVIDERS,
   isOAuthProvider,
-  mapCallbackQueryError,
-  missingEmailCopy,
-  OAUTH_COPY,
-  OAUTH_NOT_CONFIGURED,
-  OAUTH_PROVIDERS,
-  oauthErrorCopy,
   oauthRedirectUri,
   providerConfigured,
-  providerDownCopy,
-  providerLabel,
   readOAuthState,
+  resolveCoachFromOAuth,
   signOAuthState,
   type CoachOAuthRecord,
-  type OAuthProvider,
   type OAuthStore,
 } from "./oauth";
 
-assert.deepEqual([...OAUTH_PROVIDERS], ["google", "facebook", "x"]);
+assert.deepEqual([...PROVIDERS], ["google", "facebook", "x"]);
 assert.equal(isOAuthProvider("google"), true);
-assert.equal(isOAuthProvider("facebook"), true);
-assert.equal(isOAuthProvider("x"), true);
 assert.equal(isOAuthProvider("apple"), false);
-assert.equal(providerLabel("google"), "Google");
-assert.equal(providerLabel("facebook"), "Facebook");
-assert.equal(providerLabel("x"), "X");
-
-assert.equal(OAUTH_COPY.cancel, "Sign-in canceled.");
-assert.equal(OAUTH_COPY.deny, "Permission denied. Try email instead.");
-assert.equal(OAUTH_COPY.staff, "This email is for the admin console. Use /admin.");
-assert.equal(OAUTH_COPY.banned, "This account is disabled.");
-assert.equal(missingEmailCopy("google"), "We need an email from Google to continue.");
-assert.equal(missingEmailCopy("facebook"), "We need an email from Facebook to continue.");
-assert.equal(missingEmailCopy("x"), "We need an email from X to continue.");
-assert.equal(providerDownCopy("google"), "Couldn't reach Google. Try email or try again.");
-assert.equal(providerDownCopy("facebook"), "Couldn't reach Facebook. Try email or try again.");
-assert.equal(providerDownCopy("x"), "Couldn't reach X. Try email or try again.");
-assert.equal(oauthErrorCopy("down", "google"), providerDownCopy("google"));
-assert.equal(OAUTH_NOT_CONFIGURED, "Not configured");
-assert.equal(errorPagePath("login", OAUTH_COPY.cancel), "/app/login?error=" + encodeURIComponent(OAUTH_COPY.cancel));
-assert.equal(errorPagePath("register", OAUTH_COPY.staff).startsWith("/app/register?error="), true);
-
-assert.equal(mapCallbackQueryError({ error: "access_denied", errorReason: "user_denied" }, "google"), OAUTH_COPY.cancel);
-assert.equal(mapCallbackQueryError({ error: "user_cancelled" }, "facebook"), OAUTH_COPY.cancel);
-assert.equal(mapCallbackQueryError({ error: "access_denied", errorDescription: "Permission was denied" }, "x"), OAUTH_COPY.deny);
-assert.equal(mapCallbackQueryError({ error: "server_error" }, "google"), providerDownCopy("google"));
-assert.equal(mapCallbackQueryError({ error: null }, "google"), null);
+assert.equal(OAUTH_NO_EMAIL, "That account did not share an email");
+assert.equal(OAUTH_CLOSED, "This account is closed");
 
 const prevUrl = process.env.NEXT_PUBLIC_APP_URL;
 delete process.env.NEXT_PUBLIC_APP_URL;
-assert.equal(oauthRedirectUri("google"), "https://bookme.training/api/auth/oauth/google/callback");
+assert.equal(oauthRedirectUri("google", "http://localhost:3000"), "http://localhost:3000/api/auth/oauth/google/callback");
 process.env.NEXT_PUBLIC_APP_URL = "https://bookme.training/";
-assert.equal(oauthRedirectUri("x"), "https://bookme.training/api/auth/oauth/x/callback");
+assert.equal(oauthRedirectUri("x", "http://localhost:3000"), "https://bookme.training/api/auth/oauth/x/callback");
 if (prevUrl === undefined) delete process.env.NEXT_PUBLIC_APP_URL;
 else process.env.NEXT_PUBLIC_APP_URL = prevUrl;
 
-const prevGoogleId = process.env.GOOGLE_CLIENT_ID;
-const prevGoogleSecret = process.env.GOOGLE_CLIENT_SECRET;
+const prevId = process.env.GOOGLE_CLIENT_ID;
+const prevSecret = process.env.GOOGLE_CLIENT_SECRET;
 delete process.env.GOOGLE_CLIENT_ID;
 delete process.env.GOOGLE_CLIENT_SECRET;
 assert.equal(providerConfigured("google"), false);
 process.env.GOOGLE_CLIENT_ID = "id";
 process.env.GOOGLE_CLIENT_SECRET = "secret";
 assert.equal(providerConfigured("google"), true);
-if (prevGoogleId === undefined) delete process.env.GOOGLE_CLIENT_ID;
-else process.env.GOOGLE_CLIENT_ID = prevGoogleId;
-if (prevGoogleSecret === undefined) delete process.env.GOOGLE_CLIENT_SECRET;
-else process.env.GOOGLE_CLIENT_SECRET = prevGoogleSecret;
+if (prevId === undefined) delete process.env.GOOGLE_CLIENT_ID;
+else process.env.GOOGLE_CLIENT_ID = prevId;
+if (prevSecret === undefined) delete process.env.GOOGLE_CLIENT_SECRET;
+else process.env.GOOGLE_CLIENT_SECRET = prevSecret;
 
-const signed = signOAuthState({ provider: "google", from: "login", nonce: "n1", verifier: "v1" });
-const read = readOAuthState(signed);
-assert.equal(read?.provider, "google");
-assert.equal(read?.from, "login");
+const signed = signOAuthState({ provider: "facebook", from: "register", nonce: "n1", verifier: "v1" });
+assert.equal(readOAuthState(signed)?.provider, "facebook");
 assert.equal(readOAuthState("bad.token"), null);
 
-type Row = CoachOAuthRecord & { bindings: { provider: OAuthProvider; providerUserId: string }[] };
+type Account = { coachId: string; provider: string; providerUserId: string };
 
-function memoryStore(seed: Row[] = []) {
-  const coaches: Row[] = seed.map((c) => ({ ...c, bindings: [...c.bindings] }));
-  const slugs = new Set(coaches.map((c) => c.id));
-  const store: OAuthStore & { coaches: Row[]; createdCount: number } = {
+function memoryStore(seedCoaches: CoachOAuthRecord[] = [], seedAccounts: Account[] = []) {
+  const coaches = seedCoaches.map((c) => ({ ...c }));
+  const accounts = seedAccounts.map((a) => ({ ...a }));
+  const store: OAuthStore & { coaches: CoachOAuthRecord[]; accounts: Account[] } = {
     coaches,
-    createdCount: 0,
-    async findByProvider(provider, providerUserId) {
-      return coaches.find((c) => c.bindings.some((b) => b.provider === provider && b.providerUserId === providerUserId)) || null;
+    accounts,
+    async findAccount(provider, providerUserId) {
+      return accounts.find((a) => a.provider === provider && a.providerUserId === providerUserId) || null;
     },
-    async findByEmail(email) {
+    async findCoachById(id) {
+      return coaches.find((c) => c.id === id) || null;
+    },
+    async findCoachByEmail(email) {
       return coaches.find((c) => c.email === email) || null;
     },
-    async slugTaken(slug) {
-      return slugs.has(slug);
+    async findCoachBySlug(slug) {
+      return coaches.find((c) => c.slug === slug) || null;
     },
     async createCoach(data) {
-      this.createdCount += 1;
-      const row: Row = {
-        id: `new-${this.createdCount}`,
+      const row: CoachOAuthRecord = {
+        id: `c${coaches.length + 1}`,
         email: data.email,
-        banned: false,
         name: data.name,
-        title: "",
-        timezone: "America/Toronto",
-        subscriptionStatus: "none",
-        service: null,
-        locationCount: 0,
-        hourCount: 0,
-        bindings: [],
+        banned: false,
+        passwordHash: data.passwordHash,
+        slug: data.slug,
+        title: data.title,
+        city: data.city,
+        timezone: data.timezone,
       };
       coaches.push(row);
-      slugs.add(data.slug);
       return row;
     },
-    async bind(coachId, provider, providerUserId) {
-      const row = coaches.find((c) => c.id === coachId);
-      if (!row) throw new Error("missing coach");
-      if (!row.bindings.some((b) => b.provider === provider && b.providerUserId === providerUserId)) {
-        row.bindings.push({ provider, providerUserId });
-      }
+    async createAccount(data) {
+      accounts.push({ ...data });
     },
   };
   return store;
 }
 
-function readyCoach(over: Partial<Row> = {}): Row {
+function coach(over: Partial<CoachOAuthRecord> = {}): CoachOAuthRecord {
   return {
     id: "coach-1",
     email: "tim@example.com",
-    banned: false,
     name: "Tim",
+    banned: false,
+    passwordHash: "salt:hash",
+    slug: "tim",
     title: "Tennis",
+    city: "Markham",
     timezone: "America/Toronto",
-    subscriptionStatus: "active",
-    service: { duration: 60, priceCad: 80 },
-    locationCount: 1,
-    hourCount: 5,
-    bindings: [],
     ...over,
   };
 }
 
-async function main() {
 async function run() {
-  {
-    const store = memoryStore();
-    const out = await completeCoachOAuth(store, {
-      provider: "google",
-      providerUserId: "g-1",
-      email: "new@example.com",
-      name: "New Coach",
-    });
-    assert.equal(out.ok, true);
-    if (out.ok) {
-      assert.equal(out.created, true);
-      assert.equal(out.setup, false);
-      assert.equal(store.createdCount, 1);
-      assert.equal(store.coaches[0].email, "new@example.com");
-      assert.equal(store.coaches[0].subscriptionStatus, "none");
-      assert.deepEqual(store.coaches[0].bindings, [{ provider: "google", providerUserId: "g-1" }]);
-    }
-  }
+  const created = await resolveCoachFromOAuth(
+    { provider: "google", providerUserId: "g-1", email: "New@Example.com", name: "New Coach" },
+    memoryStore(),
+  );
+  assert.equal(created.email, "new@example.com");
+  assert.equal(created.passwordHash, null);
+  assert.equal(created.name, "New Coach");
 
-  {
-    const store = memoryStore([readyCoach()]);
-    const before = { ...store.coaches[0] };
-    const out = await completeCoachOAuth(store, {
-      provider: "facebook",
-      providerUserId: "fb-9",
-      email: "tim@example.com",
-      name: "Other Name",
-    });
-    assert.equal(out.ok, true);
-    if (out.ok) {
-      assert.equal(out.created, false);
-      assert.equal(out.coachId, "coach-1");
-      assert.equal(out.setup, true);
-      assert.equal(store.createdCount, 0);
-      assert.equal(store.coaches.length, 1);
-      assert.equal(store.coaches[0].subscriptionStatus, before.subscriptionStatus);
-      assert.equal(store.coaches[0].locationCount, 1);
-      assert.equal(store.coaches[0].hourCount, 5);
-      assert.deepEqual(store.coaches[0].bindings, [{ provider: "facebook", providerUserId: "fb-9" }]);
-    }
-  }
+  const named = await resolveCoachFromOAuth(
+    { provider: "facebook", providerUserId: "fb-1", email: "anon@example.com", name: "  " },
+    memoryStore(),
+  );
+  assert.equal(named.name, "Coach");
 
-  {
-    const store = memoryStore();
-    const out = await completeCoachOAuth(store, {
-      provider: "google",
-      providerUserId: "g-staff",
-      email: "zhouxiyin1024@gmail.com",
-      name: "Staff",
-    });
-    assert.equal(out.ok, false);
-    if (!out.ok) assert.equal(out.error, "This email is for the admin console. Use /admin.");
-    assert.equal(store.createdCount, 0);
-    assert.equal(store.coaches.length, 0);
-  }
+  const linkStore = memoryStore([coach()]);
+  const linked = await resolveCoachFromOAuth(
+    { provider: "facebook", providerUserId: "fb-9", email: "Tim@Example.com", name: "Other" },
+    linkStore,
+  );
+  assert.equal(linked.id, "coach-1");
+  assert.equal(linkStore.accounts.length, 1);
 
-  {
-    const store = memoryStore([readyCoach({ banned: true })]);
-    const out = await completeCoachOAuth(store, {
-      provider: "google",
-      providerUserId: "g-ban",
-      email: "tim@example.com",
-    });
-    assert.equal(out.ok, false);
-    if (!out.ok) assert.equal(out.error, "This account is disabled.");
-    assert.equal(store.coaches[0].bindings.length, 0);
-    assert.equal(store.createdCount, 0);
-  }
+  const existStore = memoryStore([coach()], [{ coachId: "coach-1", provider: "google", providerUserId: "g-1" }]);
+  const exist = await resolveCoachFromOAuth(
+    { provider: "google", providerUserId: "g-1", email: "other@example.com", name: "Nope" },
+    existStore,
+  );
+  assert.equal(exist.id, "coach-1");
+  assert.equal(existStore.coaches.length, 1);
 
-  {
-    const store = memoryStore([
-      readyCoach({ bindings: [{ provider: "google", providerUserId: "g-ban" }], banned: true }),
-    ]);
-    const out = await completeCoachOAuth(store, {
-      provider: "google",
-      providerUserId: "g-ban",
-      email: "tim@example.com",
-    });
-    assert.equal(out.ok, false);
-    if (!out.ok) assert.equal(out.error, "This account is disabled.");
-  }
-
-  {
-    const store = memoryStore();
-    const out = await completeCoachOAuth(store, {
-      provider: "x",
-      providerUserId: "x-no-mail",
-      email: "",
-      name: "No Mail",
-    });
-    assert.equal(out.ok, false);
-    if (!out.ok) assert.equal(out.error, "We need an email from X to continue.");
-    assert.equal(store.createdCount, 0);
-  }
-
-  {
-    const store = memoryStore();
-    const google = await completeCoachOAuth(store, {
-      provider: "google",
-      providerUserId: "g-1",
-      email: null,
-    });
-    assert.equal(google.ok, false);
-    if (!google.ok) assert.equal(google.error, missingEmailCopy("google"));
-  }
-
-    console.log("oauth tests ok");
+  await assert.rejects(
+    () => resolveCoachFromOAuth({ provider: "google", providerUserId: "g-ban", email: "tim@example.com" }, memoryStore([coach({ banned: true })])),
+    (err: Error) => err.message === OAUTH_CLOSED,
+  );
+  await assert.rejects(
+    () => resolveCoachFromOAuth({ provider: "x", providerUserId: "x-1", email: "tim@example.com" }, memoryStore([coach({ banned: true })], [{ coachId: "coach-1", provider: "x", providerUserId: "x-1" }])),
+    (err: Error) => err.message === OAUTH_CLOSED,
+  );
+  await assert.rejects(
+    () => resolveCoachFromOAuth({ provider: "x", providerUserId: "x-no", email: "", name: "No Mail" }, memoryStore()),
+    (err: Error) => err.message === OAUTH_NO_EMAIL,
+  );
+  const noEmailExisting = await resolveCoachFromOAuth(
+    { provider: "google", providerUserId: "g-1", email: null },
+    memoryStore([coach()], [{ coachId: "coach-1", provider: "google", providerUserId: "g-1" }]),
+  );
+  assert.equal(noEmailExisting.id, "coach-1");
+  console.log("oauth tests ok");
 }
 
 run();
-}
-void main();

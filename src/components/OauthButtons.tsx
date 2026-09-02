@@ -1,20 +1,28 @@
-import { OAUTH_PROVIDERS, providerLabel, type OAuthProvider } from "@/lib/oauth";
+const BUTTONS = [
+  { provider: "google", label: "Continue with Google" },
+  { provider: "facebook", label: "Continue with Facebook" },
+  { provider: "x", label: "Continue with X" },
+] as const;
 
 export function OauthButtons({ from }: { from: "login" | "register" }) {
   return (
-    <div className="mt-4">
-      <p className="text-center text-sm text-muted">or</p>
-      <div className="mt-3 space-y-2">
-        {OAUTH_PROVIDERS.map((provider: OAuthProvider) => (
+    <>
+      <div className="mt-5">
+        {BUTTONS.map((item, i) => (
           <a
-            key={provider}
-            href={`/api/auth/oauth/${provider}/start?from=${from}`}
-            className="block w-full rounded-2xl bg-brand py-3 text-center font-semibold text-white"
+            key={item.provider}
+            href={`/api/auth/oauth/${item.provider}/start?from=${from}`}
+            className={`${i === 0 ? "" : "mt-3 "}block w-full rounded-2xl border border-line py-3 text-center font-semibold text-ink`}
           >
-            Continue with {providerLabel(provider)}
+            {item.label}
           </a>
         ))}
       </div>
-    </div>
+      <div className="mt-5 flex items-center gap-3">
+        <span className="h-px flex-1 bg-line" />
+        <span className="text-sm text-muted">or</span>
+        <span className="h-px flex-1 bg-line" />
+      </div>
+    </>
   );
 }

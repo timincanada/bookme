@@ -1,144 +1,101 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "crypto";
-import { isStaffEmail } from "./admin";
-import { isSetupComplete, slugify } from "./setup";
+import { slugify } from "./setup";
 
-export const OAUTH_PROVIDERS = ["google", "facebook", "x"] as const;
-export const PROVIDERS = OAUTH_PROVIDERS;
-export type OAuthProvider = (typeof OAUTH_PROVIDERS)[number];
+export const PROVIDERS = ["google", "facebook", "x"] as const;
+export type OAuthProvider = (typeof PROVIDERS)[number];
 
-export const OAUTH_STATE_COOKIE = "bookme_oauth";
+export const OAUTH_STATE_COOKIE = "bookme_oauth_state";
+export const OAUTH_NO_EMAIL = "That account did not share an email";
+export const OAUTH_CLOSED = "This account is closed";
 export const OAUTH_NOT_CONFIGURED = "Not configured";
 
-export const OAUTH_COPY = {
-  cancel: "Sign-in canceled.",
-  deny: "Permission denied. Try email instead.",
-  staff: "This email is for the admin console. Use /admin.",
-  banned: "This account is disabled.",
-} as const;
-
 export function isOAuthProvider(value: string | undefined | null): value is OAuthProvider {
-  return OAUTH_PROVIDERS.includes(value as OAuthProvider);
-}
-
-export function providerLabel(provider: OAuthProvider) {
-  if (provider === "google") return "Google";
-  if (provider === "facebook") return "Facebook";
-  return "X";
-}
-
-export function missingEmailCopy(provider: OAuthProvider) {
-  return `We need an email from ${providerLabel(provider)} to continue.`;
-}
-
-export function providerDownCopy(provider: OAuthProvider) {
-  return `Couldn't reach ${providerLabel(provider)}. Try email or try again.`;
-}
-
-export function oauthErrorCopy(
-  kind: "cancel" | "deny" | "staff" | "banned" | "no_email" | "down",
-  provider: OAuthProvider,
-) {
-  if (kind === "no_email") return missingEmailCopy(provider);
-  if (kind === "down") return providerDownCopy(provider);
-  return OAUTH_COPY[kind];
+  return PROVIDERS.includes(value as OAuthProvider);
 }
 
 export type CoachOAuthRecord = {
   id: string;
   email: string;
-  banned: boolean;
   name: string;
-  title?: string | null;
-  timezone?: string | null;
-  subscriptionStatus?: string | null;
-  service?: { duration: number; priceCad: number } | null;
-  locationCount: number;
-  hourCount: number;
+  banned: boolean;
+  passwordHash: string | null;
+  slug: string;
+  title: string;
+  city: string;
+  timezone: string;
 };
 
 export type OAuthStore = {
-  findByProvider(provider: OAuthProvider, providerUserId: string): Promise<CoachOAuthRecord | null>;
-  findByEmail(email: string): Promise<CoachOAuthRecord | null>;
-  slugTaken(slug: string): Promise<boolean>;
-  createCoach(data: { name: string; email: string; slug: string }): Promise<CoachOAuthRecord>;
-  bind(coachId: string, provider: OAuthProvider, providerUserId: string): Promise<void>;
+  findAccount(provider: string, providerUserId: string): Promise<{ coachId: string } | null>;
+  findCoachById(id: string): Promise<CoachOAuthRecord | null>;
+  findCoachByEmail(email: string): Promise<CoachOAuthRecord | null>;
+  findCoachBySlug(slug: string): Promise<CoachOAuthRecord | null>;
+  createCoach(data: {
+    name: string;
+    email: string;
+    slug: string;
+    title: string;
+    city: string;
+    timezone: string;
+    passwordHash: null;
+  }): Promise<CoachOAuthRecord>;
+  createAccount(data: { coachId: string; provider: string; providerUserId: string }): Promise<void>;
 };
 
-export type OAuthSuccess = {
-  ok: true;
-  coachId: string;
-  created: boolean;
-  setup: boolean;
-  coach: CoachOAuthRecord;
-};
-
-export type OAuthFailure = { ok: false; error: string; created: false };
-
-export type OAuthOutcome = OAuthSuccess | OAuthFailure;
-
-export function coachSetupDone(coach: CoachOAuthRecord) {
-  return isSetupComplete({
-    title: coach.title,
-    timezone: coach.timezone || "America/Toronto",
-    service: coach.service,
-    locationCount: coach.locationCount,
-    hourCount: coach.hourCount,
-  });
-}
-
-export async function completeCoachOAuth(
-  store: OAuthStore,
+export async function resolveCoachFromOAuth(
   input: {
-    provider: OAuthProvider;
+    provider: OAuthProvider | string;
     providerUserId: string;
     email?: string | null;
     name?: string | null;
   },
-): Promise<OAuthOutcome> {
+  store: OAuthStore,
+): Promise<CoachOAuthRecord> {
+  if (!isOAuthProvider(input.provider)) {
+    throw new Error("Unknown provider");
+  }
+  const existing = await store.findAccount(input.provider, input.providerUserId);
+  if (existing) {
+    const coach = await store.findCoachById(existing.coachId);
+    if (!coach) throw new Error("Could not sign in");
+    if (coach.banned) throw new Error(OAUTH_CLOSED);
+    return coach;
+  }
+
   const email = String(input.email || "").trim().toLowerCase();
-  if (!email) {
-    return { ok: false, created: false, error: missingEmailCopy(input.provider) };
-  }
-  if (isStaffEmail(email)) {
-    return { ok: false, created: false, error: OAUTH_COPY.staff };
-  }
+  if (!email) throw new Error(OAUTH_NO_EMAIL);
 
-  const byProvider = await store.findByProvider(input.provider, input.providerUserId);
-  if (byProvider) {
-    if (byProvider.banned) return { ok: false, created: false, error: OAUTH_COPY.banned };
-    return { ok: true, created: false, coachId: byProvider.id, setup: coachSetupDone(byProvider), coach: byProvider };
-  }
-
-  const byEmail = await store.findByEmail(email);
+  const byEmail = await store.findCoachByEmail(email);
   if (byEmail) {
-    if (byEmail.banned) return { ok: false, created: false, error: OAUTH_COPY.banned };
-    await store.bind(byEmail.id, input.provider, input.providerUserId);
-    return { ok: true, created: false, coachId: byEmail.id, setup: coachSetupDone(byEmail), coach: byEmail };
+    if (byEmail.banned) throw new Error(OAUTH_CLOSED);
+    await store.createAccount({
+      coachId: byEmail.id,
+      provider: input.provider,
+      providerUserId: input.providerUserId,
+    });
+    return byEmail;
   }
 
-  const name = String(input.name || "").trim() || email.split("@")[0] || "Coach";
+  const name = String(input.name || "").trim() || "Coach";
   let slug = slugify(name);
-  if (await store.slugTaken(slug)) slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
-  const created = await store.createCoach({ name, email, slug });
-  await store.bind(created.id, input.provider, input.providerUserId);
-  return { ok: true, created: true, coachId: created.id, setup: false, coach: created };
-}
-
-export function mapCallbackQueryError(params: {
-  error?: string | null;
-  errorDescription?: string | null;
-  errorReason?: string | null;
-}, provider: OAuthProvider): string | null {
-  const err = String(params.error || "").toLowerCase();
-  if (!err) return null;
-  const extra = `${params.errorDescription || ""} ${params.errorReason || ""}`.toLowerCase();
-  if (err.includes("cancel") || extra.includes("cancel") || extra.includes("user_denied")) {
-    return OAUTH_COPY.cancel;
+  if (await store.findCoachBySlug(slug)) {
+    slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
   }
-  if (err === "access_denied" || err === "user_denied" || extra.includes("denied") || extra.includes("permission")) {
-    return OAUTH_COPY.deny;
-  }
-  return providerDownCopy(provider);
+  const coach = await store.createCoach({
+    name,
+    email,
+    slug,
+    title: "",
+    city: "",
+    timezone: "America/Toronto",
+    passwordHash: null,
+  });
+  await store.createAccount({
+    coachId: coach.id,
+    provider: input.provider,
+    providerUserId: input.providerUserId,
+  });
+  return coach;
 }
 
 export function providerConfigured(provider: OAuthProvider) {
@@ -164,14 +121,14 @@ export type OAuthState = {
 
 export function signOAuthState(state: OAuthState) {
   const payload = Buffer.from(JSON.stringify(state), "utf8").toString("base64url");
-  const sig = createHmac("sha256", secret()).update(payload).digest("hex");
+  const sig = createHmac("sha256", secret()).update(`oauth:${payload}`).digest("hex");
   return `${payload}.${sig}`;
 }
 
 export function readOAuthState(token: string | undefined | null): OAuthState | null {
   if (!token || !token.includes(".")) return null;
   const [payload, sig] = token.split(".");
-  const expect = createHmac("sha256", secret()).update(payload).digest("hex");
+  const expect = createHmac("sha256", secret()).update(`oauth:${payload}`).digest("hex");
   try {
     if (!timingSafeEqual(Buffer.from(sig), Buffer.from(expect))) return null;
   } catch {
@@ -210,23 +167,18 @@ export function oauthStateCookieOptions() {
   };
 }
 
-export function returnPath(from: "login" | "register") {
-  return from === "register" ? "/app/register" : "/app/login";
-}
-
-export function errorPagePath(from: "login" | "register", message: string) {
-  return `${returnPath(from)}?error=${encodeURIComponent(message)}`;
-}
-
-export const errorReturnPath = errorPagePath;
-
-export function oauthRedirectUri(provider: OAuthProvider) {
-  const base = (process.env.NEXT_PUBLIC_APP_URL || "https://bookme.training").replace(/\/$/, "");
+export function oauthRedirectUri(provider: string, origin: string) {
+  const base = (process.env.NEXT_PUBLIC_APP_URL || origin).replace(/\/$/, "");
   return `${base}/api/auth/oauth/${provider}/callback`;
 }
 
+export function errorReturnPath(from: "login" | "register", message: string) {
+  const page = from === "register" ? "/app/register" : "/app/login";
+  return `${page}?error=${encodeURIComponent(message)}`;
+}
+
 export function authorizeUrl(provider: OAuthProvider, redirectUri: string, state: OAuthState) {
-  const s = encodeURIComponent(signOAuthState(state));
+  const s = encodeURIComponent(state.nonce);
   const redirect = encodeURIComponent(redirectUri);
   if (provider === "google") {
     const clientId = encodeURIComponent(process.env.GOOGLE_CLIENT_ID || "");
@@ -240,7 +192,7 @@ export function authorizeUrl(provider: OAuthProvider, redirectUri: string, state
   }
   const clientId = encodeURIComponent(process.env.X_CLIENT_ID || "");
   const challenge = encodeURIComponent(pkceChallenge(state.verifier));
-  const scope = encodeURIComponent("users.read tweet.read offline.access users.email");
+  const scope = encodeURIComponent("users.read tweet.read offline.access");
   return `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirect}&scope=${scope}&state=${s}&code_challenge=${challenge}&code_challenge_method=S256`;
 }
 

@@ -38,6 +38,7 @@ export default function LoginPage() {
     <main className="phone px-5 pb-8">
       <Brand />
       <h1 className="text-2xl font-bold">Coach sign in</h1>
+      <OauthButtons from="login" />
       <label className="mt-5 block text-sm">Email</label>
       <input value={email} onChange={(e) => setEmail(e.target.value)} className="field mt-1" />
       <label className="mt-3 block text-sm">Password</label>
@@ -46,7 +47,6 @@ export default function LoginPage() {
       <button disabled={busy || !email || !password} onClick={submit} className="mt-6 w-full rounded-2xl bg-brand py-3 font-semibold text-white disabled:opacity-40">
         Sign in
       </button>
-      <OauthButtons from="login" />
       <p className="mt-4 text-center text-sm text-muted">
         New coach? <Link href="/app/register" className="font-semibold text-brand">Open for business</Link>
       </p>

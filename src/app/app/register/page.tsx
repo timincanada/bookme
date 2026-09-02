@@ -41,6 +41,7 @@ export default function RegisterPage() {
       <Brand />
       <h1 className="text-2xl font-bold">Open for business</h1>
       <p className="text-muted">Create a coach account, then set your lesson and hours.</p>
+      <OauthButtons from="register" />
       <label className="mt-5 block text-sm">Name</label>
       <input value={name} onChange={(e) => setName(e.target.value)} className="field mt-1" />
       <label className="mt-3 block text-sm">Email</label>
@@ -53,7 +54,6 @@ export default function RegisterPage() {
       <button disabled={busy || !name || !email || !password} onClick={submit} className="mt-6 w-full rounded-2xl bg-brand py-3 font-semibold text-white disabled:opacity-40">
         Create account
       </button>
-      <OauthButtons from="register" />
       <p className="mt-4 text-center text-sm text-muted">
         Already coaching? <Link href="/app/login" className="font-semibold text-brand">Sign in</Link>
       </p>
