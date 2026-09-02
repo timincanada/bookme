@@ -24,13 +24,16 @@ export function providerLabel(provider: OAuthProvider) {
   return "Instagram";
 }
 
-export function oauthMissingEmailCopy(provider: OAuthProvider) {
+export function missingEmailCopy(provider: OAuthProvider) {
   return `We need an email from ${providerLabel(provider)} to continue.`;
 }
 
-export function oauthDownCopy(provider: OAuthProvider) {
+export function providerDownCopy(provider: OAuthProvider) {
   return `Couldn't reach ${providerLabel(provider)}. Try email or try again.`;
 }
+
+export const oauthMissingEmailCopy = missingEmailCopy;
+export const oauthDownCopy = providerDownCopy;
 
 export const OAUTH_CANCEL = "Sign-in canceled.";
 export const OAUTH_DENY = "Permission denied. Try email instead.";
@@ -218,7 +221,7 @@ export function authorizeUrl(provider: OAuthProvider, redirectUri: string, state
   }
   if (provider === "instagram") {
     const clientId = encodeURIComponent(process.env.INSTAGRAM_CLIENT_ID || "");
-    const scope = encodeURIComponent("user_profile,user_media");
+    const scope = encodeURIComponent("user_profile,user_email");
     return `https://api.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirect}&response_type=code&scope=${scope}&state=${s}`;
   }
   const clientId = encodeURIComponent(process.env.X_CLIENT_ID || "");
@@ -301,16 +304,17 @@ export async function exchangeOAuthCode(
       access_token?: string;
       user_id?: string | number;
     };
-    if (!token.access_token || token.user_id == null) throw new Error("token");
-    const userRes = await fetchImpl(
-      `https://graph.instagram.com/me?fields=id,username&access_token=${encodeURIComponent(token.access_token)}`,
-    );
-    const user = userRes.ok
-      ? ((await userRes.json()) as { id?: string; username?: string })
-      : {};
+    if (!token.access_token) throw new Error("token");
+    const userRes = await fetchImpl("https://graph.instagram.com/me?fields=id,username,email", {
+      headers: { Authorization: `Bearer ${token.access_token}` },
+    });
+    if (!userRes.ok) throw new Error("user");
+    const user = (await userRes.json()) as { id?: string; username?: string; email?: string };
+    const id = user.id || token.user_id;
+    if (!id) throw new Error("user");
     return {
-      providerUserId: String(user.id || token.user_id),
-      email: null,
+      providerUserId: String(id),
+      email: user.email,
       name: user.username || null,
     };
   }

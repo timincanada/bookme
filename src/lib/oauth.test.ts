@@ -5,7 +5,9 @@ import {
   OAUTH_STAFF,
   PROVIDERS,
   isOAuthProvider,
+  missingEmailCopy,
   oauthMissingEmailCopy,
+  providerDownCopy,
   oauthRedirectUri,
   providerConfigured,
   providerLabel,
@@ -25,6 +27,12 @@ assert.equal(OAUTH_NO_EMAIL, "That account did not share an email");
 assert.equal(OAUTH_DISABLED, "This account is disabled.");
 assert.equal(OAUTH_STAFF, "This email is for the admin console. Use /admin.");
 assert.equal(oauthMissingEmailCopy("instagram"), "We need an email from Instagram to continue.");
+assert.equal(missingEmailCopy("instagram"), "We need an email from Instagram to continue.");
+assert.equal(providerDownCopy("instagram"), "Couldn't reach Instagram. Try email or try again.");
+assert.equal(providerDownCopy("google"), "Couldn't reach Google. Try email or try again.");
+assert.equal(providerLabel("google"), "Google");
+assert.equal(providerLabel("facebook"), "Facebook");
+assert.equal(providerLabel("x"), "X");
 
 const prevUrl = process.env.NEXT_PUBLIC_APP_URL;
 delete process.env.NEXT_PUBLIC_APP_URL;

@@ -17,7 +17,7 @@ export function OauthButtons({ from, error }: { from: "login" | "register"; erro
             href={`/api/auth/oauth/${provider}/start?from=${from}`}
             className="relative flex w-full items-center justify-center rounded-2xl border border-brand bg-white py-4 font-semibold text-ink"
           >
-            <span className="absolute left-4 flex h-7 w-7 items-center justify-center rounded-full border border-line text-xs font-bold">
+            <span className="absolute left-4 flex h-8 w-8 items-center justify-center rounded-full border border-line text-sm font-bold">
               {ICONS[provider]}
             </span>
             Continue with {providerLabel(provider)}
