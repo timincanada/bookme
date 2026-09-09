@@ -84,7 +84,7 @@ function AssistantInner() {
   }
 
   const caps: string[] = me?.capabilities || [];
-  const locked = false;
+  const locked = Boolean(me && caps.length === 0 && !dismissed);
 
   if (!me) {
     return (
