@@ -4,7 +4,11 @@ import { prisma } from "@/lib/db";
 import { hasCapability, planCapabilities, type Capability } from "@/lib/subscription";
 import { expireStaleTrial } from "@/lib/subscription-sync";
 import { shiftDateKey, type AssistantAction } from "@/lib/assistant";
-import { assistantProvider } from "@/lib/assistant-provider";
+import {
+  logAssistantFailure,
+  needsConfirmFor,
+  resolveAssistantProvider,
+} from "@/lib/assistant-provider";
 import { openSlots } from "@/lib/slots";
 import { formatTime, formatWhen, torontoDateKey } from "@/lib/time";
 import { canMoveLesson, statusAfterReschedule } from "@/lib/hold";
@@ -151,21 +155,61 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, text: ran.text, preview: "preview" in ran ? ran.preview : undefined });
   }
 
+  const provider = resolveAssistantProvider();
+  if (!provider.configured()) {
+    const error = "Model not configured";
+    logAssistantFailure({ coachId: coach.id, provider: provider.name, error });
+    return NextResponse.json({ error }, { status: 503 });
+  }
+
   const lessons = await prisma.lesson.findMany({ where: { coachId: coach.id, status: { in: ["confirmed", "held"] } }, include: { client: true, location: true }, orderBy: { startAt: "asc" } });
   const clients = new Map();
   for (const l of lessons) clients.set(l.client.id, { id: l.client.id, name: l.client.name });
-  const parsed = assistantProvider.parse(String(body.text || ""), {
-    todayKey: torontoDateKey(),
-    clients: [...clients.values()],
-    lessons: lessons.map((l) => ({ id: l.id, clientId: l.clientId, clientName: l.client.name, startAt: l.startAt.toISOString(), status: l.status, location: l.location.name })),
+
+  const chat = await provider.chat({
+    coachId: coach.id,
+    message: String(body.text || ""),
+    capabilities: caps,
+    context: {
+      todayKey: torontoDateKey(),
+      clients: [...clients.values()],
+      lessons: lessons.map((l) => ({ id: l.id, clientId: l.clientId, clientName: l.client.name, startAt: l.startAt.toISOString(), status: l.status, location: l.location.name })),
+    },
   });
-  if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
-  if (!hasCapability(coach.plan, capFor(parsed.action), coach.subscriptionStatus, coach.trialEndsAt)) return upgradeResponse();
-  if (!parsed.needsConfirm) {
-    const ran = await runAction(coach, parsed.action);
-    if ("error" in ran && ran.error) return NextResponse.json({ error: ran.error }, { status: ran.status || 400 });
-    return NextResponse.json({ ok: true, text: ran.text, preview: "preview" in ran ? ran.preview : undefined, action: parsed.action });
+
+  if (!chat.ok) {
+    logAssistantFailure({ coachId: coach.id, provider: provider.name, error: chat.error });
+    return NextResponse.json({ error: chat.error }, { status: 400 });
   }
-  const preview = await previewFor(coach.id, coach.name, parsed.action);
-  return NextResponse.json({ ok: true, needsConfirm: true, summary: parsed.summary, action: parsed.action, preview });
+
+  // Text-only reply (no structured action)
+  if (!chat.action) {
+    return NextResponse.json({ ok: true, text: chat.text, summary: chat.summary });
+  }
+
+  if (!hasCapability(coach.plan, capFor(chat.action), coach.subscriptionStatus, coach.trialEndsAt)) {
+    return upgradeResponse();
+  }
+
+  const needsConfirm = chat.needsConfirm ?? needsConfirmFor(chat.action);
+  if (!needsConfirm) {
+    const ran = await runAction(coach, chat.action);
+    if ("error" in ran && ran.error) return NextResponse.json({ error: ran.error }, { status: ran.status || 400 });
+    return NextResponse.json({
+      ok: true,
+      text: ran.text || chat.text,
+      preview: "preview" in ran ? ran.preview : undefined,
+      action: chat.action,
+    });
+  }
+
+  const preview = await previewFor(coach.id, coach.name, chat.action);
+  return NextResponse.json({
+    ok: true,
+    needsConfirm: true,
+    summary: chat.summary || chat.text,
+    text: chat.text,
+    action: chat.action,
+    preview,
+  });
 }
