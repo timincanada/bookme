@@ -48,14 +48,18 @@ model Service {
 }
 
 model Location {
-  id      String   @id @default(cuid())
-  coachId String
-  coach   Coach    @relation(fields: [coachId], references: [id], onDelete: Cascade)
-  name    String
-  address String
-  kind    String   @default("in_person")
-  active  Boolean  @default(true)
-  lessons Lesson[]
+  id       String   @id @default(cuid())
+  coachId  String
+  coach    Coach    @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  name     String
+  address  String
+  kind     String   @default("in_person")
+  active   Boolean  @default(true)
+  placeId  String?
+  lat      Float?
+  lng      Float?
+  verified Boolean  @default(false)
+  lessons  Lesson[]
 }
 
 model WeeklyHour {

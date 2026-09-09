@@ -1,15 +1,28 @@
 "use client";
 import { Brand } from "@/components/Brand";
+import { AddressAutocomplete, emptyAddress, type AddressValue } from "@/components/AddressAutocomplete";
+import { TimezoneSelect } from "@/components/TimezoneSelect";
+import { WeeklyHoursEditor } from "@/components/WeeklyHoursEditor";
 import { DURATIONS, VERTICALS } from "@/lib/setup";
+import { DEFAULT_TIMEZONE } from "@/lib/timezone";
+import { validateWeeklyHours, type HourSegment } from "@/lib/hours";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { publicAppUrl } from "@/lib/app-url";
 
 const STEPS = ["Basics", "Locations", "Hours", "Link"];
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-type Loc = { id: string; name: string; address: string; kind: string; active: boolean };
-type Hour = { weekday: number; startMin: number; endMin: number };
+type Loc = {
+  id: string;
+  name: string;
+  address: string;
+  kind: string;
+  active: boolean;
+  placeId?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  verified?: boolean;
+};
 
 export default function SetupPage() {
   const [step, setStep] = useState(0);
@@ -20,16 +33,16 @@ export default function SetupPage() {
   const [name, setName] = useState("");
   const [title, setTitle] = useState("Tennis");
   const [city, setCity] = useState("");
-  const [timezone, setTimezone] = useState("America/Toronto");
+  const [timezone, setTimezone] = useState(DEFAULT_TIMEZONE);
   const [duration, setDuration] = useState(60);
   const [priceCad, setPriceCad] = useState(80);
 
   const [locations, setLocations] = useState<Loc[]>([]);
   const [locName, setLocName] = useState("");
-  const [locAddress, setLocAddress] = useState("");
+  const [locAddress, setLocAddress] = useState<AddressValue>(emptyAddress());
   const [locKind, setLocKind] = useState("in_person");
 
-  const [hours, setHours] = useState<Hour[]>(
+  const [hours, setHours] = useState<HourSegment[]>(
     [1, 2, 3, 4, 5].map((weekday) => ({ weekday, startMin: 10 * 60, endMin: 20 * 60 })),
   );
 
@@ -47,7 +60,7 @@ export default function SetupPage() {
       setName(d.name || "");
       setTitle(d.title || "Tennis");
       setCity(d.city || "");
-      setTimezone(d.timezone || "America/Toronto");
+      setTimezone(d.timezone || DEFAULT_TIMEZONE);
       if (d.service) {
         setDuration(d.service.duration);
         setPriceCad(d.service.priceCad);
@@ -59,6 +72,12 @@ export default function SetupPage() {
       setSubStatus(d.subscriptionStatus || "none");
     });
   }, []);
+
+  function onAddressChange(next: AddressValue) {
+    setLocAddress(next);
+    if (next.city) setCity(next.city);
+    if (next.timezone) setTimezone(next.timezone);
+  }
 
   async function saveBasics() {
     setBusy(true);
@@ -83,7 +102,17 @@ export default function SetupPage() {
     const res = await fetch("/api/coach/locations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: locName, address: locAddress, kind: locKind }),
+      body: JSON.stringify({
+        name: locName,
+        address: locAddress.address,
+        kind: locKind,
+        placeId: locAddress.placeId,
+        lat: locAddress.lat,
+        lng: locAddress.lng,
+        verified: locAddress.verified,
+        city: locAddress.city || city || undefined,
+        timezone: locAddress.timezone || undefined,
+      }),
     });
     const data = await res.json();
     setBusy(false);
@@ -93,10 +122,22 @@ export default function SetupPage() {
     }
     setLocations((prev) => [
       ...prev,
-      { id: data.id, name: locName, address: locAddress, kind: locKind, active: true },
+      {
+        id: data.id,
+        name: locName,
+        address: locAddress.address,
+        kind: locKind,
+        active: true,
+        placeId: locAddress.placeId,
+        lat: locAddress.lat,
+        lng: locAddress.lng,
+        verified: locAddress.verified,
+      },
     ]);
+    if (locAddress.city) setCity(locAddress.city);
+    if (locAddress.timezone) setTimezone(locAddress.timezone);
     setLocName("");
-    setLocAddress("");
+    setLocAddress(emptyAddress());
   }
 
   async function toggleLocation(id: string, active: boolean) {
@@ -109,6 +150,11 @@ export default function SetupPage() {
   }
 
   async function saveHours() {
+    const check = validateWeeklyHours(hours);
+    if (!check.ok) {
+      setError(check.error);
+      return;
+    }
     setBusy(true);
     setError("");
     const res = await fetch("/api/coach/hours", {
@@ -128,18 +174,7 @@ export default function SetupPage() {
     setStep(3);
   }
 
-  function toggleDay(weekday: number) {
-    setHours((prev) => {
-      const exists = prev.find((h) => h.weekday === weekday);
-      if (exists) return prev.filter((h) => h.weekday !== weekday);
-      return [...prev, { weekday, startMin: 10 * 60, endMin: 20 * 60 }].sort((a, b) => a.weekday - b.weekday);
-    });
-  }
-
-  function setDayTime(weekday: number, field: "startMin" | "endMin", value: number) {
-    setHours((prev) => prev.map((h) => (h.weekday === weekday ? { ...h, [field]: value } : h)));
-  }
-
+  const hoursValid = validateWeeklyHours(hours).ok;
   const link = `${publicAppUrl()}/${slug}`;
   const activeLocations = locations.filter((l) => l.active);
 
@@ -156,19 +191,21 @@ export default function SetupPage() {
 
       {step === 0 && (
         <section className="mt-6 space-y-3">
-          <label className="block text-sm">Name</label>
+          <p className="text-muted">Students book from these defaults.</p>
+          <label className="block text-sm font-semibold">Name</label>
           <input value={name} onChange={(e) => setName(e.target.value)} className="field" />
-          <label className="block text-sm">Vertical</label>
+          <label className="block text-sm font-semibold">Vertical</label>
           <select value={title} onChange={(e) => setTitle(e.target.value)} className="field">
             {VERTICALS.map((v) => (
               <option key={v}>{v}</option>
             ))}
           </select>
-          <label className="block text-sm">Default duration</label>
+          <label className="block text-sm font-semibold">Default duration</label>
           <div className="grid grid-cols-4 gap-2">
             {DURATIONS.map((d) => (
               <button
                 key={d}
+                type="button"
                 onClick={() => setDuration(d)}
                 className={`rounded-xl border py-2 text-sm ${duration === d ? "border-brand bg-brand-soft" : "border-line"}`}
               >
@@ -176,13 +213,18 @@ export default function SetupPage() {
               </button>
             ))}
           </div>
-          <label className="block text-sm">Price (CAD)</label>
+          <label className="block text-sm font-semibold">Price (CAD)</label>
           <input type="number" value={priceCad} onChange={(e) => setPriceCad(Number(e.target.value))} className="field" />
-          <label className="block text-sm">City</label>
-          <input value={city} onChange={(e) => setCity(e.target.value)} className="field" />
-          <label className="block text-sm">Timezone</label>
-          <input value={timezone} onChange={(e) => setTimezone(e.target.value)} className="field" />
-          <button disabled={busy} onClick={saveBasics} className="w-full rounded-2xl bg-brand py-3 font-semibold text-white">
+          <label className="block text-sm font-semibold">City</label>
+          <input value={city} readOnly className="field bg-line/30 text-muted" placeholder="Select an address in Locations" />
+          <p className="text-sm text-muted">From your location address</p>
+          <label className="block text-sm font-semibold">Timezone</label>
+          <TimezoneSelect value={timezone} onChange={setTimezone} />
+          <button
+            disabled={busy || !timezone}
+            onClick={saveBasics}
+            className="w-full rounded-2xl bg-brand py-3 font-semibold text-white disabled:opacity-40"
+          >
             Continue
           </button>
         </section>
@@ -196,25 +238,37 @@ export default function SetupPage() {
               <li key={l.id} className="flex items-center justify-between rounded-2xl border border-line p-3">
                 <div>
                   <div className="font-semibold">{l.name}</div>
-                  <div className="text-sm text-muted">{l.address || l.kind}</div>
+                  <div className="text-sm text-muted">
+                    {l.address || l.kind}
+                    {l.verified === false && l.address ? " · unverified" : ""}
+                  </div>
                 </div>
-                <button onClick={() => toggleLocation(l.id, !l.active)} className="text-sm text-brand">
+                <button type="button" onClick={() => toggleLocation(l.id, !l.active)} className="text-sm text-brand">
                   {l.active ? "Disable" : "Enable"}
                 </button>
               </li>
             ))}
           </ul>
-          <label className="mt-4 block text-sm">Location name</label>
-          <input value={locName} onChange={(e) => setLocName(e.target.value)} className="field mt-1" placeholder="Court 3" />
-          <label className="mt-3 block text-sm">Address</label>
-          <input value={locAddress} onChange={(e) => setLocAddress(e.target.value)} className="field mt-1" />
-          <label className="mt-3 block text-sm">Type</label>
+          <label className="mt-4 block text-sm font-semibold">Location name</label>
+          <input
+            value={locName}
+            onChange={(e) => setLocName(e.target.value)}
+            className="field mt-1"
+            placeholder="Court 3"
+          />
+          <label className="mt-3 block text-sm font-semibold">Address</label>
+          <AddressAutocomplete value={locAddress} onChange={onAddressChange} />
+          <label className="mt-3 block text-sm font-semibold">Type</label>
           <select value={locKind} onChange={(e) => setLocKind(e.target.value)} className="field mt-1">
             <option value="in_person">In person</option>
             <option value="house_call">House call</option>
             <option value="online">Online</option>
           </select>
-          <button disabled={busy || !locName} onClick={addLocation} className="mt-3 w-full rounded-2xl border border-line py-3 font-semibold">
+          <button
+            disabled={busy || !locName}
+            onClick={addLocation}
+            className="mt-3 w-full rounded-2xl border border-line py-3 font-semibold"
+          >
             Add location
           </button>
           <button
@@ -224,48 +278,19 @@ export default function SetupPage() {
           >
             Continue
           </button>
+          <p className="mt-4 text-center text-xs text-muted">Google Places · structured address + place_id</p>
         </section>
       )}
 
       {step === 2 && (
         <section className="mt-6">
           <p className="text-muted">Repeating weekly hours. Students only see open slots.</p>
-          <div className="mt-3 space-y-2">
-            {DAYS.map((label, weekday) => {
-              const row = hours.find((h) => h.weekday === weekday);
-              return (
-                <div key={label} className="rounded-2xl border border-line p-3">
-                  <label className="flex items-center gap-2 font-semibold">
-                    <input type="checkbox" checked={!!row} onChange={() => toggleDay(weekday)} />
-                    {label}
-                  </label>
-                  {row && (
-                    <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                      <input
-                        type="time"
-                        value={`${String(Math.floor(row.startMin / 60)).padStart(2, "0")}:${String(row.startMin % 60).padStart(2, "0")}`}
-                        onChange={(e) => {
-                          const [hh, mm] = e.target.value.split(":").map(Number);
-                          setDayTime(weekday, "startMin", hh * 60 + mm);
-                        }}
-                        className="field py-1"
-                      />
-                      <input
-                        type="time"
-                        value={`${String(Math.floor(row.endMin / 60)).padStart(2, "0")}:${String(row.endMin % 60).padStart(2, "0")}`}
-                        onChange={(e) => {
-                          const [hh, mm] = e.target.value.split(":").map(Number);
-                          setDayTime(weekday, "endMin", hh * 60 + mm);
-                        }}
-                        className="field py-1"
-                      />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          <button disabled={busy || hours.length === 0} onClick={saveHours} className="mt-4 w-full rounded-2xl bg-brand py-3 font-semibold text-white disabled:opacity-40">
+          <WeeklyHoursEditor hours={hours} onChange={setHours} />
+          <button
+            disabled={busy || !hoursValid}
+            onClick={saveHours}
+            className="mt-4 w-full rounded-2xl bg-brand py-3 font-semibold text-white disabled:opacity-40"
+          >
             Continue
           </button>
         </section>
@@ -280,6 +305,7 @@ export default function SetupPage() {
           </div>
           {canCopy ? (
             <button
+              type="button"
               onClick={async () => {
                 await navigator.clipboard.writeText(link);
                 setCopied(true);
