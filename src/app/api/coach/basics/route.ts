@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentCoach } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { DURATIONS, VERTICALS } from "@/lib/setup";
+import { DEFAULT_TIMEZONE, isValidTimezone } from "@/lib/timezone";
 
 export async function POST(req: NextRequest) {
   const coach = await currentCoach();
@@ -17,13 +18,18 @@ export async function POST(req: NextRequest) {
   const price = Number(priceCad);
   if (!price || price < 1) return NextResponse.json({ error: "Price is required" }, { status: 400 });
 
+  const tz = typeof timezone === "string" ? timezone.trim() : "";
+  if (!tz || !isValidTimezone(tz)) {
+    return NextResponse.json({ error: "Pick a valid timezone" }, { status: 400 });
+  }
+
   await prisma.coach.update({
     where: { id: coach.id },
     data: {
       name: name || coach.name,
       title,
-      city: city ?? coach.city,
-      timezone: timezone || "America/Toronto",
+      city: typeof city === "string" ? city : coach.city,
+      timezone: tz || DEFAULT_TIMEZONE,
     },
   });
   const existing = coach.services[0];

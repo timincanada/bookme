@@ -1,15 +1,23 @@
 "use client";
 import { Brand } from "@/components/Brand";
 import { TabBar } from "@/components/TabBar";
+import { AddressAutocomplete, emptyAddress, type AddressValue } from "@/components/AddressAutocomplete";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-type Loc = { id: string; name: string; address: string; kind: string; active: boolean };
+type Loc = {
+  id: string;
+  name: string;
+  address: string;
+  kind: string;
+  active: boolean;
+  verified?: boolean;
+};
 
 export default function MoreLocationsPage() {
   const [locations, setLocations] = useState<Loc[]>([]);
   const [name, setName] = useState("");
-  const [address, setAddress] = useState("");
+  const [address, setAddress] = useState<AddressValue>(emptyAddress());
   const [kind, setKind] = useState("in_person");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -34,7 +42,17 @@ export default function MoreLocationsPage() {
     const res = await fetch("/api/coach/locations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, address, kind }),
+      body: JSON.stringify({
+        name,
+        address: address.address,
+        kind,
+        placeId: address.placeId,
+        lat: address.lat,
+        lng: address.lng,
+        verified: address.verified,
+        city: address.city || undefined,
+        timezone: address.timezone || undefined,
+      }),
     });
     const data = await res.json();
     setBusy(false);
@@ -43,7 +61,7 @@ export default function MoreLocationsPage() {
       return;
     }
     setName("");
-    setAddress("");
+    setAddress(emptyAddress());
     load();
   }
 
@@ -65,7 +83,9 @@ export default function MoreLocationsPage() {
   return (
     <main className="phone px-5 pb-24">
       <Brand />
-      <Link href="/app/more" className="text-sm font-semibold text-brand">More</Link>
+      <Link href="/app/more" className="text-sm font-semibold text-brand">
+        More
+      </Link>
       <h1 className="mt-2 text-2xl font-bold">Locations</h1>
       <p className="text-muted">Add or disable. Keep at least one on.</p>
       <ul className="mt-4 space-y-2">
@@ -73,28 +93,36 @@ export default function MoreLocationsPage() {
           <li key={l.id} className="flex items-center justify-between rounded-2xl border border-line p-3">
             <div>
               <div className="font-semibold">{l.name}</div>
-              <div className="text-sm text-muted">{l.address || l.kind}</div>
+              <div className="text-sm text-muted">
+                {l.address || l.kind}
+                {l.verified === false && l.address ? " · unverified" : ""}
+              </div>
             </div>
-            <button onClick={() => toggle(l.id, !l.active)} className="text-sm text-brand">
+            <button type="button" onClick={() => toggle(l.id, !l.active)} className="text-sm text-brand">
               {l.active ? "Disable" : "Enable"}
             </button>
           </li>
         ))}
       </ul>
-      <label className="mt-5 block text-sm">Location name</label>
-      <input value={name} onChange={(e) => setName(e.target.value)} className="field mt-1" />
-      <label className="mt-3 block text-sm">Address</label>
-      <input value={address} onChange={(e) => setAddress(e.target.value)} className="field mt-1" />
-      <label className="mt-3 block text-sm">Type</label>
+      <label className="mt-5 block text-sm font-semibold">Location name</label>
+      <input value={name} onChange={(e) => setName(e.target.value)} className="field mt-1" placeholder="Studio A" />
+      <label className="mt-3 block text-sm font-semibold">Address</label>
+      <AddressAutocomplete value={address} onChange={setAddress} />
+      <label className="mt-3 block text-sm font-semibold">Type</label>
       <select value={kind} onChange={(e) => setKind(e.target.value)} className="field mt-1">
         <option value="in_person">In person</option>
         <option value="house_call">House call</option>
         <option value="online">Online</option>
       </select>
       {error && <p className="mt-3 text-sm text-danger">{error}</p>}
-      <button disabled={busy || !name} onClick={add} className="mt-4 w-full rounded-2xl bg-brand py-3 font-semibold text-white disabled:opacity-40">
+      <button
+        disabled={busy || !name}
+        onClick={add}
+        className="mt-4 w-full rounded-2xl bg-brand py-3 font-semibold text-white disabled:opacity-40"
+      >
         Add location
       </button>
+      <p className="mt-3 text-center text-xs text-muted">Google Places · structured address + place_id</p>
       <TabBar active="more" />
     </main>
   );
