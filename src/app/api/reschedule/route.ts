@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { openSlots } from "@/lib/slots";
-import { getStripe } from "@/lib/stripe";
+import { getStripe, appUrl } from "@/lib/stripe";
 import { canMoveLesson, canSelfReschedule, statusAfterReschedule } from "@/lib/hold";
 import { currentStudentEmail } from "@/lib/session";
+import { changeMails, sendMail } from "@/lib/mail";
+import { formatWhen } from "@/lib/time";
 
 export async function POST(req: NextRequest) {
   const email = currentStudentEmail();
@@ -27,7 +29,20 @@ export async function POST(req: NextRequest) {
       }
       await prisma.payment.update({ where: { lessonId }, data: { status: "refunded" } });
     }
+    const when = formatWhen(lesson.startAt);
     await prisma.lesson.update({ where: { id: lessonId }, data: { status: "cancelled" } });
+    const manageUrl = `${appUrl()}/manage?email=${encodeURIComponent(lesson.client.email)}`;
+    for (const mail of changeMails({
+      kind: "cancelled",
+      coachName: lesson.coach.name,
+      coachEmail: lesson.coach.email,
+      studentName: lesson.client.name,
+      studentEmail: lesson.client.email,
+      when,
+      manageUrl,
+    })) {
+      await sendMail(mail, { bookingId: lesson.id, template: "cancelled" });
+    }
     return NextResponse.json({ ok: true });
   }
   if (!canMoveLesson(lesson.status)) {
@@ -43,9 +58,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "That time is not open" }, { status: 409 });
   }
   const endAt = new Date(startAt.getTime() + lesson.service.duration * 60 * 1000);
+  const when = formatWhen(lesson.startAt);
   await prisma.lesson.update({
     where: { id: lessonId },
     data: { startAt, endAt, status: statusAfterReschedule(lesson.status), reminded24h: false, reminded2h: false },
   });
+  const manageUrl = `${appUrl()}/manage?email=${encodeURIComponent(lesson.client.email)}`;
+  for (const mail of changeMails({
+    kind: "rescheduled",
+    coachName: lesson.coach.name,
+    coachEmail: lesson.coach.email,
+    studentName: lesson.client.name,
+    studentEmail: lesson.client.email,
+    when,
+    nextWhen: formatWhen(startAt),
+    manageUrl,
+  })) {
+    await sendMail(mail, { bookingId: lesson.id, template: "rescheduled" });
+  }
   return NextResponse.json({ ok: true });
 }

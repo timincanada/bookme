@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentCoach } from "@/lib/session";
 import { prisma } from "@/lib/db";
-import { getStripe } from "@/lib/stripe";
+import { getStripe, appUrl } from "@/lib/stripe";
 import { changeMails, sendMail } from "@/lib/mail";
 import { formatWhen } from "@/lib/time";
 
@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
     await prisma.payment.update({ where: { lessonId }, data: { status: "refunded" } });
   }
   await prisma.lesson.update({ where: { id: lessonId }, data: { status: "cancelled" } });
+  const manageUrl = `${appUrl()}/manage?email=${encodeURIComponent(lesson.client.email)}`;
   for (const mail of changeMails({
     kind: "cancelled",
     coachName: lesson.coach.name,
@@ -34,8 +35,9 @@ export async function POST(req: NextRequest) {
     studentName: lesson.client.name,
     studentEmail: lesson.client.email,
     when: formatWhen(lesson.startAt),
+    manageUrl,
   })) {
-    await sendMail(mail);
+    await sendMail(mail, { bookingId: lesson.id, template: "cancelled" });
   }
   return NextResponse.json({ ok: true });
 }

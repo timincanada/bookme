@@ -15,7 +15,9 @@ export async function runReminders(now = new Date()) {
     const kinds = dueReminders(lesson, now);
     if (!kinds.length) continue;
     const manageUrl = `${appUrl()}/manage?email=${encodeURIComponent(lesson.client.email)}`;
+    const succeeded: { reminded24h?: boolean; reminded2h?: boolean } = {};
     for (const kind of kinds) {
+      let allOk = true;
       for (const mail of reminderMails({
         kind,
         coachName: lesson.coach.name,
@@ -26,17 +28,30 @@ export async function runReminders(now = new Date()) {
         location: lesson.location.name,
         manageUrl,
       })) {
-        await sendMail(mail);
-        sent += 1;
+        const result = await sendMail(mail, {
+          bookingId: lesson.id,
+          template: `reminder_${kind}`,
+        });
+        if (!result.ok) {
+          allOk = false;
+        } else {
+          sent += 1;
+        }
+      }
+      if (allOk) {
+        if (kind === "24h") succeeded.reminded24h = true;
+        if (kind === "2h") succeeded.reminded2h = true;
       }
     }
-    await prisma.lesson.update({
-      where: { id: lesson.id },
-      data: {
-        ...(kinds.includes("24h") ? { reminded24h: true } : {}),
-        ...(kinds.includes("2h") ? { reminded2h: true } : {}),
-      },
-    });
+    if (succeeded.reminded24h || succeeded.reminded2h) {
+      await prisma.lesson.update({
+        where: { id: lesson.id },
+        data: {
+          ...(succeeded.reminded24h ? { reminded24h: true } : {}),
+          ...(succeeded.reminded2h ? { reminded2h: true } : {}),
+        },
+      });
+    }
   }
   return { scanned: lessons.length, sent };
 }

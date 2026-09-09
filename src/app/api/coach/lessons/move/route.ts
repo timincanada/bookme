@@ -5,6 +5,7 @@ import { openSlots } from "@/lib/slots";
 import { canMoveLesson, statusAfterReschedule } from "@/lib/hold";
 import { changeMails, sendMail } from "@/lib/mail";
 import { formatWhen } from "@/lib/time";
+import { appUrl } from "@/lib/stripe";
 
 export async function POST(req: NextRequest) {
   const coach = await currentCoach();
@@ -32,6 +33,7 @@ export async function POST(req: NextRequest) {
     where: { id: lessonId },
     data: { startAt, endAt, status: statusAfterReschedule(lesson.status), reminded24h: false, reminded2h: false },
   });
+  const manageUrl = `${appUrl()}/manage?email=${encodeURIComponent(lesson.client.email)}`;
   for (const mail of changeMails({
     kind: "rescheduled",
     coachName: lesson.coach.name,
@@ -40,8 +42,9 @@ export async function POST(req: NextRequest) {
     studentEmail: lesson.client.email,
     when,
     nextWhen: formatWhen(startAt),
+    manageUrl,
   })) {
-    await sendMail(mail);
+    await sendMail(mail, { bookingId: lesson.id, template: "rescheduled" });
   }
   return NextResponse.json({ ok: true, status: statusAfterReschedule(lesson.status) });
 }

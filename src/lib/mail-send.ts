@@ -9,13 +9,33 @@ export async function notifyLessonConfirmed(lessonId: string) {
     include: { coach: true, client: true, location: true, payment: true },
   });
   if (!lesson) return;
-  await sendLessonConfirmations({
-    coachName: lesson.coach.name,
-    coachEmail: lesson.coach.email,
-    studentName: lesson.client.name,
-    studentEmail: lesson.client.email,
-    when: formatWhen(lesson.startAt),
-    location: lesson.location.name,
-    manageUrl: `${appUrl()}/manage?email=${encodeURIComponent(lesson.client.email)}`,
-  });
+  try {
+    const result = await sendLessonConfirmations({
+      bookingId: lesson.id,
+      coachName: lesson.coach.name,
+      coachEmail: lesson.coach.email,
+      studentName: lesson.client.name,
+      studentEmail: lesson.client.email,
+      when: formatWhen(lesson.startAt),
+      location: lesson.location.name,
+      manageUrl: `${appUrl()}/manage?email=${encodeURIComponent(lesson.client.email)}`,
+    });
+    if (!result.ok) {
+      console.log(
+        JSON.stringify({
+          msg: "notify_lesson_confirmed_failed",
+          bookingId: lesson.id,
+          error: result.error,
+        }),
+      );
+    }
+  } catch (err) {
+    console.log(
+      JSON.stringify({
+        msg: "notify_lesson_confirmed_failed",
+        bookingId: lesson.id,
+        error: err instanceof Error ? err.message : String(err),
+      }),
+    );
+  }
 }
