@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { OAUTH_PROVIDERS, providerLabel, type OAuthProvider } from "@/lib/oauth";
+import { providerLabel, type OAuthProvider } from "@/lib/oauth";
 
 function GoogleMark() {
   return (
@@ -72,11 +72,23 @@ const MARKS: Record<OAuthProvider, ReactNode> = {
   instagram: <InstagramMark />,
 };
 
-export function OauthButtons({ from, error }: { from: "login" | "register"; error?: string }) {
+export function OauthButtons({
+  from,
+  error,
+  providers,
+}: {
+  from: "login" | "register";
+  error?: string;
+  providers: OAuthProvider[];
+}) {
+  if (!providers.length) {
+    return error ? <p className="mt-5 text-sm text-danger">{error}</p> : null;
+  }
+
   return (
     <div className="mt-5">
       <div className="space-y-3">
-        {OAUTH_PROVIDERS.map((provider: OAuthProvider) => (
+        {providers.map((provider) => (
           <a
             key={provider}
             href={`/api/auth/oauth/${provider}/start?from=${from}`}

@@ -9,6 +9,7 @@ import {
   oauthMissingEmailCopy,
   providerDownCopy,
   oauthRedirectUri,
+  configuredOAuthProviders,
   providerConfigured,
   providerLabel,
   readOAuthState,
@@ -67,6 +68,32 @@ if (prevIgId === undefined) delete process.env.INSTAGRAM_CLIENT_ID;
 else process.env.INSTAGRAM_CLIENT_ID = prevIgId;
 if (prevIgSecret === undefined) delete process.env.INSTAGRAM_CLIENT_SECRET;
 else process.env.INSTAGRAM_CLIENT_SECRET = prevIgSecret;
+
+{
+  const keys = [
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "FACEBOOK_APP_ID",
+    "FACEBOOK_APP_SECRET",
+    "X_CLIENT_ID",
+    "X_CLIENT_SECRET",
+    "INSTAGRAM_CLIENT_ID",
+    "INSTAGRAM_CLIENT_SECRET",
+  ] as const;
+  const prev: Record<string, string | undefined> = {};
+  for (const k of keys) {
+    prev[k] = process.env[k];
+    delete process.env[k];
+  }
+  assert.deepEqual(configuredOAuthProviders(), []);
+  process.env.GOOGLE_CLIENT_ID = "id";
+  process.env.GOOGLE_CLIENT_SECRET = "secret";
+  assert.deepEqual(configuredOAuthProviders(), ["google"]);
+  for (const k of keys) {
+    if (prev[k] === undefined) delete process.env[k];
+    else process.env[k] = prev[k];
+  }
+}
 
 const signed = signOAuthState({ provider: "facebook", from: "register", nonce: "n1", verifier: "v1" });
 assert.equal(readOAuthState(signed)?.provider, "facebook");

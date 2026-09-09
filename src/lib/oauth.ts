@@ -137,6 +137,10 @@ export function providerConfigured(provider: OAuthProvider) {
   return Boolean(process.env.X_CLIENT_ID && process.env.X_CLIENT_SECRET);
 }
 
+export function configuredOAuthProviders() {
+  return OAUTH_PROVIDERS.filter((provider) => providerConfigured(provider));
+}
+
 function secret() {
   return process.env.AUTH_SECRET || "bookme-dev-secret";
 }
