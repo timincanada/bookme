@@ -1,5 +1,18 @@
 export type Mail = { to: string; subject: string; text: string };
 
+export type SendMailResult = { ok: true } | { ok: false; error: string };
+
+export type MailMeta = {
+  bookingId?: string;
+  template?: string;
+};
+
+const MAIL_TIMEOUT_MS = 15_000;
+
+function logMail(fields: Record<string, unknown>) {
+  console.log(JSON.stringify(fields));
+}
+
 export function confirmationMails(input: {
   coachName: string;
   coachEmail: string;
@@ -25,30 +38,66 @@ export function confirmationMails(input: {
   ];
 }
 
-export async function sendMail(mail: Mail) {
-  if (process.env.RESEND_API_KEY) {
-    await fetch("https://api.resend.com/emails", {
+export async function sendMail(mail: Mail, meta: MailMeta = {}): Promise<SendMailResult> {
+  const base = {
+    bookingId: meta.bookingId,
+    template: meta.template,
+    to: mail.to,
+  };
+
+  if (!process.env.RESEND_API_KEY) {
+    logMail({ msg: "mail_stub", ...base, subject: mail.subject });
+    console.log("[mail stub]", mail.to, mail.subject, mail.text);
+    return { ok: true };
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), MAIL_TIMEOUT_MS);
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: process.env.MAIL_FROM || "BookMe <noreply@bookme.test>",
+        from: process.env.MAIL_FROM || "BookMe <noreply@bookme.training>",
         to: [mail.to],
         subject: mail.subject,
         text: mail.text,
       }),
+      signal: controller.signal,
     });
-    return;
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      const error = `Resend ${response.status}: ${body.slice(0, 500)}`;
+      logMail({ msg: "mail_send_failed", ...base, error });
+      return { ok: false, error };
+    }
+    return { ok: true };
+  } catch (err) {
+    const error =
+      err instanceof Error
+        ? err.name === "AbortError"
+          ? `timeout after ${MAIL_TIMEOUT_MS}ms`
+          : err.message
+        : String(err);
+    logMail({ msg: "mail_send_failed", ...base, error });
+    return { ok: false, error };
+  } finally {
+    clearTimeout(timer);
   }
-  console.log("[mail stub]", mail.to, mail.subject, mail.text);
 }
 
-export async function sendLessonConfirmations(input: Parameters<typeof confirmationMails>[0]) {
+export async function sendLessonConfirmations(
+  input: Parameters<typeof confirmationMails>[0] & { bookingId?: string },
+): Promise<SendMailResult> {
+  let lastError: string | undefined;
   for (const mail of confirmationMails(input)) {
-    await sendMail(mail);
+    const result = await sendMail(mail, { bookingId: input.bookingId, template: "confirm" });
+    if (!result.ok) lastError = result.error;
   }
+  return lastError ? { ok: false, error: lastError } : { ok: true };
 }
 
 export function changeMails(input: {
@@ -60,13 +109,20 @@ export function changeMails(input: {
   when: string;
   nextWhen?: string;
   payUrl?: string;
+  manageUrl?: string;
 }): Mail[] {
+  const manage = input.manageUrl ? ` Manage: ${input.manageUrl}` : "";
   if (input.kind === "rescheduled") {
     return [
       {
         to: input.studentEmail,
         subject: `Lesson moved with ${input.coachName}`,
-        text: `Hi ${input.studentName}, your lesson with ${input.coachName} moved to ${input.nextWhen}.`,
+        text: `Hi ${input.studentName}, your lesson with ${input.coachName} moved from ${input.when} to ${input.nextWhen}.${manage}`,
+      },
+      {
+        to: input.coachEmail,
+        subject: `Lesson moved: ${input.studentName}`,
+        text: `${input.studentName}'s lesson moved from ${input.when} to ${input.nextWhen}.`,
       },
     ];
   }
@@ -75,7 +131,12 @@ export function changeMails(input: {
       {
         to: input.studentEmail,
         subject: `Lesson cancelled with ${input.coachName}`,
-        text: `Hi ${input.studentName}, ${input.coachName} cancelled your lesson on ${input.when}.`,
+        text: `Hi ${input.studentName}, your lesson with ${input.coachName} on ${input.when} was cancelled.${manage}`,
+      },
+      {
+        to: input.coachEmail,
+        subject: `Lesson cancelled: ${input.studentName}`,
+        text: `${input.studentName}'s lesson on ${input.when} was cancelled.`,
       },
     ];
   }
@@ -136,7 +197,12 @@ export function manageLinkMail(input: { email: string; link: string; code: strin
   };
 }
 
-export function studentMessageMail(input: { studentEmail: string; studentName: string; coachName: string; body: string }) {
+export function studentMessageMail(input: {
+  studentEmail: string;
+  studentName: string;
+  coachName: string;
+  body: string;
+}) {
   return {
     to: input.studentEmail,
     subject: "Message from " + input.coachName,

@@ -9,6 +9,7 @@ import { openSlots } from "@/lib/slots";
 import { formatTime, formatWhen, torontoDateKey } from "@/lib/time";
 import { canMoveLesson, statusAfterReschedule } from "@/lib/hold";
 import { changeMails, sendMail, studentMessageMail } from "@/lib/mail";
+import { appUrl } from "@/lib/stripe";
 
 function upgradeResponse() {
   return NextResponse.json({ error: "Assistant is on Coach", upgrade: true }, { status: 403 });
@@ -53,7 +54,7 @@ async function runAction(coach: { id: string; name: string; email: string; plan:
     if (!hasCapability(coach.plan, "draft_email", status, coach.trialEndsAt)) return { error: "Missing capability", status: 403 };
     const lesson = await prisma.lesson.findUnique({ where: { id: action.lessonId }, include: { client: true, location: true } });
     if (!lesson || lesson.coachId !== coach.id) return { error: "That lesson is not yours.", status: 404 };
-    await sendMail(studentMessageMail({ studentEmail: lesson.client.email, studentName: lesson.client.name, coachName: coach.name, body: action.body }));
+    await sendMail(studentMessageMail({ studentEmail: lesson.client.email, studentName: lesson.client.name, coachName: coach.name, body: action.body }), { bookingId: lesson.id, template: "student_message" });
     return { text: "Email sent to " + lesson.client.name + "." };
   }
 
@@ -78,8 +79,9 @@ async function runAction(coach: { id: string; name: string; email: string; plan:
     const endAt = new Date(startAt.getTime() + lesson.service.duration * 60 * 1000);
     const when = formatWhen(lesson.startAt);
     await prisma.lesson.update({ where: { id: lesson.id }, data: { startAt, endAt, status: statusAfterReschedule(lesson.status), reminded24h: false, reminded2h: false } });
-    for (const mail of changeMails({ kind: "rescheduled", coachName: lesson.coach.name, coachEmail: lesson.coach.email, studentName: lesson.client.name, studentEmail: lesson.client.email, when, nextWhen: formatWhen(startAt) })) {
-      await sendMail(mail);
+    const manageUrl = `${appUrl()}/manage?email=${encodeURIComponent(lesson.client.email)}`;
+    for (const mail of changeMails({ kind: "rescheduled", coachName: lesson.coach.name, coachEmail: lesson.coach.email, studentName: lesson.client.name, studentEmail: lesson.client.email, when, nextWhen: formatWhen(startAt), manageUrl })) {
+      await sendMail(mail, { bookingId: lesson.id, template: "rescheduled" });
     }
     return { text: "Moved the lesson with " + lesson.client.name + " to " + formatWhen(startAt) + "." };
   }

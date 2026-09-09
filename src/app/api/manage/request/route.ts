@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
         code,
         link: `${appUrl()}/manage?token=${token}`,
       }),
+      { template: "manage_link" },
     );
   }
   return NextResponse.json({ sent: true });
