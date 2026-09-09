@@ -61,7 +61,7 @@ export async function sendMail(mail: Mail, meta: MailMeta = {}): Promise<SendMai
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: process.env.MAIL_FROM || "BookMe <noreply@bookme.test>",
+        from: process.env.MAIL_FROM || "BookMe <noreply@bookme.training>",
         to: [mail.to],
         subject: mail.subject,
         text: mail.text,
