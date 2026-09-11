@@ -44,6 +44,7 @@ export function readSession(token: string | undefined | null) {
 export function sessionCookieOptions() {
   return {
     httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax" as const,
     path: "/",
     maxAge: 60 * 60 * 24 * 30,
@@ -76,6 +77,7 @@ export function readStudent(token: string | undefined | null) {
 export function studentCookieOptions() {
   return {
     httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax" as const,
     path: "/",
     maxAge: 60 * 60 * 12,
