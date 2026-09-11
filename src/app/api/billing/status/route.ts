@@ -11,5 +11,6 @@ export async function GET() {
     status: effectiveSubscriptionStatus(coach.subscriptionStatus, coach.trialEndsAt),
     plan: coach.plan,
     trialEndsAt: coach.trialEndsAt,
+    hasStripeSubscription: Boolean(coach.stripeSubscriptionId),
   });
 }

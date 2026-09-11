@@ -14,6 +14,7 @@ export function BillingClient({ initialStatus, initialPlan }: { initialStatus: s
   const [plan, setPlan] = useState(initialPlan);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [hasStripeSubscription, setHasStripeSubscription] = useState(false);
 
   useEffect(() => {
     fetch("/api/coach/me").then(async (r) => {
@@ -29,6 +30,7 @@ export function BillingClient({ initialStatus, initialPlan }: { initialStatus: s
       if (!d) return;
       setStatus(d.status || "none");
       setPlan(d.plan || "none");
+      setHasStripeSubscription(Boolean(d.hasStripeSubscription));
     });
   }, []);
 
@@ -61,7 +63,7 @@ export function BillingClient({ initialStatus, initialPlan }: { initialStatus: s
     }
   }
 
-  const open = status === "trialing" || status === "active";
+  const open = hasStripeSubscription && (status === "trialing" || status === "active");
 
   return (
     <main className="phone px-5 pb-24">
