@@ -14,14 +14,13 @@ import {
 import { RecurringPlanCard } from "@/components/bookme/recurring-plan-card";
 import { Button } from "@/components/ui/button";
 import type { AssistantPreview, UpcomingLesson } from "@/lib/bookme/api";
+import { assistantDeskTitle } from "@/lib/bookme/assistant-name";
 import { cn } from "@/lib/utils";
 
 export const ASSISTANT_PHOTO = "/photos/assistant.jpg";
 
-export function assistantTitle(name: string) {
-  const n = String(name || "").trim();
-  if (!n || n === "Assistant") return "BookMe Assistant";
-  return n;
+export function assistantTitle(coachName: string) {
+  return assistantDeskTitle(coachName);
 }
 
 export function formatClock(at: number, timeZone: string) {
@@ -84,11 +83,11 @@ export function StudentMark({ name, size = "sm" }: { name: string; size?: "sm" |
 }
 
 export function AssistantHeader({
-  name,
+  coachName,
   status,
   live,
 }: {
-  name: string;
+  coachName: string;
   status: string;
   live: boolean;
 }) {
@@ -103,7 +102,7 @@ export function AssistantHeader({
       </Link>
       <AssistantAvatar />
       <div className="min-w-0 flex-1 pl-0.5">
-        <p className="truncate font-semibold leading-tight text-ink">{assistantTitle(name)}</p>
+        <p className="truncate font-semibold leading-tight text-ink">{assistantTitle(coachName)}</p>
         <p className="mt-0.5 flex items-center gap-1.5 text-xs text-success">
           <span className={cn("size-1.5 rounded-full", live ? "bg-success" : "bg-success/70")} />
           {status}
