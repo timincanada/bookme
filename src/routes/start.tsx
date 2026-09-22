@@ -98,7 +98,7 @@ function Start() {
           </label>
           <div>
             <p className="mb-2 text-sm font-medium">What do you coach?</p>
-            <p className="mb-3 text-sm text-muted">Sport, music, arts, or academic — pick the closest fit.</p>
+            <p className="mb-3 text-sm text-muted">Sport, fitness, music, arts, or academic — pick the closest fit.</p>
             <VerticalPicker value={verticalId} onChange={(id) => setVerticalId(id)} />
           </div>
           {error ? <p className="text-sm text-coral">{error}</p> : null}

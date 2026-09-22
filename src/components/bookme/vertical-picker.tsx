@@ -37,8 +37,10 @@ export function VerticalPicker({
               type="button"
               onClick={() => setGroupId(g.id)}
               className={cn(
-                "shrink-0 rounded-full px-3.5 py-2 text-sm font-medium ring-1",
-                on ? "bg-forest text-on-forest ring-forest" : "bg-card ring-line hover:bg-paper-2",
+                "inline-flex shrink-0 items-center justify-center rounded-full border px-3.5 py-2 text-sm font-medium leading-none",
+                on
+                  ? "border-forest bg-forest text-on-forest"
+                  : "border-line bg-card hover:bg-paper-2",
               )}
             >
               {g.label}
