@@ -1,10 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 
-/** currentColor so the mark follows forest or on-forest with the wordmark. */
-const MARK_PATH =
-  "M6 4h34c14.8 0 26.5 9.6 26.5 23.8 0 8.4-4.3 15.4-11.2 19.3C63.8 50.8 70 58.4 70 68.8V76H6V4z M24 16h16c7.2 0 12.5 4 12.5 9.2S47.2 34.4 40 34.4H24V16z M41.5 41.2a5 5 0 1 0 0 10a5 5 0 1 0 0-10z M34.2 53c0-2.8 3.2-5.1 7.3-5.1s7.3 2.3 7.3 5.1v10.2c0 1.6-1.5 2.9-3.3 2.9h-8c-1.8 0-3.3-1.3-3.3-2.9V53z";
-
+/**
+ * Primary lockup cropped from BOOKME LOGO ASSETS brand sheet (exact pixels).
+ * Do not replace with a redrawn SVG. On forest surfaces, CSS-invert the primary PNG.
+ */
 export function Logo({
   className,
   to = "/",
@@ -15,18 +15,15 @@ export function Logo({
   invert?: boolean;
 }) {
   return (
-    <Link
-      to={to}
-      className={cn(
-        "inline-flex items-center gap-2 font-sans text-xl font-bold tracking-[-0.03em]",
-        invert ? "text-on-forest" : "text-forest",
-        className,
-      )}
-    >
-      <svg viewBox="0 0 72 80" aria-hidden="true" className="h-[1.35em] w-auto shrink-0" fill="currentColor">
-        <path fillRule="evenodd" d={MARK_PATH} />
-      </svg>
-      BookMe
+    <Link to={to} className={cn("inline-flex items-center", className)} aria-label="BookMe">
+      <img
+        src="/brand/bookme-logo-primary.png"
+        alt="BookMe"
+        className={cn("h-7 w-auto sm:h-8", invert && "brightness-0 invert")}
+        width={196}
+        height={60}
+        decoding="async"
+      />
     </Link>
   );
 }
