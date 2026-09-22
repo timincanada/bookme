@@ -9,3 +9,11 @@ export function normalizeAssistantName(value: unknown) {
   if (!raw) return DEFAULT_ASSISTANT_NAME;
   return raw.slice(0, ASSISTANT_NAME_MAX).trim() || DEFAULT_ASSISTANT_NAME;
 }
+
+/** Chat header title: "{CoachName}'s private assistant". Prefer Name's even when the name ends in s. */
+export function assistantDeskTitle(coachName: string) {
+  const n = String(coachName ?? "").trim();
+  if (!n) return "BookMe Assistant";
+  return `${n}'s private assistant`;
+}
+

@@ -669,7 +669,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
 
   return (
     <div className="relative mx-auto flex min-h-0 w-full max-w-lg flex-1 flex-col bg-cream">
-      <AssistantHeader name={coach.assistantName} status={headerStatus} live={callActive || listening} />
+      <AssistantHeader coachName={coach.name} status={headerStatus} live={callActive || listening} />
 
       <div
         ref={listRef}
