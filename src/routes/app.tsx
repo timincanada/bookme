@@ -64,7 +64,7 @@ function AppLayout() {
     <div className={cn("flex bg-paper", assistant ? "h-dvh overflow-hidden" : "min-h-screen")}>
       <aside className="hidden w-56 shrink-0 flex-col bg-forest text-on-forest md:flex">
         <div className="px-5 py-5">
-          <Logo invert to="/app" />
+          <Logo invert to="/app" className="[&_img]:h-6 [&_img]:sm:h-7" />
         </div>
         <nav className="flex-1 px-3">
           {NAV.map((item) => {
