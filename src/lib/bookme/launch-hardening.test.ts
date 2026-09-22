@@ -31,7 +31,7 @@ assert.equal(isVerifiedAdmin(null), false);
 // ---- 0010: demo coaches removed unless claimed / used ------------------------
 const dir = new URL("../../../migrations/", import.meta.url);
 const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
-assert.equal(files.at(-1), "0010_launch_hardening.sql");
+assert.ok(files.includes("0010_launch_hardening.sql"));
 const pg = new PGlite();
 await pg.waitReady;
 for (const f of files.filter((f) => f < "0010")) await pg.transaction(async (tx) => { await tx.exec(readFileSync(new URL(f, dir), "utf8")); });
