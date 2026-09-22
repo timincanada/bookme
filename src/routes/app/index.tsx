@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Mail, Repeat } from "lucide-react";
+import { MessageCircle, Repeat } from "lucide-react";
 import { useCoach } from "@/lib/bookme/coach-context";
 import { listMyLessons } from "@/lib/bookme/api";
 import { WeekCalendar, nextLessonDay, type CalLesson } from "@/components/bookme/lesson-calendar";
@@ -38,8 +38,12 @@ function Schedule() {
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <Link to="/app/messages" className="relative inline-flex items-center text-forest" aria-label="Messages">
-            <Mail className="size-5" strokeWidth={1.75} />
+          <Link
+            to="/app/messages"
+            className="relative inline-flex items-center text-forest"
+            aria-label="Messages"
+          >
+            <MessageCircle className="size-5" strokeWidth={1.75} />
             {coach.unreadMessages ? (
               <span className="absolute -right-2 -top-1.5 min-w-4 rounded-full bg-forest px-1 text-center text-[10px] font-semibold leading-4 text-on-forest">
                 {coach.unreadMessages > 9 ? "9+" : coach.unreadMessages}
@@ -54,22 +58,34 @@ function Schedule() {
             <Repeat className="size-4" strokeWidth={1.75} />
             Import recurring
           </Link>
-          <Link to="/app/bookings" search={{ tab: "upcoming", swap: undefined }} className="text-sm font-semibold text-forest">
+          <Link
+            to="/app/bookings"
+            search={{ tab: "upcoming", swap: undefined }}
+            className="text-sm font-semibold text-forest"
+          >
             Month
           </Link>
         </div>
       </div>
       {!coach.setup ? (
-        <Link to="/app/setup" className="mt-4 block rounded-2xl bg-sage-3 p-3 text-sm font-semibold text-forest">
+        <Link
+          to="/app/setup"
+          className="mt-4 block rounded-2xl bg-sage-3 p-3 text-sm font-semibold text-forest"
+        >
           Finish Open for business to publish your link
         </Link>
       ) : !coach.open && policy.ready ? (
         policy.showPurchases ? (
-          <Link to="/app/billing" className="mt-4 block rounded-2xl bg-sage-3 p-3 text-sm font-semibold text-forest">
+          <Link
+            to="/app/billing"
+            className="mt-4 block rounded-2xl bg-sage-3 p-3 text-sm font-semibold text-forest"
+          >
             Start a trial to copy your booking link
           </Link>
         ) : (
-          <p className="mt-4 rounded-2xl bg-sage-3 p-3 text-sm font-semibold text-forest">Your booking link isn't active.</p>
+          <p className="mt-4 rounded-2xl bg-sage-3 p-3 text-sm font-semibold text-forest">
+            Your booking link isn't active.
+          </p>
         )
       ) : null}
       {coach.pendingRequests ? (
@@ -82,7 +98,13 @@ function Schedule() {
         </Link>
       ) : null}
       <div className="mt-6">
-        <WeekCalendar lessons={lessons} hours={coach.hours} selected={day} onSelect={setDay} timezone={tz} />
+        <WeekCalendar
+          lessons={lessons}
+          hours={coach.hours}
+          selected={day}
+          onSelect={setDay}
+          timezone={tz}
+        />
       </div>
     </div>
   );

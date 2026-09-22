@@ -2,10 +2,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { studentListConversations } from "@/lib/bookme/messages-api";
 import { useStudent } from "@/lib/bookme/student-context";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/manage/messages/")({ component: StudentInbox });
 
-type Threads = Extract<Awaited<ReturnType<typeof studentListConversations>>, { ok: true }>["threads"];
+type Threads = Extract<
+  Awaited<ReturnType<typeof studentListConversations>>,
+  { ok: true }
+>["threads"];
 
 function StudentInbox() {
   const { signedOut } = useStudent();
@@ -32,14 +36,26 @@ function StudentInbox() {
               className="flex items-center justify-between gap-3 rounded-2xl bg-card p-4 ring-1 ring-line"
             >
               <span>
-                <span className="block font-semibold">{t.coachName}</span>
+                <span className={cn("block", t.unread ? "font-semibold" : "font-medium")}>
+                  {t.coachName}
+                </span>
+                {t.lastPreview ? (
+                  <span className="block truncate text-sm text-muted">{t.lastPreview}</span>
+                ) : null}
                 <span className="text-sm text-muted">
-                  {t.lastMessageAt ? new Date(t.lastMessageAt).toLocaleDateString("en-CA", { month: "short", day: "numeric" }) : "No messages yet"}
+                  {t.lastMessageAt
+                    ? new Date(t.lastMessageAt).toLocaleDateString("en-CA", {
+                        month: "short",
+                        day: "numeric",
+                      })
+                    : "No messages yet"}
                   {t.mode === "read" ? " · Read-only" : ""}
                 </span>
               </span>
               {t.unread ? (
-                <span className="rounded-full bg-forest px-2 py-0.5 text-xs font-semibold text-on-forest">{t.unread}</span>
+                <span className="rounded-full bg-forest px-2 py-0.5 text-xs font-semibold text-on-forest">
+                  {t.unread}
+                </span>
               ) : null}
             </Link>
           </li>

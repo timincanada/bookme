@@ -109,12 +109,25 @@ function toContext(r: ThreadRow, now: Date): ThreadContext {
   };
 }
 
-export async function coachThreadContext(sql: QuerySql, coachId: string, clientId: string, now = new Date()) {
-  const rows = await sql.query<ThreadRow>(`${THREAD_SELECT} where cl.coach_id = $1 and cl.id = $2`, [coachId, clientId]);
+export async function coachThreadContext(
+  sql: QuerySql,
+  coachId: string,
+  clientId: string,
+  now = new Date(),
+) {
+  const rows = await sql.query<ThreadRow>(
+    `${THREAD_SELECT} where cl.coach_id = $1 and cl.id = $2`,
+    [coachId, clientId],
+  );
   return rows[0] ? toContext(rows[0], now) : null;
 }
 
-export async function studentThreadContext(sql: QuerySql, email: string, coachId: string, now = new Date()) {
+export async function studentThreadContext(
+  sql: QuerySql,
+  email: string,
+  coachId: string,
+  now = new Date(),
+) {
   const rows = await sql.query<ThreadRow>(
     `${THREAD_SELECT} where cl.coach_id = $1 and lower(cl.email) = $2 limit 1`,
     [coachId, normalizeEmail(email)],
@@ -122,7 +135,29 @@ export async function studentThreadContext(sql: QuerySql, email: string, coachId
   return rows[0] ? toContext(rows[0], now) : null;
 }
 
-async function unreadFor(sql: QuerySql, conversationId: string, fromRole: "coach" | "student", since: Date | null) {
+function previewText(body: string | null | undefined) {
+  const one = String(body || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!one) return null;
+  return one.length > 80 ? `${one.slice(0, 79)}…` : one;
+}
+
+async function lastPreview(sql: QuerySql, conversationId: string | null) {
+  if (!conversationId) return null;
+  const rows = await sql.query<{ body: string }>(
+    `select body from messages where conversation_id = $1 order by created_at desc, id desc limit 1`,
+    [conversationId],
+  );
+  return previewText(rows[0]?.body);
+}
+
+async function unreadFor(
+  sql: QuerySql,
+  conversationId: string,
+  fromRole: "coach" | "student",
+  since: Date | null,
+) {
   const rows = await sql.query<{ n: number }>(
     `select count(*)::int as n from messages where conversation_id = $1 and sender_role = $2 and created_at > $3`,
     [conversationId, fromRole, (since ?? new Date(0)).toISOString()],
@@ -145,7 +180,10 @@ export async function listStudentThreads(sql: QuerySql, email: string, now = new
       coachName: ctx.coachName,
       mode: ctx.mode,
       lastMessageAt: ctx.lastMessageAt?.toISOString() ?? null,
-      unread: ctx.conversationId ? await unreadFor(sql, ctx.conversationId, "coach", ctx.studentLastReadAt) : 0,
+      lastPreview: await lastPreview(sql, ctx.conversationId),
+      unread: ctx.conversationId
+        ? await unreadFor(sql, ctx.conversationId, "coach", ctx.studentLastReadAt)
+        : 0,
     });
   }
   return out;
@@ -164,6 +202,7 @@ export async function listCoachThreads(sql: QuerySql, coachId: string, now = new
       clientName: ctx.clientName,
       mode: ctx.mode,
       lastMessageAt: ctx.lastMessageAt?.toISOString() ?? null,
+      lastPreview: await lastPreview(sql, ctx.conversationId),
       unread: await unreadFor(sql, ctx.conversationId!, "student", ctx.coachLastReadAt),
     });
   }
@@ -181,20 +220,39 @@ export async function coachUnreadCount(sql: QuerySql, coachId: string) {
   return Number(rows[0]?.n ?? 0);
 }
 
-export type MessageItem = { id: string; role: "coach" | "student"; body: string; createdAt: string };
+export type MessageItem = {
+  id: string;
+  role: "coach" | "student";
+  body: string;
+  createdAt: string;
+};
 
 /** Messages in order; `after` is the cursor returned with the previous page. */
-export async function loadMessages(sql: QuerySql, conversationId: string | null, after?: string | null) {
+export async function loadMessages(
+  sql: QuerySql,
+  conversationId: string | null,
+  after?: string | null,
+) {
   if (!conversationId) return { messages: [] as MessageItem[], cursor: after ?? null };
   const [afterAt, afterId] = String(after || "").split("|");
   const rows = afterAt
-    ? await sql.query<{ id: string; sender_role: "coach" | "student"; body: string; created_at: string | Date }>(
+    ? await sql.query<{
+        id: string;
+        sender_role: "coach" | "student";
+        body: string;
+        created_at: string | Date;
+      }>(
         `select id, sender_role, body, created_at from messages
          where conversation_id = $1 and (created_at, id) > ($2::timestamptz, $3)
          order by created_at, id limit 500`,
         [conversationId, afterAt, afterId || ""],
       )
-    : await sql.query<{ id: string; sender_role: "coach" | "student"; body: string; created_at: string | Date }>(
+    : await sql.query<{
+        id: string;
+        sender_role: "coach" | "student";
+        body: string;
+        created_at: string | Date;
+      }>(
         `select id, sender_role, body, created_at from messages
          where conversation_id = $1 order by created_at, id limit 500`,
         [conversationId],
@@ -206,10 +264,15 @@ export async function loadMessages(sql: QuerySql, conversationId: string | null,
     createdAt: asDate(r.created_at)!.toISOString(),
   }));
   const last = messages[messages.length - 1];
-  return { messages, cursor: last ? `${last.createdAt}|${last.id}` : after ?? null };
+  return { messages, cursor: last ? `${last.createdAt}|${last.id}` : (after ?? null) };
 }
 
-export type NotifyTarget = { role: "coach" | "student"; email: string; name: string; fromName: string };
+export type NotifyTarget = {
+  role: "coach" | "student";
+  email: string;
+  name: string;
+  fromName: string;
+};
 
 export async function sendMessage(
   tx: QuerySql,
@@ -217,7 +280,10 @@ export async function sendMessage(
   sender: { role: "coach" } | { role: "student"; studentId: string },
   rawBody: unknown,
   now = new Date(),
-): Promise<{ ok: true; message: MessageItem; notify: NotifyTarget | null; conversationId: string } | { ok: false; error: string }> {
+): Promise<
+  | { ok: true; message: MessageItem; notify: NotifyTarget | null; conversationId: string }
+  | { ok: false; error: string }
+> {
   if (ctx.mode !== "send") return { ok: false, error: "This conversation is read-only." };
   const clean = cleanBody(rawBody);
   if (!clean.ok) return clean;
@@ -261,12 +327,23 @@ export async function sendMessage(
   await tx.query(
     `insert into messages (id, conversation_id, sender_role, sender_student_id, body, created_at)
      values ($1, $2, $3, $4, $5, $6)`,
-    [id, conv.id, sender.role, sender.role === "student" ? sender.studentId : null, clean.body, now.toISOString()],
+    [
+      id,
+      conv.id,
+      sender.role,
+      sender.role === "student" ? sender.studentId : null,
+      clean.body,
+      now.toISOString(),
+    ],
   );
 
   const recipient: "coach" | "student" = sender.role === "coach" ? "student" : "coach";
-  const lastRead = asDate(recipient === "coach" ? conv.coach_last_read_at : conv.student_last_read_at);
-  const notifiedAt = asDate(recipient === "coach" ? conv.coach_notified_at : conv.student_notified_at);
+  const lastRead = asDate(
+    recipient === "coach" ? conv.coach_last_read_at : conv.student_last_read_at,
+  );
+  const notifiedAt = asDate(
+    recipient === "coach" ? conv.coach_notified_at : conv.student_notified_at,
+  );
   const recipientEmail = recipient === "coach" ? ctx.coachEmail : ctx.clientEmail;
   const notify = Boolean(recipientEmail) && shouldNotify({ lastReadAt: lastRead, notifiedAt, now });
 
@@ -294,8 +371,16 @@ export async function sendMessage(
   };
 }
 
-export async function markRead(sql: QuerySql, conversationId: string | null, role: "coach" | "student", now = new Date()) {
+export async function markRead(
+  sql: QuerySql,
+  conversationId: string | null,
+  role: "coach" | "student",
+  now = new Date(),
+) {
   if (!conversationId) return;
   const column = role === "coach" ? "coach_last_read_at" : "student_last_read_at";
-  await sql.query(`update conversations set ${column} = $1 where id = $2`, [now.toISOString(), conversationId]);
+  await sql.query(`update conversations set ${column} = $1 where id = $2`, [
+    now.toISOString(),
+    conversationId,
+  ]);
 }
