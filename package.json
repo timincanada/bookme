@@ -22,7 +22,12 @@
     "mobile:sync": "cap sync",
     "mobile:assets": "capacitor-assets generate --iconBackgroundColor '#1f4d3a' --iconBackgroundColorDark '#1f4d3a' --splashBackgroundColor '#f6f1e7' --splashBackgroundColorDark '#f6f1e7'",
     "mobile:ios": "cap sync ios && cap open ios",
-    "mobile:android": "cap sync android && cap open android"
+    "mobile:android": "cap sync android && cap open android",
+    "mobile:sync:student": "node scripts/cap-student.mjs sync",
+    "mobile:ios:student": "node scripts/cap-student.mjs sync ios && node scripts/cap-student.mjs open ios",
+    "mobile:android:student": "node scripts/cap-student.mjs sync android && node scripts/cap-student.mjs open android",
+    "mobile:assets:student": "node scripts/mobile-assets-student.mjs",
+    "mobile:add:student": "node scripts/cap-student.mjs add"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

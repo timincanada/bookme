@@ -1,6 +1,8 @@
 # BookMe iOS & Android apps
 
-One app for coaches and students (`app.bookme.training`, "BookMe"), built with
+> **Student-only shell (P0):** separate app id `app.bookme.student` ("BookMe Student") under `ios-student/` + `android-student/`. Internal TestFlight / Play testing only — see [`docs/student-app-p0.md`](../student-app-p0.md). This document describes the **coach** app (`app.bookme.training`).
+
+Coach app (`app.bookme.training`, "BookMe"), built with
 Capacitor 8. The app loads the live site (`https://bookme.training/welcome`) in a
 WebView; `native-shell/index.html` is only the offline page. Web deploys update
 the app content; a new store build is needed only for native changes (plugins,

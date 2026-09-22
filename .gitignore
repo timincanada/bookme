@@ -32,3 +32,12 @@ ios/App/Pods/
 ios/App/build/
 ios/DerivedData/
 **/xcuserdata/
+
+# student native build artifacts
+android-student/app/build/
+android-student/.gradle/
+android-student/local.properties
+android-student/captures/
+ios-student/App/Pods/
+ios-student/App/build/
+ios-student/DerivedData/
