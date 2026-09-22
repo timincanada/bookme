@@ -61,11 +61,11 @@ function Hero() {
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <a href="/alex">Preview a live page</a>
+              <Link to="/preview">See a sample page</Link>
             </Button>
           </div>
-          <a
-            href="/alex"
+          <Link
+            to="/preview"
             className="mt-5 flex items-center gap-3 rounded-2xl bg-card p-3 ring-1 ring-line hover:bg-paper-2"
           >
             <img
@@ -74,14 +74,14 @@ function Hero() {
               className="size-12 rounded-xl object-cover"
             />
             <span className="min-w-0 text-left">
-              <span className="block text-sm font-semibold text-ink">Alex Rivera · Tennis</span>
-              <span className="block text-xs text-muted">bookme.training/alex · live booking page</span>
+              <span className="block text-sm font-semibold text-ink">See a sample booking page</span>
+              <span className="block text-xs text-muted">What your students see when they open your link</span>
             </span>
-          </a>
+          </Link>
           <p className="mt-4 text-sm text-muted">No credit card required</p>
         </div>
-        <a
-          href="/alex"
+        <Link
+          to="/preview"
           className="relative block h-56 overflow-hidden rounded-3xl sm:h-72 lg:h-[620px] lg:rounded-t-3xl"
         >
           <img
@@ -96,7 +96,7 @@ function Hero() {
           <p className="font-script absolute bottom-5 right-5 text-2xl text-on-forest drop-shadow sm:bottom-8 sm:right-8 sm:text-3xl">
             Coaches Change Lives
           </p>
-        </a>
+        </Link>
       </div>
     </section>
   );
