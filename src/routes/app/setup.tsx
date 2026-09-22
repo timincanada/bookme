@@ -74,7 +74,7 @@ function Setup() {
           </label>
           <div className="mt-4">
             <p className="mb-1.5 text-sm font-medium">What do you coach?</p>
-            <p className="mb-3 text-sm text-muted">Sport, music, arts, or academic.</p>
+            <p className="mb-3 text-sm text-muted">Sport, fitness, music, arts, or academic.</p>
             <VerticalPicker
               value={title}
               onChange={(_id, label) => setTitle(label)}
