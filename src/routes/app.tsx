@@ -2,6 +2,7 @@ import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-r
 import {
   CalendarDays,
   ClipboardList,
+  MessageCircle,
   Mic,
   MoreHorizontal,
   Users,
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/app")({ component: AppLayout });
 const NAV = [
   { to: "/app", label: "Schedule", icon: CalendarDays },
   { to: "/app/bookings", label: "Bookings", icon: ClipboardList },
+  { to: "/app/messages", label: "Messages", icon: MessageCircle },
   { to: "/app/clients", label: "Clients", icon: Users },
   { to: "/app/assistant", label: "Assistant", icon: Mic },
   { to: "/app/more", label: "More", icon: MoreHorizontal },
@@ -69,8 +71,8 @@ function AppLayout() {
         <nav className="flex-1 px-3">
           {NAV.map((item) => {
             const on = item.to === "/app" ? pathname === "/app" : pathname.startsWith(item.to);
-            const pending =
-              item.to === "/app/bookings" ? coach?.pendingRequests || 0 : item.to === "/app/more" ? coach?.unreadMessages || 0 : 0;
+            const bookingsPending = item.to === "/app/bookings" ? coach?.pendingRequests || 0 : 0;
+            const unread = item.to === "/app/messages" ? coach?.unreadMessages || 0 : 0;
             return (
               <Link
                 key={item.to}
@@ -82,9 +84,14 @@ function AppLayout() {
               >
                 <item.icon className="size-4" strokeWidth={1.75} />
                 {item.label}
-                {pending ? (
+                {bookingsPending ? (
                   <span className="ml-auto rounded-full bg-sage px-1.5 py-0.5 text-[10px] font-semibold text-forest">
-                    {pending}
+                    {bookingsPending}
+                  </span>
+                ) : null}
+                {unread ? (
+                  <span className="ml-auto min-w-4 rounded-full bg-on-forest px-1.5 py-0.5 text-center text-[10px] font-semibold leading-4 text-forest">
+                    {unread > 9 ? "9+" : unread}
                   </span>
                 ) : null}
               </Link>
@@ -95,7 +102,12 @@ function AppLayout() {
           <UserButton />
         </div>
       </aside>
-      <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col", assistant ? "bg-cream pb-20 md:pb-0" : "pb-16 md:pb-0")}>
+      <div
+        className={cn(
+          "flex min-h-0 min-w-0 flex-1 flex-col",
+          assistant ? "bg-cream pb-20 md:pb-0" : "pb-16 md:pb-0",
+        )}
+      >
         {assistant ? null : (
           <div className="flex items-center justify-between border-b border-line px-4 py-3 md:hidden">
             <Logo to="/app" />

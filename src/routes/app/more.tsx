@@ -31,14 +31,6 @@ function More() {
     <div className="mx-auto max-w-3xl px-5 py-8">
       <h1 className="font-display text-3xl font-medium">More</h1>
       <ul className="mt-5 divide-y divide-line rounded-2xl bg-card ring-1 ring-line">
-        <li>
-          <Link to="/app/messages" className="flex items-center justify-between px-4 py-3 font-medium hover:bg-paper">
-            Messages
-            {coach.unreadMessages ? (
-              <span className="rounded-full bg-forest px-2 py-0.5 text-xs font-semibold text-on-forest">{coach.unreadMessages}</span>
-            ) : null}
-          </Link>
-        </li>
         {[
           ["/app/assistant", "Assistant"],
           ["/app/more/assistant", "Assistant name"],
@@ -63,11 +55,16 @@ function More() {
       <div className="mt-6 rounded-2xl bg-card p-5 ring-1 ring-line">
         <h2 className="font-display text-2xl">Student desk</h2>
         <p className="mt-1 text-sm text-muted">
-          Send this to students who need to move a lesson or message you. They sign in with a code sent to the email on the booking — no password.
+          Send this to students who need to move a lesson or message you. They sign in with a code
+          sent to the email on the booking — no password.
         </p>
         <p className="mt-4 font-display text-xl">{displayManageLink()}</p>
         <Button className="mt-4" size="field" onClick={() => void copyManage()}>
-          {copied ? <Check className="size-4" strokeWidth={2} /> : <Copy className="size-4" strokeWidth={1.75} />}
+          {copied ? (
+            <Check className="size-4" strokeWidth={2} />
+          ) : (
+            <Copy className="size-4" strokeWidth={1.75} />
+          )}
           {copied ? "Copied" : "Copy manage link"}
         </Button>
         <p className="mt-3 text-xs text-muted">
