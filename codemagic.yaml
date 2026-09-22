@@ -1,0 +1,55 @@
+# Codemagic: signed iOS (App Store Connect) and Android (Play) builds.
+# Set up in Codemagic: App Store Connect API key integration "bookme_asc",
+# Android keystore "bookme_upload", and the env groups referenced below.
+workflows:
+  ios-release:
+    name: iOS release
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: bookme_asc
+    environment:
+      node: 22
+      xcode: latest
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: app.bookme.training
+    scripts:
+      - name: Install
+        script: npm ci
+      - name: Sync
+        script: npx cap sync ios
+      - name: Signing
+        script: xcode-project use-profiles --project ios/App/App.xcodeproj
+      - name: Build
+        script: |
+          xcode-project build-ipa --project ios/App/App.xcodeproj --scheme App \
+            --build-version "$BUILD_NUMBER"
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+
+  android-release:
+    name: Android release
+    instance_type: linux_x2
+    environment:
+      node: 22
+      java: 21
+      android_signing:
+        - bookme_upload
+      groups:
+        - firebase # GOOGLE_SERVICES_JSON
+    scripts:
+      - name: Install
+        script: npm ci
+      - name: Firebase config
+        script: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json; fi
+      - name: Sync
+        script: npx cap sync android
+      - name: Build
+        script: cd android && ./gradlew bundleRelease
+    artifacts:
+      - android/app/build/outputs/**/*.aab

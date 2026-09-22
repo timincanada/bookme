@@ -1,0 +1,64 @@
+name: Mobile builds
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["mobile-v*"]
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    env:
+      HAS_FIREBASE: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
+      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - name: Firebase config (optional)
+        if: env.HAS_FIREBASE == 'true'
+        run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
+      - run: npx cap sync android
+      - name: Signing key
+        if: env.HAS_KEYSTORE == 'true'
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/upload.keystore
+      - name: Build release bundle
+        working-directory: android
+        env:
+          BOOKME_KEYSTORE: ${{ env.HAS_KEYSTORE == 'true' && 'upload.keystore' || '' }}
+          BOOKME_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          BOOKME_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          BOOKME_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          ./gradlew bundleRelease
+          if [ -n "$BOOKME_KEYSTORE" ]; then
+            jarsigner -keystore app/$BOOKME_KEYSTORE -storepass "$BOOKME_KEYSTORE_PASSWORD" -keypass "$BOOKME_KEY_PASSWORD" \
+              app/build/outputs/bundle/release/app-release.aab "$BOOKME_KEY_ALIAS"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-aab
+          path: android/app/build/outputs/bundle/release/*.aab
+
+  ios:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx cap sync ios
+      # Unsigned build to prove the project compiles. Signed archives: Xcode (docs/mobile/README.md) or Codemagic.
+      - name: Build (no signing)
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
