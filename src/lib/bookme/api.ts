@@ -1106,8 +1106,8 @@ async function createCoachSwap(
     { duration: b.duration, start: asDate(b.start_at)! },
   );
   if (!plan.ok) return plan;
-  if (await pendingOnLesson(sql, a.id, coach.id)) return { ok: false as const, error: `${firstName(a.client_name)} already has a pending request.` };
-  if (await pendingOnLesson(sql, b.id, coach.id)) return { ok: false as const, error: `${firstName(b.client_name)} already has a pending request.` };
+  if (await pendingOnLesson(sql, a.id, coach.id)) return { ok: false as const, error: `${firstName(a.client_name)} already has a pending request. Please choose a different student.` };
+  if (await pendingOnLesson(sql, b.id, coach.id)) return { ok: false as const, error: `${firstName(b.client_name)} already has a pending request. Please choose a different student.` };
   const note = clipNote(rawNote || "Please swap these two lesson times.");
   const id = newId();
   const studentToken = makeToken();
