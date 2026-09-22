@@ -1,7 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MonthCalendar, nextLessonDay, type CalLesson } from "@/components/bookme/lesson-calendar";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   coachDecideMoveRequest,
   coachProposeSwap,
@@ -16,6 +25,8 @@ import { cn } from "@/lib/utils";
 import { useCoach } from "@/lib/bookme/coach-context";
 
 type Tab = "upcoming" | "requests" | "completed" | "cancelled";
+
+const PENDING_REQUEST_RE = /already has a pending request/i;
 
 export const Route = createFileRoute("/app/bookings")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -34,6 +45,7 @@ function Bookings() {
   const [bId, setBId] = useState("");
   const [note, setNote] = useState("");
   const [msg, setMsg] = useState("");
+  const [pendingConflict, setPendingConflict] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const tz = coach?.timezone || DEFAULT_TIMEZONE;
   const [day, setDay] = useState(() => todayKey(tz));
@@ -79,12 +91,21 @@ function Bookings() {
     setBusy(true);
     const res = await coachProposeSwap({ data: { lessonAId: aId, lessonBId: bId, note } });
     setBusy(false);
-    setMsg(res.ok ? res.message : res.error);
     if (res.ok) {
+      setMsg(res.message);
+      setPendingConflict(null);
       setNote("");
       setBId("");
       reload();
+      return;
     }
+    if (PENDING_REQUEST_RE.test(res.error)) {
+      setMsg("");
+      setPendingConflict(res.error);
+      return;
+    }
+    setPendingConflict(null);
+    setMsg(res.error);
   }
 
   return (
@@ -227,6 +248,28 @@ function Bookings() {
         </div>
       )}
       {msg ? <p className="mt-4 text-sm text-ink-soft">{msg}</p> : null}
+
+      <AlertDialog
+        open={Boolean(pendingConflict)}
+        onOpenChange={(open) => {
+          if (!open) setPendingConflict(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Can't send this swap</AlertDialogTitle>
+            <AlertDialogDescription>{pendingConflict}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              className={buttonVariants({ size: "field" })}
+              onClick={() => setPendingConflict(null)}
+            >
+              OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
