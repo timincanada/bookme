@@ -13,11 +13,11 @@
 - Brand: warm editorial / paper magazine — calm, premium, restrained. Cream paper + deep
   green ink. Fonts Fraunces (display) + Figtree (body). No neon, purple, gold, playful
   gradients, game styling, emoji piles, phone mockups as hero; never call the product a game.
-- Logo lock is the brand sheet: Forest `#154734`, light background `#FAF8F3`. App Icon is a
-  white B (person in the lower bowl) on Forest. Primary lockup is that icon plus the BookMe
-  wordmark (`public/brand/bookme-mark.svg`, `public/brand/bookme-logo.svg`,
-  `public/favicon.svg`). Sheet taglines are not product copy; the tagline stays
-  "More time coaching. Less time scheduling."
+- Logo lock is the brand sheet (BOOKME LOGO ASSETS): Forest `#154734`, light `#FAF8F3`.
+  Use **exact PNG crops** only — Primary `public/brand/bookme-logo-primary.png`, Icon Only
+  `public/brand/bookme-mark.png`, App Icon `public/brand/bookme-app-icon.png` (+ favicon /
+  apple-touch). Never redraw or approximate the athletic stylized B. Sheet taglines are not
+  product copy; product tagline stays "More time coaching. Less time scheduling."
 - Talk screen header title: custom assistant Name (as typed) prefixes the coach desk title —
   `{assistantName}-{CoachName}'s Private Assistant` (e.g. `Lucy-Alex Rivera's Private Assistant`).
   Default Name "Assistant" (or empty) keeps `{CoachName}'s Private Assistant` only. "Private Assistant"
