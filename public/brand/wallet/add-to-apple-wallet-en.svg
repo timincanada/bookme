@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 46" role="img" aria-label="Add to Apple Wallet">
+  <rect width="150" height="46" rx="6" fill="#000"/>
+  <!-- Simplified Wallet glyph -->
+  <g fill="#fff" transform="translate(12,10)">
+    <rect x="0" y="4" width="22" height="16" rx="2.5" fill="none" stroke="#fff" stroke-width="1.6"/>
+    <path d="M2 8.5c2.2-3.2 5.2-4.8 9-4.8 3.6 0 6.4 1.5 8.5 4.5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>
+    <circle cx="16.5" cy="13.5" r="1.6" fill="#fff"/>
+  </g>
+  <text x="42" y="18" fill="#fff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9" font-weight="400">Add to</text>
+  <text x="42" y="34" fill="#fff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600">Apple Wallet</text>
+</svg>

@@ -53,6 +53,7 @@ import { Route as RTokenRouteImport } from './routes/r.$token'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCronRemindersRouteImport } from './routes/api/cron/reminders'
 import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhook'
+import { Route as ApiWalletCoachPassRouteImport } from './routes/api/wallet/coach-pass'
 import { Route as AppClientsIdRouteImport } from './routes/app/clients.$id'
 import { Route as AppLessonsIdRouteImport } from './routes/app/lessons.$id'
 import { Route as AppMessagesIndexRouteImport } from './routes/app/messages.index'
@@ -288,6 +289,11 @@ const ApiStripeWebhookRoute = ApiStripeWebhookRouteImport.update({
   path: '/api/stripe/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWalletCoachPassRoute = ApiWalletCoachPassRouteImport.update({
+  id: '/api/wallet/coach-pass',
+  path: '/api/wallet/coach-pass',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppClientsIdRoute = AppClientsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -394,6 +400,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/reminders': typeof ApiCronRemindersRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
+  '/api/wallet/coach-pass': typeof ApiWalletCoachPassRoute
   '/app/clients/$id': typeof AppClientsIdRoute
   '/app/lessons/$id': typeof AppLessonsIdRoute
   '/app/messages/$clientId': typeof AppMessagesClientIdRoute
@@ -449,6 +456,7 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/reminders': typeof ApiCronRemindersRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
+  '/api/wallet/coach-pass': typeof ApiWalletCoachPassRoute
   '/app/clients/$id': typeof AppClientsIdRoute
   '/app/lessons/$id': typeof AppLessonsIdRoute
   '/app/messages/$clientId': typeof AppMessagesClientIdRoute
@@ -508,6 +516,7 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/reminders': typeof ApiCronRemindersRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
+  '/api/wallet/coach-pass': typeof ApiWalletCoachPassRoute
   '/app/clients/$id': typeof AppClientsIdRoute
   '/app/lessons/$id': typeof AppLessonsIdRoute
   '/app/messages/$clientId': typeof AppMessagesClientIdRoute
@@ -568,6 +577,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/cron/reminders'
     | '/api/stripe/webhook'
+    | '/api/wallet/coach-pass'
     | '/app/clients/$id'
     | '/app/lessons/$id'
     | '/app/messages/$clientId'
@@ -623,6 +633,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/cron/reminders'
     | '/api/stripe/webhook'
+    | '/api/wallet/coach-pass'
     | '/app/clients/$id'
     | '/app/lessons/$id'
     | '/app/messages/$clientId'
@@ -681,6 +692,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/cron/reminders'
     | '/api/stripe/webhook'
+    | '/api/wallet/coach-pass'
     | '/app/clients/$id'
     | '/app/lessons/$id'
     | '/app/messages/$clientId'
@@ -725,6 +737,7 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCronRemindersRoute: typeof ApiCronRemindersRoute
   ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
+  ApiWalletCoachPassRoute: typeof ApiWalletCoachPassRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1037,6 +1050,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStripeWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/wallet/coach-pass': {
+      id: '/api/wallet/coach-pass'
+      path: '/api/wallet/coach-pass'
+      fullPath: '/api/wallet/coach-pass'
+      preLoaderRoute: typeof ApiWalletCoachPassRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/clients/$id': {
       id: '/app/clients/$id'
       path: '/$id'
@@ -1255,6 +1275,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCronRemindersRoute: ApiCronRemindersRoute,
   ApiStripeWebhookRoute: ApiStripeWebhookRoute,
+  ApiWalletCoachPassRoute: ApiWalletCoachPassRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

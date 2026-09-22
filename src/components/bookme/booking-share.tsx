@@ -2,7 +2,17 @@ import { Check, Copy, Download, Share2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { encode } from "uqr";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { getBearerToken } from "@/lib/auth/client";
 import {
   brandedBookingUrl,
   displayBookingLink,
@@ -22,6 +32,8 @@ export function BookingShare({
   const branded = brandedBookingUrl(slug);
   const live = liveBookingUrl(slug);
   const [copied, setCopied] = useState(false);
+  const [walletBusy, setWalletBusy] = useState(false);
+  const [walletUnconfiguredOpen, setWalletUnconfiguredOpen] = useState(false);
 
   async function copyLink() {
     if (!canShare) return;
@@ -67,6 +79,46 @@ export function BookingShare({
     }
   }
 
+  async function addToAppleWallet() {
+    if (!canShare || walletBusy) return;
+    setWalletBusy(true);
+    try {
+      const headers: HeadersInit = {};
+      const bearer = getBearerToken();
+      if (bearer) headers.Authorization = `Bearer ${bearer}`;
+      const res = await fetch("/api/wallet/coach-pass", {
+        method: "GET",
+        credentials: "include",
+        headers,
+      });
+      if (res.status === 503) {
+        setWalletUnconfiguredOpen(true);
+        return;
+      }
+      if (!res.ok) {
+        let message = "Could not create Wallet pass";
+        try {
+          const body = (await res.json()) as { error?: string };
+          if (body.error) message = body.error;
+        } catch {
+          /* ignore */
+        }
+        toast.error(message);
+        return;
+      }
+      const blob = await res.blob();
+      const disposition = res.headers.get("Content-Disposition") || "";
+      const match = /filename="?([^";]+)"?/i.exec(disposition);
+      const filename = match?.[1] || `bookme-${slug}.pkpass`;
+      downloadBlob(blob, filename);
+      toast.success("Wallet pass downloaded");
+    } catch {
+      toast.error("Could not create Wallet pass");
+    } finally {
+      setWalletBusy(false);
+    }
+  }
+
   return (
     <div className="rounded-2xl bg-card p-5 shadow-card ring-1 ring-line">
       <div className="mx-auto max-w-[220px]">
@@ -89,6 +141,22 @@ export function BookingShare({
             {copied ? <Check className="size-4" strokeWidth={2} /> : <Copy className="size-4" strokeWidth={1.75} />}
             {copied ? "Copied" : "Copy short link"}
           </Button>
+          <button
+            type="button"
+            onClick={() => void addToAppleWallet()}
+            disabled={walletBusy}
+            className="mx-auto flex w-full max-w-[200px] items-center justify-center disabled:opacity-60"
+            aria-label="Add to Apple Wallet"
+          >
+            <img
+              src="/brand/wallet/add-to-apple-wallet-en.svg"
+              alt="Add to Apple Wallet"
+              width={150}
+              height={46}
+              className="h-11 w-auto"
+              decoding="async"
+            />
+          </button>
           <div className="grid grid-cols-2 gap-2">
             <Button variant="outline" size="field" onClick={() => void savePoster()}>
               <Download className="size-4" strokeWidth={1.75} />
@@ -103,6 +171,26 @@ export function BookingShare({
       ) : (
         <p className="mt-4 text-center text-sm text-muted">Start a trial to copy and share this page.</p>
       )}
+
+      <AlertDialog open={walletUnconfiguredOpen} onOpenChange={setWalletUnconfiguredOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Wallet pass not ready yet</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apple Wallet pass signing isn’t configured on this server yet (Pass Type ID certificate
+              pending). The button will download your coach card once signing certs are added.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              className={buttonVariants({ size: "field" })}
+              onClick={() => setWalletUnconfiguredOpen(false)}
+            >
+              OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -178,20 +266,20 @@ async function renderBookingPoster(input: { live: string; pretty: string; name: 
   }
 
   ctx.fillStyle = forest;
-  ctx.font = '600 28px Figtree, ui-sans-serif, system-ui, sans-serif';
+  ctx.font = "600 28px Figtree, ui-sans-serif, system-ui, sans-serif";
   ctx.textAlign = "center";
   ctx.fillText("BookMe", width / 2, 88);
 
   ctx.fillStyle = ink;
-  ctx.font = '500 52px Fraunces, ui-serif, Georgia, serif';
+  ctx.font = "500 52px Fraunces, ui-serif, Georgia, serif";
   ctx.fillText("Book with " + input.name, width / 2, qrY + qrBox + 120);
 
   ctx.fillStyle = forest;
-  ctx.font = '600 36px Figtree, ui-sans-serif, system-ui, sans-serif';
+  ctx.font = "600 36px Figtree, ui-sans-serif, system-ui, sans-serif";
   ctx.fillText(input.pretty, width / 2, qrY + qrBox + 184);
 
   ctx.fillStyle = muted;
-  ctx.font = '500 24px Figtree, ui-sans-serif, system-ui, sans-serif';
+  ctx.font = "500 24px Figtree, ui-sans-serif, system-ui, sans-serif";
   ctx.fillText("Scan to book a lesson", width / 2, qrY + qrBox + 236);
 
   const blob = await new Promise<Blob>((resolve, reject) => {
