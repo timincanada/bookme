@@ -19,8 +19,8 @@ import { cn } from "@/lib/utils";
 
 export const ASSISTANT_PHOTO = "/photos/assistant.jpg";
 
-export function assistantTitle(coachName: string) {
-  return assistantDeskTitle(coachName);
+export function assistantTitle(coachName: string, assistantName?: string | null) {
+  return assistantDeskTitle(coachName, assistantName);
 }
 
 export function formatClock(at: number, timeZone: string) {
@@ -84,10 +84,12 @@ export function StudentMark({ name, size = "sm" }: { name: string; size?: "sm" |
 
 export function AssistantHeader({
   coachName,
+  assistantName,
   status,
   live,
 }: {
   coachName: string;
+  assistantName?: string | null;
   status: string;
   live: boolean;
 }) {
@@ -102,7 +104,7 @@ export function AssistantHeader({
       </Link>
       <AssistantAvatar />
       <div className="min-w-0 flex-1 pl-0.5">
-        <p className="truncate font-semibold leading-tight text-ink">{assistantTitle(coachName)}</p>
+        <p className="truncate font-semibold leading-tight text-ink">{assistantTitle(coachName, assistantName)}</p>
         <p className="mt-0.5 flex items-center gap-1.5 text-xs text-success">
           <span className={cn("size-1.5 rounded-full", live ? "bg-success" : "bg-success/70")} />
           {status}
