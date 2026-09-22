@@ -1,56 +1,56 @@
 # BookMe
 
-Mobile-first web app for independent coaches: private-lesson booking, cash or card, client records, in-app reschedule by email.
+Coach booking, payments, student CRM, and a live voice assistant.
+
+Stack: TanStack Start (Vite) · React 19 · Tailwind v4 · Better Auth · Postgres (Neon or PGLite) · Stripe · Grok voice.
 
 ## Run
 
 ```bash
-cp .env.example .env
-npm install
-npx prisma migrate dev
-npm run seed
+npm ci
 npm run dev
 ```
 
-Open http://localhost:3000
+Without `DATABASE_URL` the app uses embedded PGLite (fine for a local demo). Production needs Neon.
 
-- Student booking: `/tim-zhang` then Book a lesson. Choose **Cash** to confirm without Stripe.
-- Find / reschedule: `/manage` — enter the booking email, then open the one-time link or 6-digit code. No student account. Self-serve until 24 hours before the lesson.
-- Coach open for business: `/app/register` then `/app/setup` (basics, locations, weekly hours). Copy the booking link only after a trial.
-- Coach sign in: `/app/login` (seed: `tim@bookme.test` / `coach123`)
-- Coach schedule: `/app/schedule`
+```bash
+npm run build
+```
 
-## V1 notes
+Vercel: Nitro preset is already in `vite.config.ts`. Build command `npm run build`. Output is the Nitro/Vercel bundle.
 
-- Cash bookings confirm immediately as unpaid / pay in person.
-- Card checkout uses Stripe Checkout (CAD). The slot is held 15 minutes until payment completes.
-- Reschedule is free until 24 hours before the lesson.
-- Seed coach: Tim Zhang, `tim-zhang`, CA$80 / 60 min, America/Toronto.
-- Coach plans: Light CA$19 (e20 confirmed/mo), Coach CA$29 (21-60), Busy CA$49 (61+). 3-day Light trial (card required), then auto-renew. Next cycle moves up or down from last month confirmed count. Unsubscribed coaches cannot take new bookings; existing lessons can still be moved, cancelled, or marked collected.
+## Environment
 
+Copy `.env.example` and fill in production values.
 
-Card checkout needs STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET. Webhook: /api/stripe/webhook. Connect application_fee_amount=0.
+Required in production:
 
-- Confirmation emails go to coach and student on cash confirm and card paid. Without RESEND_API_KEY they stub to the server log.
+| Key | Why |
+|---|---|
+| `DATABASE_URL` | Neon Postgres |
+| `BETTER_AUTH_SECRET` | Auth sessions |
+| `BETTER_AUTH_URL` | Public origin, e.g. `https://your-domain` |
+| `BOOKME_APP_URL` | Same public origin (emails, magic links, Stripe return) |
+| `VITE_AUTH_ENABLED` | `true` |
 
-- Coach lesson detail `/app/lessons/[id]`: reschedule, cancel (card always refunds), book same time next week.
+Optional:
 
-- More: edit weekly hours, locations, and accepted payments (card / cash / both; at least one on). Checkout only shows enabled methods.
+| Key | Why |
+|---|---|
+| `STRIPE_SECRET_KEY` | Card checkout |
+| `STRIPE_WEBHOOK_SECRET` | `/api/stripe/webhook` |
+| `RESEND_API_KEY` | Student / coach email |
+| `MAIL_FROM` | Default `BookMe <noreply@bookme.training>` |
+| `XAI_API_KEY` | Live assistant (Grok voice + chat) |
+| `ASSISTANT_PROVIDER` | `grok` (default when XAI key is set) or `local` |
+| `GOOGLE_MAPS_API_KEY` | Address autocomplete |
+| `CRON_SECRET` | Protect `/api/cron/reminders` |
 
-- Student booking: if the coach has 2+ locations, pick one (S3). A single location is attached automatically. Never defaults to the first of many.
+Stripe webhook path: `/api/stripe/webhook`  
+Reminder cron path: `/api/cron/reminders`
 
-- Confirmed lessons send a 24h and 2h reminder to coach and student. Without RESEND_API_KEY they stub to `[mail stub]` in the log. Cron: `/api/cron/reminders` hourly.
+## Demo
 
-- Student manage is a one-time email link or 6-digit code. Without RESEND_API_KEY the send logs `[mail stub]` including the link.
+Sign in as `coach@bookme.test` after setup, or complete `/start` for a new coach.
 
-
-## Deploy (Vercel)
-
-Production uses Postgres. Vercel filesystem cannot keep SQLite.
-
-1. Create a Postgres database (`npx create-db@latest` or Neon) and claim it so it is not deleted.
-2. Put the DB URL and generated app secrets in the host env only. Never commit them.
-3. Leave Stripe and Resend empty: cash booking works, mail logs `[mail stub]`.
-4. Build runs `prisma migrate deploy` then `next build`. Seed once with `npm run seed`.
-
-Seed coach: `tim@bookme.test` / `coach123`, booking link `/tim-zhang`.
+Booking links are short: `/{slug}` and `/c/{slug}`.

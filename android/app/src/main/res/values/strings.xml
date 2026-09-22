@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">BookMe</string>
     <string name="title_activity_main">BookMe</string>
-    <string name="package_name">training.bookme.app</string>
-    <string name="custom_url_scheme">training.bookme.app</string>
+    <string name="package_name">app.bookme.training</string>
+    <string name="custom_url_scheme">app.bookme.training</string>
 </resources>

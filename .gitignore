@@ -1,57 +1,34 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
-.yarn/install-state.gz
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
+# deps / build
+node_modules/
+dist/
+.output/
+.vercel/
+.nitro/
+.tanstack/
+.vinxi/
+.turbo/
+coverage/
+playwright-report/
+test-results/
+*.log
 .DS_Store
-*.pem
 
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# local env files
-.env*.local
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-/src/generated/prisma
-
+# env secrets
 .env
-*.db
-prisma/dev.db
+.env.*
+!.env.example
 
-*.db-journal
-prisma/dev.db-journal
+# editors
+.idea/
+.vscode/
+*.swp
 
-.deploy-secrets
-
-# Capacitor native build output
-android/.gradle
-android/build
-android/app/build
+# native build artifacts
+android/app/build/
+android/.gradle/
 android/local.properties
-ios/App/Pods
-ios/App/build
-*.iml
-.idea
+android/captures/
+ios/App/Pods/
+ios/App/build/
+ios/DerivedData/
+**/xcuserdata/
