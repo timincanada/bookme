@@ -2,7 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { guardInput } from "./input-guard";
 import { getSql, lockCoachSchedule, withTransaction, type Sql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
-import { ADMIN_EMAIL, coachStats, isStaffEmail, isVerifiedAdmin, planAfterPaidGrant, visibleCoaches } from "./admin";
 import { looksLikeImportRequest, nextWeekdayKey, parseAssistant, shiftDateKey, signEmailAsCoach, upcomingLessons, type AssistantAction, type Capability } from "./assistant";
 import { logAssistantFailure, resolveAssistantProvider } from "./assistant-provider";
 import { normalizeAssistantName } from "./assistant-name";
@@ -2885,74 +2884,6 @@ export const mintVoiceSession = createServerFn({ method: "POST" })
     } finally {
       clearTimeout(timer);
     }
-  });
-
-export const adminOverview = createServerFn({ method: "GET" })
-  .middleware([authMiddleware])
-  .handler(async ({ context }) => {
-    const sql = await getSql();
-    const user = await authUser(sql, context.userId);
-    if (!user || !isVerifiedAdmin(user)) return { ok: false as const, error: "You don't have access" };
-    const coaches = await sql.query<CoachRow>(`select * from coaches order by name`);
-    const visitors = await sql.query<{ n: number }>(`select count(*)::int as n from public_visitors`);
-    const visible = visibleCoaches(coaches);
-    const stats = coachStats(
-      visible.map((c) => ({
-        email: c.email,
-        banned: bool(c.banned),
-        subscriptionStatus: c.subscription_status,
-        trialEndsAt: asDate(c.trial_ends_at),
-      })),
-    );
-    return {
-      ok: true as const,
-      stats: { ...stats, visitors: visitors[0]?.n ?? 0 },
-      coaches: visible.map((c) => ({
-        id: c.id,
-        name: c.name,
-        email: c.email,
-        slug: c.slug,
-        plan: c.plan,
-        status: c.subscription_status,
-        trialEndsAt: c.trial_ends_at ? asDate(c.trial_ends_at)!.toISOString().slice(0, 10) : "—",
-        banned: bool(c.banned),
-        accessGrant: c.access_grant,
-      })),
-    };
-  });
-
-export const adminSetAccess = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
-  .validator((input: { id: string; grant: "" | "paid" | "unpaid" }) => guardInput(input))
-  .handler(async ({ context, data }) => {
-    const sql = await getSql();
-    const user = await authUser(sql, context.userId);
-    if (!user || !isVerifiedAdmin(user)) return { ok: false as const, error: "You don't have access" };
-    if (!["", "paid", "unpaid"].includes(String(data.grant))) return { ok: false as const, error: "Unknown grant" };
-    const rows = await sql.query<CoachRow>(`select * from coaches where id = $1`, [String(data.id || "")]);
-    const coach = rows[0];
-    if (!coach) return { ok: false as const, error: "Coach not found" };
-    const plan = data.grant === "paid" ? planAfterPaidGrant(coach.plan) : coach.plan;
-    await sql.query(`update coaches set access_grant = $1, plan = $2 where id = $3`, [data.grant, plan, data.id]);
-    return { ok: true as const };
-  });
-
-export const adminBanCoach = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
-  .validator((input: { id: string }) => guardInput(input))
-  .handler(async ({ context, data }) => {
-    const sql = await getSql();
-    const user = await authUser(sql, context.userId);
-    if (!user || !isVerifiedAdmin(user)) return { ok: false as const, error: "You don't have access" };
-    const rows = await sql.query<CoachRow>(`select * from coaches where id = $1`, [data.id]);
-    if (!rows[0]) return { ok: false as const, error: "Coach not found" };
-    if (rows[0].email === ADMIN_EMAIL) return { ok: false as const, error: "Cannot ban staff" };
-    const staff = await sql.query<{ email: string }>(`select email from staff`);
-    if (isStaffEmail(rows[0].email, [ADMIN_EMAIL, ...staff.map((s) => s.email)])) {
-      return { ok: false as const, error: "Cannot ban staff" };
-    }
-    await sql.query(`update coaches set banned = true where id = $1`, [data.id]);
-    return { ok: true as const };
   });
 
 export const collectLesson = createServerFn({ method: "POST" })

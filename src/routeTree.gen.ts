@@ -32,6 +32,12 @@ import { Route as TimZhangRouteImport } from './routes/tim-zhang'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as DotwellKnownAppleAppSiteAssociationRouteImport } from './routes/[.]well-known/apple-app-site-association'
 import { Route as DotwellKnownAssetlinksDotjsonRouteImport } from './routes/[.]well-known/assetlinks[.]json'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminHealthRouteImport } from './routes/admin.health'
+import { Route as AdminLessonsRouteImport } from './routes/admin.lessons'
+import { Route as AdminLookupRouteImport } from './routes/admin.lookup'
+import { Route as AdminRevenueRouteImport } from './routes/admin.revenue'
+import { Route as AdminTeamRouteImport } from './routes/admin.team'
 import { Route as AppIndexRouteImport } from './routes/app/index'
 import { Route as AppAssistantRouteImport } from './routes/app/assistant'
 import { Route as AppBillingRouteImport } from './routes/app/billing'
@@ -50,6 +56,8 @@ import { Route as CSlugRouteImport } from './routes/c.$slug'
 import { Route as ManageIndexRouteImport } from './routes/manage.index'
 import { Route as ManageAccountRouteImport } from './routes/manage.account'
 import { Route as RTokenRouteImport } from './routes/r.$token'
+import { Route as AdminCoachesIndexRouteImport } from './routes/admin.coaches.index'
+import { Route as AdminCoachesIdRouteImport } from './routes/admin.coaches.$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCronRemindersRouteImport } from './routes/api/cron/reminders'
 import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhook'
@@ -184,6 +192,36 @@ const DotwellKnownAssetlinksDotjsonRoute =
     path: '/.well-known/assetlinks.json',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminHealthRoute = AdminHealthRouteImport.update({
+  id: '/health',
+  path: '/health',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminLessonsRoute = AdminLessonsRouteImport.update({
+  id: '/lessons',
+  path: '/lessons',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminLookupRoute = AdminLookupRouteImport.update({
+  id: '/lookup',
+  path: '/lookup',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRevenueRoute = AdminRevenueRouteImport.update({
+  id: '/revenue',
+  path: '/revenue',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminTeamRoute = AdminTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -274,6 +312,16 @@ const RTokenRoute = RTokenRouteImport.update({
   path: '/r/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminCoachesIndexRoute = AdminCoachesIndexRouteImport.update({
+  id: '/coaches/',
+  path: '/coaches/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCoachesIdRoute = AdminCoachesIdRouteImport.update({
+  id: '/coaches/$id',
+  path: '/coaches/$id',
+  getParentRoute: () => AdminRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -358,7 +406,7 @@ const ManageMessagesCoachIdRoute = ManageMessagesCoachIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/app': typeof AppRouteWithChildren
   '/confirmed': typeof ConfirmedRoute
   '/delete-account': typeof DeleteAccountRoute
@@ -379,6 +427,11 @@ export interface FileRoutesByFullPath {
   '/welcome': typeof WelcomeRoute
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
+  '/admin/health': typeof AdminHealthRoute
+  '/admin/lessons': typeof AdminLessonsRoute
+  '/admin/lookup': typeof AdminLookupRoute
+  '/admin/revenue': typeof AdminRevenueRoute
+  '/admin/team': typeof AdminTeamRoute
   '/app/assistant': typeof AppAssistantRoute
   '/app/billing': typeof AppBillingRoute
   '/app/bookings': typeof AppBookingsRoute
@@ -395,8 +448,10 @@ export interface FileRoutesByFullPath {
   '/c/$slug': typeof CSlugRoute
   '/manage/account': typeof ManageAccountRoute
   '/r/$token': typeof RTokenRoute
+  '/admin/': typeof AdminIndexRoute
   '/app/': typeof AppIndexRoute
   '/manage/': typeof ManageIndexRoute
+  '/admin/coaches/$id': typeof AdminCoachesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/reminders': typeof ApiCronRemindersRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
@@ -411,13 +466,13 @@ export interface FileRoutesByFullPath {
   '/app/more/payments': typeof AppMorePaymentsRoute
   '/app/series/$id': typeof AppSeriesIdRoute
   '/manage/messages/$coachId': typeof ManageMessagesCoachIdRoute
+  '/admin/coaches/': typeof AdminCoachesIndexRoute
   '/app/messages/': typeof AppMessagesIndexRoute
   '/manage/messages/': typeof ManageMessagesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRoute
-  '/admin': typeof AdminRoute
   '/confirmed': typeof ConfirmedRoute
   '/delete-account': typeof DeleteAccountRoute
   '/find': typeof FindRoute
@@ -436,6 +491,11 @@ export interface FileRoutesByTo {
   '/welcome': typeof WelcomeRoute
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
+  '/admin/health': typeof AdminHealthRoute
+  '/admin/lessons': typeof AdminLessonsRoute
+  '/admin/lookup': typeof AdminLookupRoute
+  '/admin/revenue': typeof AdminRevenueRoute
+  '/admin/team': typeof AdminTeamRoute
   '/app/assistant': typeof AppAssistantRoute
   '/app/billing': typeof AppBillingRoute
   '/app/bookings': typeof AppBookingsRoute
@@ -451,8 +511,10 @@ export interface FileRoutesByTo {
   '/c/$slug': typeof CSlugRoute
   '/manage/account': typeof ManageAccountRoute
   '/r/$token': typeof RTokenRoute
+  '/admin': typeof AdminIndexRoute
   '/app': typeof AppIndexRoute
   '/manage': typeof ManageIndexRoute
+  '/admin/coaches/$id': typeof AdminCoachesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/reminders': typeof ApiCronRemindersRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
@@ -467,6 +529,7 @@ export interface FileRoutesByTo {
   '/app/more/payments': typeof AppMorePaymentsRoute
   '/app/series/$id': typeof AppSeriesIdRoute
   '/manage/messages/$coachId': typeof ManageMessagesCoachIdRoute
+  '/admin/coaches': typeof AdminCoachesIndexRoute
   '/app/messages': typeof AppMessagesIndexRoute
   '/manage/messages': typeof ManageMessagesIndexRoute
 }
@@ -474,7 +537,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$slug': typeof SlugRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/app': typeof AppRouteWithChildren
   '/confirmed': typeof ConfirmedRoute
   '/delete-account': typeof DeleteAccountRoute
@@ -495,6 +558,11 @@ export interface FileRoutesById {
   '/welcome': typeof WelcomeRoute
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
+  '/admin/health': typeof AdminHealthRoute
+  '/admin/lessons': typeof AdminLessonsRoute
+  '/admin/lookup': typeof AdminLookupRoute
+  '/admin/revenue': typeof AdminRevenueRoute
+  '/admin/team': typeof AdminTeamRoute
   '/app/assistant': typeof AppAssistantRoute
   '/app/billing': typeof AppBillingRoute
   '/app/bookings': typeof AppBookingsRoute
@@ -511,8 +579,10 @@ export interface FileRoutesById {
   '/c/$slug': typeof CSlugRoute
   '/manage/account': typeof ManageAccountRoute
   '/r/$token': typeof RTokenRoute
+  '/admin/': typeof AdminIndexRoute
   '/app/': typeof AppIndexRoute
   '/manage/': typeof ManageIndexRoute
+  '/admin/coaches/$id': typeof AdminCoachesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/reminders': typeof ApiCronRemindersRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
@@ -527,6 +597,7 @@ export interface FileRoutesById {
   '/app/more/payments': typeof AppMorePaymentsRoute
   '/app/series/$id': typeof AppSeriesIdRoute
   '/manage/messages/$coachId': typeof ManageMessagesCoachIdRoute
+  '/admin/coaches/': typeof AdminCoachesIndexRoute
   '/app/messages/': typeof AppMessagesIndexRoute
   '/manage/messages/': typeof ManageMessagesIndexRoute
 }
@@ -556,6 +627,11 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
+    | '/admin/health'
+    | '/admin/lessons'
+    | '/admin/lookup'
+    | '/admin/revenue'
+    | '/admin/team'
     | '/app/assistant'
     | '/app/billing'
     | '/app/bookings'
@@ -572,8 +648,10 @@ export interface FileRouteTypes {
     | '/c/$slug'
     | '/manage/account'
     | '/r/$token'
+    | '/admin/'
     | '/app/'
     | '/manage/'
+    | '/admin/coaches/$id'
     | '/api/auth/$'
     | '/api/cron/reminders'
     | '/api/stripe/webhook'
@@ -588,13 +666,13 @@ export interface FileRouteTypes {
     | '/app/more/payments'
     | '/app/series/$id'
     | '/manage/messages/$coachId'
+    | '/admin/coaches/'
     | '/app/messages/'
     | '/manage/messages/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/$slug'
-    | '/admin'
     | '/confirmed'
     | '/delete-account'
     | '/find'
@@ -613,6 +691,11 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
+    | '/admin/health'
+    | '/admin/lessons'
+    | '/admin/lookup'
+    | '/admin/revenue'
+    | '/admin/team'
     | '/app/assistant'
     | '/app/billing'
     | '/app/bookings'
@@ -628,8 +711,10 @@ export interface FileRouteTypes {
     | '/c/$slug'
     | '/manage/account'
     | '/r/$token'
+    | '/admin'
     | '/app'
     | '/manage'
+    | '/admin/coaches/$id'
     | '/api/auth/$'
     | '/api/cron/reminders'
     | '/api/stripe/webhook'
@@ -644,6 +729,7 @@ export interface FileRouteTypes {
     | '/app/more/payments'
     | '/app/series/$id'
     | '/manage/messages/$coachId'
+    | '/admin/coaches'
     | '/app/messages'
     | '/manage/messages'
   id:
@@ -671,6 +757,11 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
+    | '/admin/health'
+    | '/admin/lessons'
+    | '/admin/lookup'
+    | '/admin/revenue'
+    | '/admin/team'
     | '/app/assistant'
     | '/app/billing'
     | '/app/bookings'
@@ -687,8 +778,10 @@ export interface FileRouteTypes {
     | '/c/$slug'
     | '/manage/account'
     | '/r/$token'
+    | '/admin/'
     | '/app/'
     | '/manage/'
+    | '/admin/coaches/$id'
     | '/api/auth/$'
     | '/api/cron/reminders'
     | '/api/stripe/webhook'
@@ -703,6 +796,7 @@ export interface FileRouteTypes {
     | '/app/more/payments'
     | '/app/series/$id'
     | '/manage/messages/$coachId'
+    | '/admin/coaches/'
     | '/app/messages/'
     | '/manage/messages/'
   fileRoutesById: FileRoutesById
@@ -710,7 +804,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SlugRoute: typeof SlugRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
   AppRoute: typeof AppRouteWithChildren
   ConfirmedRoute: typeof ConfirmedRoute
   DeleteAccountRoute: typeof DeleteAccountRoute
@@ -903,6 +997,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DotwellKnownAssetlinksDotjsonRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/health': {
+      id: '/admin/health'
+      path: '/health'
+      fullPath: '/admin/health'
+      preLoaderRoute: typeof AdminHealthRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/lessons': {
+      id: '/admin/lessons'
+      path: '/lessons'
+      fullPath: '/admin/lessons'
+      preLoaderRoute: typeof AdminLessonsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/lookup': {
+      id: '/admin/lookup'
+      path: '/lookup'
+      fullPath: '/admin/lookup'
+      preLoaderRoute: typeof AdminLookupRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/revenue': {
+      id: '/admin/revenue'
+      path: '/revenue'
+      fullPath: '/admin/revenue'
+      preLoaderRoute: typeof AdminRevenueRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/team': {
+      id: '/admin/team'
+      path: '/team'
+      fullPath: '/admin/team'
+      preLoaderRoute: typeof AdminTeamRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/app/': {
       id: '/app/'
       path: '/'
@@ -1029,6 +1165,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/coaches/': {
+      id: '/admin/coaches/'
+      path: '/coaches'
+      fullPath: '/admin/coaches/'
+      preLoaderRoute: typeof AdminCoachesIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/coaches/$id': {
+      id: '/admin/coaches/$id'
+      path: '/coaches/$id'
+      fullPath: '/admin/coaches/$id'
+      preLoaderRoute: typeof AdminCoachesIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -1144,6 +1294,30 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminRouteChildren {
+  AdminHealthRoute: typeof AdminHealthRoute
+  AdminLessonsRoute: typeof AdminLessonsRoute
+  AdminLookupRoute: typeof AdminLookupRoute
+  AdminRevenueRoute: typeof AdminRevenueRoute
+  AdminTeamRoute: typeof AdminTeamRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+  AdminCoachesIdRoute: typeof AdminCoachesIdRoute
+  AdminCoachesIndexRoute: typeof AdminCoachesIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminHealthRoute: AdminHealthRoute,
+  AdminLessonsRoute: AdminLessonsRoute,
+  AdminLookupRoute: AdminLookupRoute,
+  AdminRevenueRoute: AdminRevenueRoute,
+  AdminTeamRoute: AdminTeamRoute,
+  AdminIndexRoute: AdminIndexRoute,
+  AdminCoachesIdRoute: AdminCoachesIdRoute,
+  AdminCoachesIndexRoute: AdminCoachesIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 interface AppClientsRouteChildren {
   AppClientsIdRoute: typeof AppClientsIdRoute
 }
@@ -1247,7 +1421,7 @@ const ManageRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SlugRoute: SlugRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
   AppRoute: AppRouteWithChildren,
   ConfirmedRoute: ConfirmedRoute,
   DeleteAccountRoute: DeleteAccountRoute,

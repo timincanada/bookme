@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { getSql } from "@/lib/db";
 import { runReminders } from "@/lib/bookme/remind-run";
 import { purgeDeletedCoaches } from "@/lib/bookme/account-deletion";
+import { recordJobRun } from "@/lib/bookme/admin-service";
 
 function authorized(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -16,6 +17,7 @@ async function handle(request: Request) {
   const sql = await getSql();
   const result = await runReminders(sql);
   const purge = await purgeDeletedCoaches(sql);
+  await recordJobRun(sql, "reminders", true, `sent ${result.sent ?? 0}, purged ${purge.purged}`);
   return Response.json({ ...result, purgedCoaches: purge.purged });
 }
 
