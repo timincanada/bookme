@@ -1,6 +1,6 @@
 /**
  * Operations console server functions. Every call resolves the caller's console
- * role first (staff row + verified email); writes are recorded in admin_actions.
+ * role first (verified email + staff/owner bootstrap); writes are recorded in admin_actions.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { guardInput } from "./input-guard";
@@ -9,7 +9,7 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { can, exportFilename, toCsv, type AdminAbility, type PeriodKey } from "./admin-console";
 import {
   addTeamMember,
-  adminIdentity,
+  resolveAdminAccess,
   coachDetail,
   extendTrial,
   health,
@@ -37,9 +37,10 @@ async function authAdmin(userId: string, ability: AdminAbility = "view") {
       [userId],
     )
   )[0];
-  const me = await adminIdentity(sql, user);
-  if (!me || !can(me.role, ability)) return { ok: false as const, error: DENIED };
-  return { ok: true as const, sql, me };
+  const access = await resolveAdminAccess(sql, user);
+  if (!access.ok) return { ok: false as const, error: DENIED, reason: access.reason };
+  if (!can(access.identity.role, ability)) return { ok: false as const, error: DENIED, reason: "NOT_STAFF" as const };
+  return { ok: true as const, sql, me: access.identity };
 }
 
 export const adminSummary = createServerFn({ method: "GET" })

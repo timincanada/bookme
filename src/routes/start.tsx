@@ -3,7 +3,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { VerticalPicker } from "@/components/bookme/vertical-picker";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
-import { GROK_PROVIDERS, authClient, authEnabled, signIn } from "@/lib/auth/client";
+import { authProvidersForHost, authClient, authEnabled, signIn } from "@/lib/auth/client";
 import { useNativePlatform } from "@/lib/native/platform";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { getMyCoach, saveCoachBasics, ensureDemoCoach } from "@/lib/bookme/api";
@@ -70,7 +70,7 @@ function Start() {
         <p className="mt-2 text-ink-soft">Create a coach account, then set your lesson and hours.</p>
         {authEnabled && native.ready && native.platform === "web" ? (
           <div className="mt-8 space-y-2">
-            {GROK_PROVIDERS.map((p) => (
+            {authProvidersForHost().map((p) => (
               <button
                 key={p.providerId}
                 type="button"
