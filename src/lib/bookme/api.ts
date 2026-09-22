@@ -32,6 +32,7 @@ import { afterPartyDecision, ANOTHER_STUDENT, clipNote, firstName, isOpenRequest
 import { canCopyBookingLink, isSetupComplete, slugifyName, sportFromTitle } from "./setup";
 import { isReservedSlug } from "./booking-link";
 import { coachTimezone, openSlots, slotDateKey } from "./slots";
+import { appleWalletSigningConfigured } from "./apple-wallet/pass-config";
 import { appUrl, getStripe, stripeConfigured } from "./stripe";
 import { TRIAL_DAYS, hasCapability, planCapabilities, priceIdForPlan } from "./subscription";
 import { expireStaleTrial } from "./subscription-sync";
@@ -1233,6 +1234,8 @@ export type MyCoach = {
   acceptCard: boolean;
   stripeConnected: boolean;
   stripeConfigured: boolean;
+  /** True when Apple Pass signing certs are set (Vercel env). */
+  walletEnabled: boolean;
   capabilities: string[];
   pendingRequests: number;
   services: { id: string; name: string; duration: number; priceCad: number }[];
@@ -1281,6 +1284,7 @@ function toMyCoach(
     acceptCard: bool(coach.accept_card),
     stripeConnected: Boolean(coach.stripe_account_id),
     stripeConfigured: stripeConfigured(),
+    walletEnabled: appleWalletSigningConfigured(),
     capabilities: planCapabilities(coach.plan, coach.subscription_status, asDate(coach.trial_ends_at)),
     pendingRequests,
     services: bundle.services.map((s) => ({
