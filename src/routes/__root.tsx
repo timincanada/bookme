@@ -40,13 +40,13 @@ export const Route = createRootRoute({
         name: "description",
         content: "More time coaching. Less time scheduling.",
       },
-      { name: "theme-color", content: "#18463A" },
+      { name: "theme-color", content: "#154734" },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
       { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/__grok/manifest.webmanifest" },
-      { rel: "apple-touch-icon", href: "/__grok/icon-180.png" },
+      { rel: "apple-touch-icon", href: "/icon-180.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       {
         rel: "preconnect",

@@ -12,9 +12,9 @@ assert.equal(normalizeAssistantName("前台小助"), "前台小助");
 assert.equal(normalizeAssistantName("A very long assistant nickname here").length, 24);
 assert.equal(normalizeAssistantName("Alex's desk"), "Alex's desk");
 
-assert.equal(assistantDeskTitle("Alex Rivera"), "Alex Rivera's private assistant");
-assert.equal(assistantDeskTitle("James"), "James's private assistant");
-assert.equal(assistantDeskTitle("  Tim Zhang  "), "Tim Zhang's private assistant");
+assert.equal(assistantDeskTitle("Alex Rivera"), "Alex Rivera's Private Assistant");
+assert.equal(assistantDeskTitle("James"), "James's Private Assistant");
+assert.equal(assistantDeskTitle("  Tim Zhang  "), "Tim Zhang's Private Assistant");
 assert.equal(assistantDeskTitle(""), "BookMe Assistant");
 assert.equal(assistantDeskTitle("   "), "BookMe Assistant");
 

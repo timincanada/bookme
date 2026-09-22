@@ -13,6 +13,11 @@
 - Brand: warm editorial / paper magazine — calm, premium, restrained. Cream paper + deep
   green ink. Fonts Fraunces (display) + Figtree (body). No neon, purple, gold, playful
   gradients, game styling, emoji piles, phone mockups as hero; never call the product a game.
+- Logo lock is the brand sheet: Forest `#154734`, light background `#FAF8F3`. App Icon is a
+  white B (person in the lower bowl) on Forest. Primary lockup is that icon plus the BookMe
+  wordmark (`public/brand/bookme-mark.svg`, `public/brand/bookme-logo.svg`,
+  `public/favicon.svg`). Sheet taglines are not product copy; the tagline stays
+  "More time coaching. Less time scheduling."
 - UI copy and emails are English; no i18n yet. Assistant recaps follow the coach's language.
 - "Messages" is a real product area: in-app student ↔ coach conversation (next batch). The
   assistant's "email a student" is only a notification channel, not a replacement.

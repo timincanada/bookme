@@ -5,15 +5,15 @@
   --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
   --font-script: "Caveat", "Segoe Script", cursive;
 
-  --color-paper: #f5f2eb;
+  --color-paper: #faf8f3;
   --color-paper-2: #ebe6dc;
   --color-cream: #faf8f3;
   --color-ink: #1c1916;
   --color-ink-soft: #3d3a35;
   --color-muted: #6f6b64;
-  --color-forest: #18463a;
-  --color-forest-deep: #12352c;
-  --color-forest-hover: #21574a;
+  --color-forest: #154734;
+  --color-forest-deep: #103628;
+  --color-forest-hover: #1d5842;
   --color-sage: #d7e8de;
   --color-sage-2: #c3d9cc;
   --color-sage-3: #e8f3ec;
@@ -21,7 +21,7 @@
   --color-card: #fffcf7;
   --color-success: #2a6b54;
   --color-coral: #c45c3e;
-  --color-on-forest: #f5f2eb;
+  --color-on-forest: #faf8f3;
 
   --radius-sm: 8px;
   --radius-md: 12px;
