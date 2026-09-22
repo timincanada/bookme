@@ -77,7 +77,7 @@ function AdminShell() {
                     to={t.to}
                     className={cn(
                       "block whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm",
-                      on ? "bg-forest text-on-forest" : "ring-1 ring-line hover:bg-paper-2",
+                      on ? "border border-forest bg-forest text-on-forest" : "border border-line hover:bg-paper-2",
                     )}
                   >
                     {t.label}
