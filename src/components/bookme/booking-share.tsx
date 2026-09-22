@@ -153,9 +153,9 @@ async function renderBookingPoster(input: { live: string; pretty: string; name: 
   if (!ctx) throw new Error("Canvas unavailable");
 
   const root = getComputedStyle(document.documentElement);
-  const paper = root.getPropertyValue("--color-paper").trim() || "#f5f2eb";
+  const paper = root.getPropertyValue("--color-paper").trim() || "#faf8f3";
   const cream = root.getPropertyValue("--color-cream").trim() || "#faf8f3";
-  const forest = root.getPropertyValue("--color-forest").trim() || "#18463a";
+  const forest = root.getPropertyValue("--color-forest").trim() || "#154734";
   const ink = root.getPropertyValue("--color-ink").trim() || "#1c1916";
   const muted = root.getPropertyValue("--color-muted").trim() || "#6f6b64";
 
