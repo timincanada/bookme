@@ -74,24 +74,32 @@ const env = (key: string): string | undefined => {
 // provisions auth; set it to "false" to force auth off everywhere (dev user).
 const authDisabled = env("VITE_AUTH_ENABLED") === "false";
 
-// Broker federation creds: the deployer injects a per-app client when deployed;
-// otherwise fall back to the shared live-preview client, which the broker accepts
-// for any `*.grok-sandbox.com` callback (see `./preview`).
+// Broker federation creds: the deployer injects a per-app client when deployed.
+// The shared preview client ONLY allows `*.grok-sandbox.com` callbacks — never
+// use it on a real public origin (bookme.training) or the broker/Google returns
+// "Invalid redirect URI".
 const grokIssuer = env("GROK_AUTH_ISSUER") ?? GROK_ISSUER_DEFAULT;
-const grokClientId = env("GROK_AUTH_CLIENT_ID") ?? PREVIEW_CLIENT_ID;
-const grokClientSecret = env("GROK_AUTH_CLIENT_SECRET") ?? PREVIEW_CLIENT_SECRET;
-
-/** True when federated sign-in is active (real auth is enforced). */
-export const authConfigured =
-  !authDisabled && Boolean(grokClientId && grokClientSecret);
+const grokClientIdExplicit = env("GROK_AUTH_CLIENT_ID");
+const grokClientSecretExplicit = env("GROK_AUTH_CLIENT_SECRET");
+const googleClientId = env("GOOGLE_CLIENT_ID");
+const googleClientSecret = env("GOOGLE_CLIENT_SECRET");
+const hasProdGrokClient = Boolean(grokClientIdExplicit && grokClientSecretExplicit);
+const hasDirectGoogle = Boolean(googleClientId && googleClientSecret);
 
 // This app's own Better Auth origin. When deployed the deployer injects the
 // public URL. In the sandbox live preview there's no fixed URL (each preview gets
-// a dynamic `*.grok-sandbox.com` host), so we hand Better Auth a dynamic baseURL:
-// it derives the origin per-request from the (proxied) host, validated against the
-// preview allowlist, which makes the OAuth `redirect_uri` the concrete preview URL
-// the broker's preview client accepts.
+// a dynamic `*.grok-sandbox.com` host), so we hand Better Auth a dynamic baseURL.
 const explicitBaseURL = env("BETTER_AUTH_URL");
+// Preview broker client is safe only without a fixed public URL (sandbox previews).
+const usePreviewGrokClient = !explicitBaseURL && !hasProdGrokClient;
+const useGrokBroker = hasProdGrokClient || usePreviewGrokClient;
+const grokClientId = hasProdGrokClient ? grokClientIdExplicit : PREVIEW_CLIENT_ID;
+const grokClientSecret = hasProdGrokClient ? grokClientSecretExplicit : PREVIEW_CLIENT_SECRET;
+
+/** True when any real sign-in path is active (broker and/or direct Google and/or email). */
+export const authConfigured =
+  !authDisabled && (useGrokBroker || hasDirectGoogle || emailAndPasswordEnabled);
+
 // Explicit `string[]` (not a readonly tuple) — Better Auth's DynamicBaseURLConfig
 // requires a mutable `allowedHosts: string[]`.
 const previewAllowedHosts: string[] = [...PREVIEW_ALLOWED_HOSTS];
@@ -103,6 +111,25 @@ const LOCAL_DEV_ORIGINS: string[] = [
   "http://127.0.0.1:8080",
   "http://[::1]:8080",
 ];
+
+/** Apex + www variants so bookme.training and www.bookme.training both work. */
+function withWwwVariants(origin: string): string[] {
+  try {
+    const u = new URL(origin);
+    const out = new Set<string>([u.origin]);
+    if (u.hostname.startsWith("www.")) out.add(`${u.protocol}//${u.hostname.slice(4)}`);
+    else out.add(`${u.protocol}//www.${u.hostname}`);
+    return [...out];
+  } catch {
+    return origin ? [origin] : [];
+  }
+}
+
+const PRODUCTION_ORIGINS = [
+  "https://bookme.training",
+  "https://www.bookme.training",
+];
+
 const baseURL = explicitBaseURL ?? {
   // Include loopback hosts so dynamic baseURL resolves for local email/password
   // (not only the preview wildcard).
@@ -114,16 +141,21 @@ const baseURL = explicitBaseURL ?? {
 };
 
 // Origins Better Auth accepts on credentialed POSTs (sign-up/sign-in, etc.).
-// Missing entries here surface as FORBIDDEN "Invalid origin".
-const trustedOrigins: string[] = explicitBaseURL
-  ? [explicitBaseURL, ...LOCAL_DEV_ORIGINS]
-  : [
-      // Host wildcards (matched against Origin's host)
-      ...previewAllowedHosts,
-      // Full-origin wildcards (matched against Origin)
-      ...previewAllowedHosts.flatMap((host) => [`https://${host}`, `http://${host}`]),
-      ...LOCAL_DEV_ORIGINS,
-    ];
+// Missing entries here surface as FORBIDDEN "Invalid origin" / callbackURL errors.
+const trustedOrigins: string[] = [
+  ...new Set([
+    ...PRODUCTION_ORIGINS,
+    ...(explicitBaseURL ? withWwwVariants(explicitBaseURL) : []),
+    ...withWwwVariants(env("BOOKME_APP_URL") ?? ""),
+    ...LOCAL_DEV_ORIGINS,
+    ...(!explicitBaseURL
+      ? [
+          ...previewAllowedHosts,
+          ...previewAllowedHosts.flatMap((host) => [`https://${host}`, `http://${host}`]),
+        ]
+      : []),
+  ]),
+].filter(Boolean);
 
 const databaseUrl = env("DATABASE_URL");
 
@@ -150,7 +182,7 @@ export const SESSION_TOKEN_COOKIE = "__Host-grok-auth.session_token";
 
 // Built separately so the `betterAuth({...})` call stays easy to edit without
 // breaking brackets (models often trip on the conditional plugin spread).
-const grokOAuthPlugin = authConfigured
+const grokOAuthPlugin = useGrokBroker
   ? genericOAuth({
       config: GROK_PROVIDERS.map(({ providerId, idp }) => ({
         providerId,
@@ -184,6 +216,20 @@ export const auth = betterAuth({
   // local loopback variants, or clients get "Invalid origin".
   trustedOrigins,
 
+  // Direct Google OAuth for production when the Grok broker preview client cannot
+  // accept bookme.training redirect URIs. Requires GOOGLE_CLIENT_ID/SECRET and the
+  // authorized redirect https://bookme.training/api/auth/callback/google (and www).
+  ...(hasDirectGoogle && !useGrokBroker
+    ? {
+        socialProviders: {
+          google: {
+            clientId: googleClientId as string,
+            clientSecret: googleClientSecret as string,
+          },
+        },
+      }
+    : {}),
+
   // Encrypt broker-issued OAuth tokens at rest, and treat the broker's upstreams
   // as trusted first-party identities. The broker owns identity and X emails are
   // synthetic/unverified, so WITHOUT this a login can fail with
@@ -196,6 +242,7 @@ export const auth = betterAuth({
       enabled: true,
       trustedProviders: [
         ...GROK_PROVIDERS.map((p) => p.providerId),
+        ...(hasDirectGoogle ? (["google"] as const) : []),
         GATE_PROVIDER_ID,
       ],
       // X's synthetic email is never "verified", so don't gate linking on the

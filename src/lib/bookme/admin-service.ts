@@ -17,6 +17,7 @@ import {
   type PeriodKey,
   periodRange,
 } from "./admin-console";
+import { isAdminEmail } from "./admin";
 import { normalizeEmail } from "./email";
 import { addDaysKey, todayKey, zonedInstant } from "./time";
 
@@ -36,16 +37,49 @@ function bounds(from: string, to: string) {
 
 export type AdminIdentity = { email: string; role: AdminRole };
 
+export type AdminDenialReason = "UNVERIFIED" | "NOT_STAFF";
+
+export type AdminAccessResult =
+  | { ok: true; identity: AdminIdentity }
+  | { ok: false; reason: AdminDenialReason };
+
+/**
+ * Signed-in user → console role, or a denial reason.
+ * Requires a verified email. The locked ADMIN_EMAIL founder is treated as
+ * owner even when the staff seed is missing — first successful access upserts
+ * the owner row (idempotent). Verification is never skipped.
+ */
+export async function resolveAdminAccess(
+  sql: QuerySql,
+  user: { email?: string | null; emailVerified?: boolean | null } | null | undefined,
+): Promise<AdminAccessResult> {
+  if (!user?.email) return { ok: false, reason: "NOT_STAFF" };
+  if (user.emailVerified !== true) return { ok: false, reason: "UNVERIFIED" };
+  const email = normalizeEmail(user.email);
+  const rows = await sql.query<{ role: string }>(`select role from staff where lower(email) = $1`, [email]);
+  const role = rows[0]?.role;
+  if (role === "owner" || role === "admin") return { ok: true, identity: { email, role } };
+
+  // Founder bootstrap: verified ADMIN_EMAIL is owner even without a staff row.
+  if (isAdminEmail(email)) {
+    await sql.query(
+      `insert into staff (id, email, role) values ($1, $2, 'owner')
+       on conflict (email) do update set role = 'owner'`,
+      [randomUUID(), email],
+    );
+    return { ok: true, identity: { email, role: "owner" } };
+  }
+
+  return { ok: false, reason: "NOT_STAFF" };
+}
+
 /** Signed-in user → console role, or null. Requires a verified email. */
 export async function adminIdentity(
   sql: QuerySql,
   user: { email?: string | null; emailVerified?: boolean | null } | null | undefined,
 ): Promise<AdminIdentity | null> {
-  if (!user?.email || user.emailVerified !== true) return null;
-  const email = normalizeEmail(user.email);
-  const rows = await sql.query<{ role: string }>(`select role from staff where lower(email) = $1`, [email]);
-  const role = rows[0]?.role;
-  return role === "owner" || role === "admin" ? { email, role } : null;
+  const access = await resolveAdminAccess(sql, user);
+  return access.ok ? access.identity : null;
 }
 
 export async function listTeam(sql: QuerySql) {

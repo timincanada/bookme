@@ -1,7 +1,7 @@
 import { genericOAuthClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import { runPreSignInSignOut, runSignOut } from "../../../scripts/sign-out-plan.mjs";
-import { GROK_PROVIDERS } from "./providers";
+import { AUTH_PROVIDERS, authProvidersForHost, type AuthProvider } from "./providers";
 
 /**
  * Better Auth client for this React SPA (browser-side).
@@ -38,7 +38,8 @@ export const authClient = createAuthClient({
 export const authEnabled = import.meta.env.VITE_AUTH_ENABLED !== "false";
 
 /** The upstream providers to render sign-in buttons for. */
-export { GROK_PROVIDERS };
+export { AUTH_PROVIDERS, authProvidersForHost, type AuthProvider };
+export const GROK_PROVIDERS = AUTH_PROVIDERS; // back-compat
 
 // ── Live-preview bearer token ────────────────────────────────────────────────
 // The embedded preview iframe has partitioned cookies, so we keep the session's
@@ -143,11 +144,13 @@ export async function signIn(
     return;
   }
 
-  const { data, error } = await authClient.signIn.oauth2({
-    providerId,
-    callbackURL,
-    errorCallbackURL,
-  });
+  // Production bookme.training uses Better Auth social Google (not the broker
+  // preview client, whose redirect allowlist is sandbox-only).
+  const useSocial = providerId === "google";
+  const result = useSocial
+    ? await authClient.signIn.social({ provider: "google", callbackURL, errorCallbackURL })
+    : await authClient.signIn.oauth2({ providerId, callbackURL, errorCallbackURL });
+  const { data, error } = result;
   if (error) throw new Error(error.message ?? "Sign-in failed");
   if (data?.url) window.location.href = data.url;
 }

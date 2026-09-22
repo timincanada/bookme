@@ -18,6 +18,7 @@ import {
 import {
   addTeamMember,
   adminIdentity,
+  resolveAdminAccess,
   coachDetail,
   extendTrial,
   health,
@@ -139,7 +140,27 @@ await lesson("l-staff", "c-staff", "cl-5", "2031-06-17T16:00:00Z", "confirmed", 
 // Access
 assert.equal(await adminIdentity(sql, { email: OWNER, emailVerified: true }).then((r) => r?.role), "owner");
 assert.equal(await adminIdentity(sql, { email: OWNER, emailVerified: false }), null, "unverified email is not an admin");
+const unverified = await resolveAdminAccess(sql, { email: OWNER, emailVerified: false });
+assert.equal(unverified.ok, false);
+if (!unverified.ok) assert.equal(unverified.reason, "UNVERIFIED");
 assert.equal(await adminIdentity(sql, { email: "ana@x.test", emailVerified: true }), null);
+const notStaff = await resolveAdminAccess(sql, { email: "ana@x.test", emailVerified: true });
+assert.equal(notStaff.ok, false);
+if (!notStaff.ok) assert.equal(notStaff.reason, "NOT_STAFF");
+
+// Founder bootstrap: verified ADMIN_EMAIL without staff row → owner + upsert
+await sql.query(`delete from staff where lower(email) = $1`, [OWNER]);
+assert.equal((await listTeam(sql)).length, 0, "staff cleared for bootstrap test");
+const boot = await resolveAdminAccess(sql, { email: OWNER, emailVerified: true });
+assert.equal(boot.ok && boot.identity.role, "owner", "founder verified without staff row → owner");
+assert.equal(await adminIdentity(sql, { email: OWNER, emailVerified: true }).then((r) => r?.role), "owner");
+assert.deepEqual((await listTeam(sql)).map((t) => ({ email: t.email, role: t.role })), [{ email: OWNER, role: "owner" }], "upserted owner row");
+// Idempotent second access
+assert.equal(await adminIdentity(sql, { email: OWNER, emailVerified: true }).then((r) => r?.role), "owner");
+assert.equal((await listTeam(sql)).length, 1, "bootstrap upsert is idempotent");
+assert.equal(await adminIdentity(sql, { email: OWNER, emailVerified: false }), null, "unverified still denied after bootstrap");
+assert.equal(await adminIdentity(sql, { email: "random@x.test", emailVerified: true }), null, "random verified not in staff → null");
+
 assert.ok((await addTeamMember(sql, " Lyra@Example.COM ", OWNER)).ok);
 assert.equal(await adminIdentity(sql, { email: "lyra@example.com", emailVerified: true }).then((r) => r?.role), "admin");
 assert.equal((await addTeamMember(sql, "not-an-email", OWNER)).ok, false);

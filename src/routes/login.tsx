@@ -2,7 +2,7 @@ import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
-import { GROK_PROVIDERS, authClient, authEnabled, signIn } from "@/lib/auth/client";
+import { authProvidersForHost, authClient, authEnabled, signIn } from "@/lib/auth/client";
 import { useNativePlatform } from "@/lib/native/platform";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { ensureDemoCoach } from "@/lib/bookme/api";
@@ -54,7 +54,7 @@ function Login() {
         <p className="mt-2 text-ink-soft">Use your coach account.</p>
         {authEnabled && native.ready && native.platform === "web" ? (
           <div className="mt-8 space-y-2">
-            {GROK_PROVIDERS.map((p) => (
+            {authProvidersForHost().map((p) => (
               <button
                 key={p.providerId}
                 type="button"
