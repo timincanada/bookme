@@ -46,6 +46,7 @@ function Bookings() {
   const [note, setNote] = useState("");
   const [msg, setMsg] = useState("");
   const [pendingConflict, setPendingConflict] = useState<string | null>(null);
+  const [swapSentOpen, setSwapSentOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const tz = coach?.timezone || DEFAULT_TIMEZONE;
   const [day, setDay] = useState(() => todayKey(tz));
@@ -92,8 +93,9 @@ function Bookings() {
     const res = await coachProposeSwap({ data: { lessonAId: aId, lessonBId: bId, note } });
     setBusy(false);
     if (res.ok) {
-      setMsg(res.message);
+      setMsg("");
       setPendingConflict(null);
+      setSwapSentOpen(true);
       setNote("");
       setBId("");
       reload();
@@ -264,6 +266,30 @@ function Bookings() {
             <AlertDialogAction
               className={buttonVariants({ size: "field" })}
               onClick={() => setPendingConflict(null)}
+            >
+              OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={swapSentOpen}
+        onOpenChange={(open) => {
+          if (!open) setSwapSentOpen(false);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Swap request sent</AlertDialogTitle>
+            <AlertDialogDescription>
+              Both students were emailed. The request is pending — times move only if both accept.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              className={buttonVariants({ size: "field" })}
+              onClick={() => setSwapSentOpen(false)}
             >
               OK
             </AlertDialogAction>
