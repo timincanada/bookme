@@ -18,6 +18,10 @@
   wordmark (`public/brand/bookme-mark.svg`, `public/brand/bookme-logo.svg`,
   `public/favicon.svg`). Sheet taglines are not product copy; the tagline stays
   "More time coaching. Less time scheduling."
+- Talk screen header title: custom assistant Name (as typed) prefixes the coach desk title —
+  `{assistantName}-{CoachName}'s Private Assistant` (e.g. `Lucy-Alex Rivera's Private Assistant`).
+  Default Name "Assistant" (or empty) keeps `{CoachName}'s Private Assistant` only. "Private Assistant"
+  stays Title Case. Built by `assistantDeskTitle` in `assistant-name.ts`.
 - UI copy and emails are English; no i18n yet. Assistant recaps follow the coach's language.
 - "Messages" is a real product area: in-app student ↔ coach conversation (next batch). The
   assistant's "email a student" is only a notification channel, not a replacement.

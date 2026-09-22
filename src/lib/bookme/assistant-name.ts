@@ -10,10 +10,23 @@ export function normalizeAssistantName(value: unknown) {
   return raw.slice(0, ASSISTANT_NAME_MAX).trim() || DEFAULT_ASSISTANT_NAME;
 }
 
-/** Chat header title: "{CoachName}'s Private Assistant". Prefer Name's even when the name ends in s. */
-export function assistantDeskTitle(coachName: string) {
-  const n = String(coachName ?? "").trim();
-  if (!n) return "BookMe Assistant";
-  return `${n}'s Private Assistant`;
+/** True when the coach set a custom nickname (not the default "Assistant"). */
+export function hasCustomAssistantName(assistantName: string | null | undefined) {
+  const n = normalizeAssistantName(assistantName);
+  return n !== DEFAULT_ASSISTANT_NAME;
 }
 
+/**
+ * Chat header title.
+ * Custom name: "{assistantName}-{CoachName}'s Private Assistant" (e.g. Lucy-Alex Rivera's Private Assistant).
+ * Default/empty assistant name: "{CoachName}'s Private Assistant".
+ * Prefer Name's even when the coach name ends in s.
+ */
+export function assistantDeskTitle(coachName: string, assistantName?: string | null) {
+  const coach = String(coachName ?? "").trim();
+  if (!coach) return "BookMe Assistant";
+  const desk = `${coach}'s Private Assistant`;
+  if (!hasCustomAssistantName(assistantName)) return desk;
+  // Use the saved Name as typed (after normalize), not Title Case forced on the nickname.
+  return `${normalizeAssistantName(assistantName)}-${desk}`;
+}
