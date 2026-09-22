@@ -20,8 +20,8 @@ export function Logo({
         src="/brand/bookme-logo-primary.png"
         alt="BookMe"
         className={cn("h-7 w-auto sm:h-8", invert && "brightness-0 invert")}
-        width={196}
-        height={60}
+        width={780}
+        height={184}
         decoding="async"
       />
     </Link>
