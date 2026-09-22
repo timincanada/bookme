@@ -20,9 +20,10 @@
  *   APPLE_PASS_WEB_SERVICE_URL  future pass update webServiceURL
  *   APPLE_PASS_AUTH_TOKEN_SECRET  HMAC secret to mint authenticationToken
  *
- * Without the required signing vars the download route returns 503 and the
- * UI shows a short “signing isn’t configured yet” dialog. Do not invent demo
- * certs; Apple Developer org / Pass Type ID cert must be provisioned first.
+ * Without the required signing vars the download route returns 503 and
+ * `appleWalletSigningConfigured()` is false — booking-share hides the Add to
+ * Apple Wallet badge until certs are on Vercel. Do not invent demo certs;
+ * Apple Developer org / Pass Type ID cert must be provisioned first.
  */
 
 import { env } from "@/lib/env.server";

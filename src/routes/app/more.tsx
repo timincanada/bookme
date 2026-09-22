@@ -50,7 +50,7 @@ function More() {
       </ul>
       <div className="mt-6">
         <p className="mb-3 text-sm font-semibold">Booking page</p>
-        <BookingShare slug={coach.slug} name={coach.name} canShare={coach.open} />
+        <BookingShare slug={coach.slug} name={coach.name} canShare={coach.open} walletEnabled={coach.walletEnabled} />
       </div>
       <div className="mt-6 rounded-2xl bg-card p-5 ring-1 ring-line">
         <h2 className="font-display text-2xl">Student desk</h2>

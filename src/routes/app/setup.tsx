@@ -215,7 +215,7 @@ function Setup() {
           <h1 className="mt-6 font-display text-3xl font-medium">Your booking link</h1>
           <p className="mt-1 text-muted">A short link and a QR you can forward or print.</p>
           <div className="mt-5">
-            <BookingShare slug={coach.slug} name={coach.name} canShare={coach.open} />
+            <BookingShare slug={coach.slug} name={coach.name} canShare={coach.open} walletEnabled={coach.walletEnabled} />
           </div>
           {coach.open ? null : (
             <Button className="mt-6" size="field" disabled={busy} onClick={async () => {

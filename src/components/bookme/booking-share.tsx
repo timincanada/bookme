@@ -23,10 +23,13 @@ export function BookingShare({
   slug,
   name,
   canShare,
+  walletEnabled = false,
 }: {
   slug: string;
   name: string;
   canShare: boolean;
+  /** CEO 2026-09-22: show Add to Apple Wallet only when Pass signing is configured. */
+  walletEnabled?: boolean;
 }) {
   const pretty = displayBookingLink(slug);
   const branded = brandedBookingUrl(slug);
@@ -141,22 +144,25 @@ export function BookingShare({
             {copied ? <Check className="size-4" strokeWidth={2} /> : <Copy className="size-4" strokeWidth={1.75} />}
             {copied ? "Copied" : "Copy short link"}
           </Button>
-          <button
-            type="button"
-            onClick={() => void addToAppleWallet()}
-            disabled={walletBusy}
-            className="mx-auto flex w-full max-w-[200px] items-center justify-center disabled:opacity-60"
-            aria-label="Add to Apple Wallet"
-          >
-            <img
-              src="/brand/wallet/add-to-apple-wallet-en.svg"
-              alt="Add to Apple Wallet"
-              width={150}
-              height={46}
-              className="h-11 w-auto"
-              decoding="async"
-            />
-          </button>
+          {/* CEO 2026-09-22: hide until Pass Type certs — gated by walletEnabled from getMyCoach */}
+          {walletEnabled ? (
+            <button
+              type="button"
+              onClick={() => void addToAppleWallet()}
+              disabled={walletBusy}
+              className="mx-auto flex w-full max-w-[200px] items-center justify-center disabled:opacity-60"
+              aria-label="Add to Apple Wallet"
+            >
+              <img
+                src="/brand/wallet/add-to-apple-wallet-en.svg"
+                alt="Add to Apple Wallet"
+                width={150}
+                height={46}
+                className="h-11 w-auto"
+                decoding="async"
+              />
+            </button>
+          ) : null}
           <div className="grid grid-cols-2 gap-2">
             <Button variant="outline" size="field" onClick={() => void savePoster()}>
               <Download className="size-4" strokeWidth={1.75} />
@@ -172,25 +178,27 @@ export function BookingShare({
         <p className="mt-4 text-center text-sm text-muted">Start a trial to copy and share this page.</p>
       )}
 
-      <AlertDialog open={walletUnconfiguredOpen} onOpenChange={setWalletUnconfiguredOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Wallet pass not ready yet</AlertDialogTitle>
-            <AlertDialogDescription>
-              Apple Wallet pass signing isn’t configured on this server yet (Pass Type ID certificate
-              pending). The button will download your coach card once signing certs are added.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction
-              className={buttonVariants({ size: "field" })}
-              onClick={() => setWalletUnconfiguredOpen(false)}
-            >
-              OK
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {walletEnabled ? (
+        <AlertDialog open={walletUnconfiguredOpen} onOpenChange={setWalletUnconfiguredOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Wallet pass not ready yet</AlertDialogTitle>
+              <AlertDialogDescription>
+                Apple Wallet pass signing isn’t configured on this server yet (Pass Type ID certificate
+                pending). The button will download your coach card once signing certs are added.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction
+                className={buttonVariants({ size: "field" })}
+                onClick={() => setWalletUnconfiguredOpen(false)}
+              >
+                OK
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      ) : null}
     </div>
   );
 }
