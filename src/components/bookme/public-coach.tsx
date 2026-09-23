@@ -75,6 +75,17 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
   const [slots, setSlots] = useState<string[]>([]);
 
   const lesson = coach.services.find((l) => l.id === lessonId) ?? coach.services[0];
+  const lessonDurations: number[] = (() => {
+    const raw = (lesson as { durations?: number[] } | undefined)?.durations;
+    if (Array.isArray(raw) && raw.length) return [...raw].sort((a, b) => a - b);
+    return [lesson?.duration || 60];
+  })();
+  const [duration, setDuration] = useState(lessonDurations[0] ?? 60);
+  useEffect(() => {
+    if (!lessonDurations.includes(duration)) {
+      setDuration(lessonDurations[0] ?? 60);
+    }
+  }, [lessonId, lessonDurations.join(","), duration]);
   const location = coach.locations.find((l) => l.id === locationId) ?? coach.locations[0];
   const sport = asSport(coach.sport);
   const datePair = dates.slice(0, 2);
@@ -82,10 +93,10 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
   useEffect(() => {
     if (!date || !lesson) return;
     setPicked("");
-    getOpenSlots({ data: { slug: coach.slug, date, duration: lesson.duration } }).then((d) => {
+    getOpenSlots({ data: { slug: coach.slug, date, duration } }).then((d) => {
       setSlots(d.slots);
     });
-  }, [coach.slug, date, lesson]);
+  }, [coach.slug, date, lesson, duration]);
 
   function continueBook() {
     if (!lesson || !picked) return;
@@ -95,7 +106,7 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
     void navigate({
       to: "/book/$slug",
       params: { slug: coach.slug },
-      search: { start: picked, location: loc.id, service: lesson.id },
+      search: { start: picked, location: loc.id, service: lesson.id, duration },
     });
   }
 
@@ -153,12 +164,43 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
                   >
                     <span>
                       <span className="block text-sm font-semibold">{l.name}</span>
-                      <span className="text-xs text-muted">{l.duration} min</span>
+                      <span className="text-xs text-muted">
+                        {(() => {
+                          const ds = Array.isArray((l as { durations?: number[] }).durations) && (l as { durations?: number[] }).durations!.length
+                            ? [...(l as { durations: number[] }).durations].sort((a, b) => a - b)
+                            : [l.duration];
+                          return ds.length === 1 ? `${ds[0]} min` : `${ds[0]}–${ds[ds.length - 1]} min`;
+                        })()}
+                      </span>
                     </span>
                     <span className="font-semibold">{formatMoney(l.priceCad).replace(".00", "")}</span>
                   </button>
                 ))}
               </div>
+
+              {lessonDurations.length > 1 ? (
+                <>
+                  <h3 className="mt-6 text-sm font-semibold">Duration</h3>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {lessonDurations.map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => {
+                          setDuration(d);
+                          setPicked("");
+                        }}
+                        className={cn(
+                          "rounded-full px-4 py-2 text-sm ring-1",
+                          duration === d ? "bg-forest text-on-forest ring-forest" : "ring-line",
+                        )}
+                      >
+                        {d} min
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : null}
 
               {coach.locations.length > 1 ? (
                 <>
@@ -278,7 +320,7 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
           <h2 className="font-display text-2xl font-medium">Lesson details</h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             <Fact icon={<SportIcon sport={sport} className="size-5" />} title={lesson?.name ?? "Private"} body="One-on-one coaching" />
-            <Fact icon={<Clock className="size-5" />} title={`${lesson?.duration ?? 60} minutes`} body="Focused, personalized instruction" />
+            <Fact icon={<Clock className="size-5" />} title={`${duration} minutes`} body="Focused, personalized instruction" />
             <Fact icon={<MapPin className="size-5" />} title={location?.name ?? ""} body={location?.address ?? coach.city} />
           </div>
           <p className="mt-6 max-w-lg text-sm leading-relaxed text-muted">{coach.bio}</p>

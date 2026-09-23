@@ -83,7 +83,9 @@ export const getImportContext = createServerFn({ method: "GET" })
       today,
       maxEnd: maxEndDate(today),
       defaultDuration: importCoach.service?.duration ?? 60,
-      durations: [...LESSON_DURATIONS],
+      durations: importCoach.service?.durations?.length
+        ? [...importCoach.service.durations]
+        : [...LESSON_DURATIONS],
       locations: importCoach.locations,
       hours: importCoach.hours,
       clients: clients.map((c) => ({

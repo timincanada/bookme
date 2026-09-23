@@ -28,7 +28,7 @@ import { canUseMethod, enabledMethods, normalizeAccepted } from "./payments";
 import { cityFromAddressComponents, googleMapsApiKey, isPlacesConfigured, type PlaceSuggestion } from "./places";
 import { runReminders } from "./remind-run";
 import { afterPartyDecision, ANOTHER_STUDENT, clipNote, firstName, isOpenRequest, swapPlan, viewerRequestView } from "./requests";
-import { canCopyBookingLink, isSetupComplete, slugifyName, sportFromTitle } from "./setup";
+import { canCopyBookingLink, durationsFromService, isSetupComplete, normalizeServiceDurations, slugifyName, sportFromTitle } from "./setup";
 import { isReservedSlug } from "./booking-link";
 import { coachTimezone, openSlots, slotDateKey } from "./slots";
 import { appleWalletSigningConfigured } from "./apple-wallet/pass-config";
@@ -103,7 +103,7 @@ export type CoachRow = {
   assistant_name?: string | null;
 };
 
-type ServiceRow = { id: string; name: string; duration: number; price_cad: number };
+type ServiceRow = { id: string; name: string; duration: number; price_cad: number; durations?: number[] | null };
 type LocationRow = {
   id: string;
   name: string;
@@ -126,7 +126,7 @@ async function authUser(sql: Sql, userId: string) {
 
 export async function loadCoachBundle(sql: Pick<Sql, "query">, coach: CoachRow) {
   const services = await sql.query<ServiceRow>(
-    `select id, name, duration, price_cad from services where coach_id = $1 order by name`,
+    `select id, name, duration, price_cad, durations from services where coach_id = $1 order by name`,
     [coach.id],
   );
   const locations = await sql.query<LocationRow>(
@@ -141,7 +141,13 @@ export async function loadCoachBundle(sql: Pick<Sql, "query">, coach: CoachRow) 
   const setup = isSetupComplete({
     title: coach.title,
     timezone: coach.timezone,
-    service: services[0] ? { duration: services[0].duration, priceCad: services[0].price_cad } : null,
+    service: services[0]
+      ? {
+          duration: durationsFromService(services[0])[0],
+          durations: durationsFromService(services[0]),
+          priceCad: services[0].price_cad,
+        }
+      : null,
     locationCount: activeLocations.length,
     hourCount: hours.length,
   });
@@ -169,12 +175,16 @@ function publicCoach(coach: CoachRow, bundle: Awaited<ReturnType<typeof loadCoac
     acceptCash: bool(coach.accept_cash),
     acceptCard: bool(coach.accept_card),
     payMethods: enabledMethods(bool(coach.accept_card), bool(coach.accept_cash), coach.stripe_account_id),
-    services: bundle.services.map((s) => ({
-      id: s.id,
-      name: s.name,
-      duration: s.duration,
-      priceCad: s.price_cad,
-    })),
+    services: bundle.services.map((s) => {
+      const durations = durationsFromService(s);
+      return {
+        id: s.id,
+        name: s.name,
+        duration: Number(s.duration) || durations[0],
+        durations,
+        priceCad: s.price_cad,
+      };
+    }),
     locations: bundle.activeLocations.map((l) => ({
       id: l.id,
       name: l.name,
@@ -262,7 +272,19 @@ export const getCoachOpenSlots = createServerFn({ method: "GET" })
   });
 
 export const createBooking = createServerFn({ method: "POST" })
-  .validator((input: { slug: string; start: string; name: string; email: string; locationId?: string; serviceId?: string; phone?: string; method?: "cash" | "card" }) => guardInput(input))
+  .validator(
+    (input: {
+      slug: string;
+      start: string;
+      name: string;
+      email: string;
+      locationId?: string;
+      serviceId?: string;
+      duration?: number;
+      phone?: string;
+      method?: "cash" | "card";
+    }) => guardInput(input),
+  )
   .handler(async ({ data }) => {
     const sql = await getSql();
     const email = normalizeEmail(data.email);
@@ -274,6 +296,13 @@ export const createBooking = createServerFn({ method: "POST" })
     const bundle = await loadCoachBundle(sql, coach);
     const service = bundle.services.find((s) => s.id === data.serviceId) ?? bundle.services[0];
     if (!service) return { ok: false as const, error: "Coach is not set up" };
+    const allowed = durationsFromService(service);
+    const duration =
+      data.duration != null && allowed.includes(data.duration as (typeof allowed)[number])
+        ? data.duration
+        : allowed.includes(Number(service.duration) as (typeof allowed)[number])
+          ? Number(service.duration)
+          : allowed[0];
     const picked = pickLocation(bundle.activeLocations, data.locationId);
     if (!picked.ok) return { ok: false as const, error: picked.error };
     if (!bundle.open) return { ok: false as const, error: "This coach is not accepting new bookings" };
@@ -289,7 +318,7 @@ export const createBooking = createServerFn({ method: "POST" })
     if (!isWithinBookAhead(dateKey, normalizeBookAheadDays(coach.book_ahead_days), todayKey(tz))) {
       return { ok: false as const, error: "That date is outside the booking window." };
     }
-    const endAt = new Date(startAt.getTime() + service.duration * 60 * 1000);
+    const endAt = new Date(startAt.getTime() + duration * 60 * 1000);
     const lessonId = newId();
     if (method === "card" && (!getStripe() || !coach.stripe_account_id)) {
       return { ok: false as const, error: "Card checkout is not available" };
@@ -297,7 +326,7 @@ export const createBooking = createServerFn({ method: "POST" })
     const holdUntil = holdExpiresAt();
     const written = await withTransaction(async (tx) => {
       await lockCoachSchedule(tx, coach.id);
-      const slots = await openSlots(tx, coach.id, dateKey, service.duration);
+      const slots = await openSlots(tx, coach.id, dateKey, duration);
       if (!slots.includes(startAt.toISOString())) return false;
       // Only this coach's CRM record: existing name/notes stay, phone fills if empty.
       const { id: clientId } = await findOrCreateCoachClient(tx, coach.id, {
@@ -308,9 +337,9 @@ export const createBooking = createServerFn({ method: "POST" })
       });
       if (method === "card") {
         await tx.query(
-          `insert into lessons (id, coach_id, service_id, location_id, client_id, start_at, end_at, status, hold_until)
-           values ($1,$2,$3,$4,$5,$6,$7,'held',$8)`,
-          [lessonId, coach.id, service.id, picked.location.id, clientId, startAt.toISOString(), endAt.toISOString(), holdUntil.toISOString()],
+          `insert into lessons (id, coach_id, service_id, location_id, client_id, start_at, end_at, status, hold_until, duration_min)
+           values ($1,$2,$3,$4,$5,$6,$7,'held',$8,$9)`,
+          [lessonId, coach.id, service.id, picked.location.id, clientId, startAt.toISOString(), endAt.toISOString(), holdUntil.toISOString(), duration],
         );
         await tx.query(
           `insert into payments (id, lesson_id, method, status, amount_cad) values ($1,$2,'card','unpaid',$3)`,
@@ -318,9 +347,9 @@ export const createBooking = createServerFn({ method: "POST" })
         );
       } else {
         await tx.query(
-          `insert into lessons (id, coach_id, service_id, location_id, client_id, start_at, end_at, status)
-           values ($1,$2,$3,$4,$5,$6,$7,'confirmed')`,
-          [lessonId, coach.id, service.id, picked.location.id, clientId, startAt.toISOString(), endAt.toISOString()],
+          `insert into lessons (id, coach_id, service_id, location_id, client_id, start_at, end_at, status, duration_min)
+           values ($1,$2,$3,$4,$5,$6,$7,'confirmed',$8)`,
+          [lessonId, coach.id, service.id, picked.location.id, clientId, startAt.toISOString(), endAt.toISOString(), duration],
         );
         await tx.query(
           `insert into payments (id, lesson_id, method, status, amount_cad) values ($1,$2,'cash','unpaid',$3)`,
@@ -1237,7 +1266,7 @@ export type MyCoach = {
   walletEnabled: boolean;
   capabilities: string[];
   pendingRequests: number;
-  services: { id: string; name: string; duration: number; priceCad: number }[];
+  services: { id: string; name: string; duration: number; durations: number[]; priceCad: number }[];
   locations: {
     id: string;
     name: string;
@@ -1286,12 +1315,16 @@ function toMyCoach(
     walletEnabled: appleWalletSigningConfigured(),
     capabilities: planCapabilities(coach.plan, coach.subscription_status, asDate(coach.trial_ends_at)),
     pendingRequests,
-    services: bundle.services.map((s) => ({
-      id: s.id,
-      name: s.name,
-      duration: s.duration,
-      priceCad: s.price_cad,
-    })),
+    services: bundle.services.map((s) => {
+      const durations = durationsFromService(s);
+      return {
+        id: s.id,
+        name: s.name,
+        duration: Number(s.duration) || durations[0],
+        durations,
+        priceCad: s.price_cad,
+      };
+    }),
     locations: bundle.locations.map((l) => ({
       id: l.id,
       name: l.name,
@@ -1479,7 +1512,7 @@ async function ensureDemoReady(sql: Sql) {
       DEFAULT_TIMEZONE,
     ],
   );
-  await sql.query(`insert into services (id, coach_id, name, duration, price_cad) values ($1,$2,$3,60,$4)`, [
+  await sql.query(`insert into services (id, coach_id, name, duration, durations, price_cad) values ($1,$2,$3,60,array[60],$4)`, [
     newId(),
     coachId,
     "Private tennis",
@@ -1507,16 +1540,33 @@ export const ensureDemoCoach = createServerFn({ method: "POST" }).handler(async 
 
 export const saveCoachBasics = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((input: { name: string; title: string; duration: number; priceCad: number; timezone?: string; languages?: string }) => guardInput(input))
+  .validator(
+    (input: {
+      name: string;
+      title: string;
+      duration?: number;
+      durations?: number[];
+      priceCad: number;
+      timezone?: string;
+      languages?: string;
+    }) => guardInput(input),
+  )
   .handler(async ({ context, data }) => {
     const sql = await getSql();
     const coach = await coachForUser(sql, context.userId);
     if (!coach) return { ok: false as const, error: "Sign in required" };
     if (!data.title.trim()) return { ok: false as const, error: "Pick a vertical" };
-    if (!isLessonDuration(data.duration)) return { ok: false as const, error: `Duration must be ${LESSON_DURATIONS.join(", ")} minutes` };
+    const durations = normalizeServiceDurations(data.durations, data.duration);
+    if (!durations) {
+      return {
+        ok: false as const,
+        error: `Pick at least one duration (${LESSON_DURATIONS.join(", ")} minutes)`,
+      };
+    }
     if (!(data.priceCad > 0)) return { ok: false as const, error: "Price is required" };
     const timezone = data.timezone && isValidTimezone(data.timezone) ? data.timezone : tzOf(coach.timezone);
     const sport = sportFromTitle(data.title);
+    const defaultDuration = durations[0];
     await sql.query(
       `update coaches set name = $1, title = $2, sport = $3, timezone = $4, languages = $5 where id = $6 and user_id = $7`,
       [
@@ -1532,20 +1582,18 @@ export const saveCoachBasics = createServerFn({ method: "POST" })
     const existing = await sql.query<{ id: string }>(`select id from services where coach_id = $1 order by name limit 1`, [coach.id]);
     const serviceName = `Private ${data.title.replace(/coach/i, "").trim().toLowerCase() || sport}`;
     if (existing[0]) {
-      await sql.query(`update services set name = $1, duration = $2, price_cad = $3 where id = $4`, [
+      await sql.query(`update services set name = $1, duration = $2, durations = $3, price_cad = $4 where id = $5`, [
         serviceName,
-        data.duration,
+        defaultDuration,
+        durations,
         data.priceCad,
         existing[0].id,
       ]);
     } else {
-      await sql.query(`insert into services (id, coach_id, name, duration, price_cad) values ($1,$2,$3,$4,$5)`, [
-        newId(),
-        coach.id,
-        serviceName,
-        data.duration,
-        data.priceCad,
-      ]);
+      await sql.query(
+        `insert into services (id, coach_id, name, duration, durations, price_cad) values ($1,$2,$3,$4,$5,$6)`,
+        [newId(), coach.id, serviceName, defaultDuration, durations, data.priceCad],
+      );
     }
     return { ok: true as const };
   });
@@ -2276,7 +2324,13 @@ export function importCoachFrom(coach: CoachRow, bundle: Awaited<ReturnType<type
     id: coach.id,
     timezone: tzOf(coach.timezone),
     open: bundle.open,
-    service: bundle.services[0] ? { id: bundle.services[0].id, duration: Number(bundle.services[0].duration) } : null,
+    service: bundle.services[0]
+      ? {
+          id: bundle.services[0].id,
+          duration: Number(bundle.services[0].duration),
+          durations: durationsFromService(bundle.services[0]),
+        }
+      : null,
     locations: bundle.activeLocations.map((l) => ({ id: l.id, name: l.name })),
     hours: bundle.hours.map((h) => ({ weekday: h.weekday, startMin: h.start_min, endMin: h.end_min })),
   };

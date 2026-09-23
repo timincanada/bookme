@@ -54,7 +54,7 @@ function Start() {
     try {
       await getMyCoach();
       await saveCoachBasics({
-        data: { name, title: `${vertical?.label ?? "Tennis"} Coach`, duration: 60, priceCad: 80 },
+        data: { name, title: `${vertical?.label ?? "Tennis"} Coach`, duration: 60, durations: [60], priceCad: 80 },
       });
     } catch {
       /* setup can finish later */

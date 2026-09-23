@@ -34,7 +34,7 @@ export type ImportCoach = {
   id: string;
   timezone: string;
   open: boolean;
-  service: { id: string; duration: number } | null;
+  service: { id: string; duration: number; durations?: number[] } | null;
   locations: { id: string; name: string }[];
   hours: WeeklyHour[];
 };

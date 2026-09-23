@@ -8,13 +8,14 @@ import { createBooking, getPublicCoach, recordVisit } from "@/lib/bookme/api";
 import { formatWhen } from "@/lib/bookme/time";
 import { formatMoney } from "@/lib/utils";
 
-type Search = { start?: string; location?: string; service?: string };
+type Search = { start?: string; location?: string; service?: string; duration?: number };
 
 export const Route = createFileRoute("/book/$slug")({
   validateSearch: (s: Record<string, unknown>): Search => ({
     start: typeof s.start === "string" ? s.start : undefined,
     location: typeof s.location === "string" ? s.location : undefined,
     service: typeof s.service === "string" ? s.service : undefined,
+    duration: typeof s.duration === "number" ? s.duration : typeof s.duration === "string" && s.duration.trim() !== "" ? Number(s.duration) : undefined,
   }),
   component: BookPage,
 });
@@ -67,6 +68,7 @@ function BookPage() {
         email,
         locationId: search.location,
         serviceId: search.service,
+        duration: search.duration ?? lesson?.duration,
         method: methods.includes(method) ? method : methods[0],
       },
     });
@@ -91,7 +93,7 @@ function BookPage() {
         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">Review</p>
         <h1 className="mt-3 font-display text-4xl font-medium">Review & confirm</h1>
         <p className="mt-2 text-ink-soft">
-          {coach?.name ?? "Coach"} · {lesson?.name ?? "Private"} · {lesson?.duration ?? 60} min
+          {coach?.name ?? "Coach"} · {lesson?.name ?? "Private"} · {search.duration ?? lesson?.duration ?? 60} min
         </p>
         <div className="mt-6 rounded-2xl bg-card p-5 ring-1 ring-line">
           <p className="flex items-center gap-2 text-sm">

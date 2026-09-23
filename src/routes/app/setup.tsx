@@ -23,7 +23,12 @@ function Setup() {
   const [step, setStep] = useState(coach?.setup ? 3 : 0);
   const [name, setName] = useState(coach?.name ?? "");
   const [title, setTitle] = useState(coach?.title?.replace(/ coach/i, "") || "Tennis");
-  const [duration, setDuration] = useState(coach?.services[0]?.duration || 60);
+  const [durations, setDurations] = useState<number[]>(() => {
+    const svc = coach?.services[0];
+    const fromSvc = (svc as { durations?: number[] } | undefined)?.durations;
+    if (Array.isArray(fromSvc) && fromSvc.length) return [...fromSvc].sort((a, b) => a - b);
+    return [svc?.duration || 60];
+  });
   const [price, setPrice] = useState(coach?.services[0]?.priceCad || 80);
   const [timezone, setTimezone] = useState(coach?.timezone || "America/Toronto");
   const [locations, setLocations] = useState<
@@ -81,17 +86,33 @@ function Setup() {
             />
           </div>
           <p className="mt-4 text-sm font-medium">Duration</p>
+          <p className="mt-1 text-sm text-muted">Select one or more lesson lengths students can book.</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            {DURATIONS.map((d) => (
-              <button
-                key={d}
-                type="button"
-                onClick={() => setDuration(d)}
-                className={cn("rounded-full px-4 py-2 text-sm ring-1", duration === d ? "bg-forest text-on-forest ring-forest" : "ring-line")}
-              >
-                {d} min
-              </button>
-            ))}
+            {DURATIONS.map((d) => {
+              const on = durations.includes(d);
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() =>
+                    setDurations((prev) => {
+                      if (prev.includes(d)) {
+                        if (prev.length === 1) return prev; // keep at least one
+                        return prev.filter((x) => x !== d);
+                      }
+                      return [...prev, d].sort((a, b) => a - b);
+                    })
+                  }
+                  className={cn(
+                    "rounded-full px-4 py-2 text-sm ring-1",
+                    on ? "bg-forest text-on-forest ring-forest" : "ring-line",
+                  )}
+                >
+                  {d} min
+                </button>
+              );
+            })}
           </div>
           <label className="mt-4 block">
             <span className="mb-1.5 block text-sm font-medium">Price (CAD)</span>
@@ -104,11 +125,22 @@ function Setup() {
           <Button
             className="mt-6"
             size="field"
-            disabled={busy}
+            disabled={busy || durations.length === 0}
             onClick={async () => {
               setBusy(true);
+              if (!durations.length) {
+                setBusy(false);
+                return toast.error("Pick at least one duration");
+              }
               const res = await saveCoachBasics({
-                data: { name, title: `${title} Coach`, duration, priceCad: price, timezone },
+                data: {
+                  name,
+                  title: `${title} Coach`,
+                  durations,
+                  duration: durations[0],
+                  priceCad: price,
+                  timezone,
+                },
               });
               setBusy(false);
               if (!res.ok) return toast.error(res.error);
