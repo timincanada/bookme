@@ -16,7 +16,6 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as ConfirmedRouteImport } from './routes/confirmed'
 import { Route as DeleteAccountRouteImport } from './routes/delete-account'
 import { Route as FindRouteImport } from './routes/find'
-import { Route as ForClubsRouteImport } from './routes/for-clubs'
 import { Route as ForCoachesRouteImport } from './routes/for-coaches'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
@@ -108,11 +107,6 @@ const DeleteAccountRoute = DeleteAccountRouteImport.update({
 const FindRoute = FindRouteImport.update({
   id: '/find',
   path: '/find',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ForClubsRoute = ForClubsRouteImport.update({
-  id: '/for-clubs',
-  path: '/for-clubs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForCoachesRoute = ForCoachesRouteImport.update({
@@ -411,7 +405,6 @@ export interface FileRoutesByFullPath {
   '/confirmed': typeof ConfirmedRoute
   '/delete-account': typeof DeleteAccountRoute
   '/find': typeof FindRoute
-  '/for-clubs': typeof ForClubsRoute
   '/for-coaches': typeof ForCoachesRoute
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
@@ -476,7 +469,6 @@ export interface FileRoutesByTo {
   '/confirmed': typeof ConfirmedRoute
   '/delete-account': typeof DeleteAccountRoute
   '/find': typeof FindRoute
-  '/for-clubs': typeof ForClubsRoute
   '/for-coaches': typeof ForCoachesRoute
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
@@ -542,7 +534,6 @@ export interface FileRoutesById {
   '/confirmed': typeof ConfirmedRoute
   '/delete-account': typeof DeleteAccountRoute
   '/find': typeof FindRoute
-  '/for-clubs': typeof ForClubsRoute
   '/for-coaches': typeof ForCoachesRoute
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
@@ -611,7 +602,6 @@ export interface FileRouteTypes {
     | '/confirmed'
     | '/delete-account'
     | '/find'
-    | '/for-clubs'
     | '/for-coaches'
     | '/help'
     | '/how-it-works'
@@ -676,7 +666,6 @@ export interface FileRouteTypes {
     | '/confirmed'
     | '/delete-account'
     | '/find'
-    | '/for-clubs'
     | '/for-coaches'
     | '/help'
     | '/how-it-works'
@@ -741,7 +730,6 @@ export interface FileRouteTypes {
     | '/confirmed'
     | '/delete-account'
     | '/find'
-    | '/for-clubs'
     | '/for-coaches'
     | '/help'
     | '/how-it-works'
@@ -809,7 +797,6 @@ export interface RootRouteChildren {
   ConfirmedRoute: typeof ConfirmedRoute
   DeleteAccountRoute: typeof DeleteAccountRoute
   FindRoute: typeof FindRoute
-  ForClubsRoute: typeof ForClubsRoute
   ForCoachesRoute: typeof ForCoachesRoute
   HelpRoute: typeof HelpRoute
   HowItWorksRoute: typeof HowItWorksRoute
@@ -883,13 +870,6 @@ declare module '@tanstack/react-router' {
       path: '/find'
       fullPath: '/find'
       preLoaderRoute: typeof FindRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/for-clubs': {
-      id: '/for-clubs'
-      path: '/for-clubs'
-      fullPath: '/for-clubs'
-      preLoaderRoute: typeof ForClubsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/for-coaches': {
@@ -1426,7 +1406,6 @@ const rootRouteChildren: RootRouteChildren = {
   ConfirmedRoute: ConfirmedRoute,
   DeleteAccountRoute: DeleteAccountRoute,
   FindRoute: FindRoute,
-  ForClubsRoute: ForClubsRoute,
   ForCoachesRoute: ForCoachesRoute,
   HelpRoute: HelpRoute,
   HowItWorksRoute: HowItWorksRoute,

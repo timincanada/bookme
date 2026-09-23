@@ -16,7 +16,6 @@ export function SiteFooter() {
           title="Product"
           links={[
             ["/for-coaches", "For coaches"],
-            ["/for-clubs", "For clubs"],
             ["/pricing", "Pricing"],
           ]}
         />

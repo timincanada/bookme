@@ -23,7 +23,7 @@ export function isNativeApp() {
 }
 
 /** Marketing pages are not shown inside the apps. */
-export const NATIVE_HIDDEN_PATHS = new Set(["/", "/pricing", "/for-coaches", "/for-clubs", "/how-it-works", "/find", "/preview"]);
+export const NATIVE_HIDDEN_PATHS = new Set(["/", "/pricing", "/for-coaches", "/how-it-works", "/find", "/preview"]);
 
 export function useNativePlatform() {
   const [state, setState] = useState<{ ready: boolean; platform: NativePlatform }>({ ready: false, platform: "web" });
