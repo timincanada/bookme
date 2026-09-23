@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MonthCalendar, nextLessonDay, type CalLesson } from "@/components/bookme/lesson-calendar";
+import { useCoachWeather } from "@/components/bookme/use-lesson-weather";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -39,6 +40,7 @@ export const Route = createFileRoute("/app/bookings")({
 function Bookings() {
   const { tab, swap } = Route.useSearch();
   const { coach, reload: reloadCoach } = useCoach();
+  const { byId: weatherByLesson, reload: reloadWeather } = useCoachWeather();
   const [lessons, setLessons] = useState<CalLesson[]>([]);
   const [inbox, setInbox] = useState<Extract<Awaited<ReturnType<typeof listCoachRequests>>, { ok: true }> | null>(null);
   const [aId, setAId] = useState(swap || "");
@@ -246,7 +248,17 @@ function Bookings() {
         </div>
       ) : (
         <div className="mt-6">
-          <MonthCalendar lessons={calendarLessons} selected={day} onSelect={setDay} timezone={tz} />
+          <MonthCalendar
+            lessons={calendarLessons}
+            selected={day}
+            onSelect={setDay}
+            timezone={tz}
+            weatherByLesson={weatherByLesson}
+            onWeatherResolved={() => {
+              reload();
+              void reloadWeather();
+            }}
+          />
         </div>
       )}
       {msg ? <p className="mt-4 text-sm text-ink-soft">{msg}</p> : null}

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { CollectButton } from "@/components/bookme/collect-button";
 import { MessageLink } from "@/components/bookme/message-link";
 import { PayChip, StatusChip } from "@/components/bookme/pay-chip";
+import { useCoachWeather } from "@/components/bookme/use-lesson-weather";
+import { WeatherChip } from "@/components/bookme/weather-chip";
 import { Button } from "@/components/ui/button";
 import { coachCancelLesson, coachMoveLesson, coachNextWeek, getCoachOpenSlots, getMyLesson } from "@/lib/bookme/api";
 import { parseClock } from "@/lib/bookme/recurring";
@@ -14,6 +16,7 @@ export const Route = createFileRoute("/app/lessons/$id")({ component: LessonDeta
 function LessonDetail() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
+  const { byId: weatherByLesson, reload: reloadWeather } = useCoachWeather();
   const [data, setData] = useState<Extract<Awaited<ReturnType<typeof getMyLesson>>, { ok: true }> | null>(null);
   const [day, setDay] = useState("");
   const [slots, setSlots] = useState<string[]>([]);
@@ -81,7 +84,17 @@ function LessonDetail() {
         <p className="font-semibold">{l.when}</p>
         <p>Private · {l.clientName}</p>
         <p className="text-sm text-muted">{l.clientEmail || "No email on file"}</p>
-        <p className="text-sm text-muted">{l.locationName}</p>
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <p className="text-sm text-muted">{l.locationName}</p>
+          <WeatherChip
+            view={weatherByLesson[id]}
+            audience="coach"
+            onResolved={(decision) => {
+              if (decision === "cancel") void navigate({ to: "/app" });
+              else void reloadWeather();
+            }}
+          />
+        </div>
         <p className="mt-2 text-sm">
           {l.duration} min · <StatusChip>{l.statusLabel}</StatusChip>
         </p>

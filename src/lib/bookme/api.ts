@@ -24,6 +24,7 @@ import {
 } from "./mail";
 import { notifyLessonConfirmed } from "./mail-send";
 import { pushLater, pushToCoach, pushToStudentEmail } from "./push";
+import { closeOpenWeatherAsk } from "./weather-service";
 import { canUseMethod, enabledMethods, normalizeAccepted } from "./payments";
 import { cityFromAddressComponents, googleMapsApiKey, isPlacesConfigured, type PlaceSuggestion } from "./places";
 import { runReminders } from "./remind-run";
@@ -2175,7 +2176,7 @@ export const coachMoveLesson = createServerFn({ method: "POST" })
   .validator((input: { lessonId: string; start: string; allowOutsideHours?: boolean }) => guardInput(input))
   .handler(async ({ context, data }) => moveLessonForCoach(context.userId, data));
 
-async function applyCancelLesson(sql: Pick<Sql, "query">, coach: CoachRow, lessonId: string) {
+export async function applyCancelLesson(sql: Pick<Sql, "query">, coach: CoachRow, lessonId: string) {
   const rows = await sql.query<{
     id: string;
     start_at: string | Date;
@@ -2209,6 +2210,11 @@ async function applyCancelLesson(sql: Pick<Sql, "query">, coach: CoachRow, lesso
     await sql.query(`update payments set status = 'refunded' where lesson_id = $1`, [lesson.id]);
   }
   await sql.query(`update lessons set status = 'cancelled' where id = $1 and coach_id = $2`, [lesson.id, coach.id]);
+  try {
+    await closeOpenWeatherAsk(sql, lesson.id);
+  } catch (err) {
+    console.error(JSON.stringify({ msg: "weather_ask_close_failed", lessonId: lesson.id, error: String(err) }));
+  }
   for (const mail of changeMails({
     kind: "cancelled",
     coachName: coach.name,

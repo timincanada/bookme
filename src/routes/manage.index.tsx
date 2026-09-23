@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useStudentWeather } from "@/components/bookme/use-lesson-weather";
+import { WeatherChip } from "@/components/bookme/weather-chip";
 import {
   decideRequest,
   getOpenSlots,
@@ -20,6 +22,7 @@ type Requests = NonNullable<Extract<Awaited<ReturnType<typeof studentListRequest
 
 function StudentLessons() {
   const { signedOut } = useStudent();
+  const { byId: weatherByLesson, reload: reloadWeather } = useStudentWeather();
   const [lessons, setLessons] = useState<Lessons>([]);
   const [requests, setRequests] = useState<Requests>([]);
   const [loaded, setLoaded] = useState(false);
@@ -135,9 +138,18 @@ function StudentLessons() {
           <li key={l.id} className="rounded-2xl bg-card p-4 ring-1 ring-line">
             <p className="font-semibold">{l.coachName}</p>
             <p className="text-sm">{l.when}</p>
+            <p className="text-sm text-muted">{l.locationName}</p>
             <p className="text-sm text-muted">
               {l.status} · {l.payText}
             </p>
+            <WeatherChip
+              view={weatherByLesson[l.id]}
+              audience="student"
+              onResolved={() => {
+                void reloadWeather();
+                void load();
+              }}
+            />
             {pendingLessonIds.has(l.id) ? (
               <p className="mt-2 text-sm font-semibold text-forest">A change is already waiting.</p>
             ) : l.confirmed ? (
