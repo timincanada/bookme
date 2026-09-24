@@ -1,7 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Repeat } from "lucide-react";
 import { useMemo, type CSSProperties } from "react";
+import { WeatherChip } from "@/components/bookme/weather-chip";
 import type { HourSegment } from "@/lib/bookme/hours";
+import type { LessonWeatherView } from "@/lib/bookme/weather-service";
 import { firstName } from "@/lib/bookme/requests";
 import {
   addDaysKey,
@@ -156,12 +158,16 @@ export function WeekCalendar({
   selected,
   onSelect,
   timezone,
+  weatherByLesson,
+  onWeatherResolved,
 }: {
   lessons: CalLesson[];
   hours: HourSegment[];
   selected: string;
   onSelect: (day: string) => void;
   timezone: string;
+  weatherByLesson?: Record<string, LessonWeatherView>;
+  onWeatherResolved?: (decision: "keep" | "cancel" | "ask") => void;
 }) {
   const tz = timezone;
   const today = useMemo(() => todayKey(tz), [tz]);
@@ -281,7 +287,13 @@ export function WeekCalendar({
         </div>
       </div>
 
-      <DayAgenda dateKey={selected} lessons={byDay.get(selected) || []} timezone={tz} />
+      <DayAgenda
+        dateKey={selected}
+        lessons={byDay.get(selected) || []}
+        timezone={tz}
+        weatherByLesson={weatherByLesson}
+        onWeatherResolved={onWeatherResolved}
+      />
     </div>
   );
 }
@@ -290,10 +302,14 @@ export function DayAgenda({
   dateKey,
   lessons,
   timezone,
+  weatherByLesson,
+  onWeatherResolved,
 }: {
   dateKey: string;
   lessons: CalLesson[];
   timezone: string;
+  weatherByLesson?: Record<string, LessonWeatherView>;
+  onWeatherResolved?: (decision: "keep" | "cancel" | "ask") => void;
 }) {
   const today = todayKey(timezone);
   const label = formatDateKey(dateKey, { weekday: "long", month: "long", day: "numeric" });
@@ -306,12 +322,8 @@ export function DayAgenda({
       ) : (
         <ol className="mt-3 space-y-2">
           {lessons.map((lesson) => (
-            <li key={lesson.id}>
-              <Link
-                to="/app/lessons/$id"
-                params={{ id: lesson.id }}
-                className="flex gap-3 rounded-2xl bg-card p-3 ring-1 ring-line"
-              >
+            <li key={lesson.id} className="rounded-2xl bg-card p-3 ring-1 ring-line">
+              <Link to="/app/lessons/$id" params={{ id: lesson.id }} className="flex gap-3">
                 <div className="w-16 shrink-0 pt-0.5 text-sm font-semibold tabular-nums">{lesson.time}</div>
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold">{lesson.clientName}</p>
@@ -326,6 +338,11 @@ export function DayAgenda({
                 </div>
                 <span className={cn("mt-1 size-2.5 shrink-0 rounded-full", lesson.bucket === "upcoming" && lesson.status !== "held" ? "bg-forest" : "bg-sage-2")} />
               </Link>
+              {weatherByLesson?.[lesson.id] ? (
+                <div className="mt-2 pl-[4.75rem]">
+                  <WeatherChip view={weatherByLesson[lesson.id]} audience="coach" onResolved={onWeatherResolved} />
+                </div>
+              ) : null}
             </li>
           ))}
         </ol>
@@ -339,11 +356,15 @@ export function MonthCalendar({
   selected,
   onSelect,
   timezone,
+  weatherByLesson,
+  onWeatherResolved,
 }: {
   lessons: CalLesson[];
   selected: string;
   onSelect: (day: string) => void;
   timezone: string;
+  weatherByLesson?: Record<string, LessonWeatherView>;
+  onWeatherResolved?: (decision: "keep" | "cancel" | "ask") => void;
 }) {
   const tz = timezone;
   const today = useMemo(() => todayKey(tz), [tz]);
@@ -452,12 +473,8 @@ export function MonthCalendar({
         ) : (
           <ul className="mt-3 space-y-2">
             {selectedLessons.map((lesson) => (
-              <li key={lesson.id}>
-                <Link
-                  to="/app/lessons/$id"
-                  params={{ id: lesson.id }}
-                  className="block rounded-2xl bg-card p-4 ring-1 ring-line"
-                >
+              <li key={lesson.id} className="rounded-2xl bg-card p-4 ring-1 ring-line">
+                <Link to="/app/lessons/$id" params={{ id: lesson.id }} className="block">
                   <p className="font-semibold">
                     {lesson.time} · {lesson.clientName}
                   </p>
@@ -471,6 +488,11 @@ export function MonthCalendar({
                     </p>
                   ) : null}
                 </Link>
+                {weatherByLesson?.[lesson.id] ? (
+                  <div className="mt-2">
+                    <WeatherChip view={weatherByLesson[lesson.id]} audience="coach" onResolved={onWeatherResolved} />
+                  </div>
+                ) : null}
               </li>
             ))}
           </ul>

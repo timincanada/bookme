@@ -35,7 +35,20 @@ export function sameHash(a: string | null | undefined, b: string) {
   return x.length === y.length && timingSafeEqual(x, y);
 }
 
-/** Codes are shown to the browser only in local development when explicitly asked. */
-export function devShowsCode() {
-  return process.env.NODE_ENV !== "production" && process.env.BOOKME_DEV_SHOW_CODE === "1";
+type DevCodeEnv = {
+  VERCEL_ENV?: string;
+  BOOKME_DEV_SHOW_CODE?: string;
+};
+
+/**
+ * The manage page may show the 6-digit code.
+ * Vercel Preview always does (`NODE_ENV` is production there).
+ * `BOOKME_DEV_SHOW_CODE=1` does everywhere except a production deployment.
+ * bookme.training (`VERCEL_ENV=production`) never does, even if the flag is set.
+ */
+export function devShowsCode(env: DevCodeEnv = process.env) {
+  const vercelEnv = env.VERCEL_ENV?.trim().toLowerCase() || "";
+  if (vercelEnv === "production") return false;
+  if (vercelEnv === "preview") return true;
+  return env.BOOKME_DEV_SHOW_CODE === "1";
 }

@@ -122,3 +122,12 @@ CSP messages):
 - Google/X sign-in goes through a Grok broker and will not work on Vercel. Email +
   password is the supported coach sign-in; students use email codes.
 - No Content-Security-Policy in development (Vite injects inline scripts); production only.
+
+## 9. Preview deployments
+
+PR previews run with `NODE_ENV=production` and `VERCEL_ENV=preview`. `BETTER_AUTH_URL` may stay `https://bookme.training`.
+
+- Browser sign-up trusts `https://$VERCEL_URL`, `https://$VERCEL_BRANCH_URL`, and `*.vercel.app` on preview. Production trusts `bookme.training` plus that deployment's own Vercel host.
+- The demo coach (`coach@bookme.test`, public page `/alex`, Mayfair Parkway with coordinates) is seeded on preview, including client rows for `emma@bookme.test`, `jordan@bookme.test`, and `sam@bookme.test`. Leave `BOOKME_ALLOW_DEMO` unset on Production.
+- Student `/manage` on Preview: choose **Use demo student** (`emma@bookme.test`), then **Email me a code**. The page shows **Development code: ######** (`VERCEL_ENV=preview`). Production (`bookme.training`, `VERCEL_ENV=production`) never shows a code, even if `BOOKME_DEV_SHOW_CODE=1`. The link in that email uses `https://$VERCEL_URL` (or `$VERCEL_BRANCH_URL` when `VERCEL_URL` is empty), not `BOOKME_APP_URL`.
+- Extreme weather on a preview: set `BOOKME_OPEN_METEO_FIXTURE=extreme`. That loads the shipped `fixtures/open-meteo-extreme.json` (90% rain, 8.2 mm/h, gusts 72 km/h, thunderstorm code 95) and aligns hours to the current UTC hour so a lesson inside 72h matches. A raw file still works: an absolute path, or a path relative to the process working directory. Prefer `extreme` on Vercel. See the header of `src/lib/bookme/weather-service.ts`. Optional.

@@ -68,6 +68,7 @@ import { Route as AppMessagesClientIdRouteImport } from './routes/app/messages.$
 import { Route as AppMoreAccountRouteImport } from './routes/app/more.account'
 import { Route as AppMoreAssistantRouteImport } from './routes/app/more.assistant'
 import { Route as AppMoreHoursRouteImport } from './routes/app/more.hours'
+import { Route as AppMoreLessonsRouteImport } from './routes/app/more.lessons'
 import { Route as AppMoreLocationsRouteImport } from './routes/app/more.locations'
 import { Route as AppMorePaymentsRouteImport } from './routes/app/more.payments'
 import { Route as AppSeriesIdRouteImport } from './routes/app/series.$id'
@@ -371,6 +372,11 @@ const AppMoreHoursRoute = AppMoreHoursRouteImport.update({
   path: '/hours',
   getParentRoute: () => AppMoreRoute,
 } as any)
+const AppMoreLessonsRoute = AppMoreLessonsRouteImport.update({
+  id: '/lessons',
+  path: '/lessons',
+  getParentRoute: () => AppMoreRoute,
+} as any)
 const AppMoreLocationsRoute = AppMoreLocationsRouteImport.update({
   id: '/locations',
   path: '/locations',
@@ -455,6 +461,7 @@ export interface FileRoutesByFullPath {
   '/app/more/account': typeof AppMoreAccountRoute
   '/app/more/assistant': typeof AppMoreAssistantRoute
   '/app/more/hours': typeof AppMoreHoursRoute
+  '/app/more/lessons': typeof AppMoreLessonsRoute
   '/app/more/locations': typeof AppMoreLocationsRoute
   '/app/more/payments': typeof AppMorePaymentsRoute
   '/app/series/$id': typeof AppSeriesIdRoute
@@ -517,6 +524,7 @@ export interface FileRoutesByTo {
   '/app/more/account': typeof AppMoreAccountRoute
   '/app/more/assistant': typeof AppMoreAssistantRoute
   '/app/more/hours': typeof AppMoreHoursRoute
+  '/app/more/lessons': typeof AppMoreLessonsRoute
   '/app/more/locations': typeof AppMoreLocationsRoute
   '/app/more/payments': typeof AppMorePaymentsRoute
   '/app/series/$id': typeof AppSeriesIdRoute
@@ -584,6 +592,7 @@ export interface FileRoutesById {
   '/app/more/account': typeof AppMoreAccountRoute
   '/app/more/assistant': typeof AppMoreAssistantRoute
   '/app/more/hours': typeof AppMoreHoursRoute
+  '/app/more/lessons': typeof AppMoreLessonsRoute
   '/app/more/locations': typeof AppMoreLocationsRoute
   '/app/more/payments': typeof AppMorePaymentsRoute
   '/app/series/$id': typeof AppSeriesIdRoute
@@ -652,6 +661,7 @@ export interface FileRouteTypes {
     | '/app/more/account'
     | '/app/more/assistant'
     | '/app/more/hours'
+    | '/app/more/lessons'
     | '/app/more/locations'
     | '/app/more/payments'
     | '/app/series/$id'
@@ -714,6 +724,7 @@ export interface FileRouteTypes {
     | '/app/more/account'
     | '/app/more/assistant'
     | '/app/more/hours'
+    | '/app/more/lessons'
     | '/app/more/locations'
     | '/app/more/payments'
     | '/app/series/$id'
@@ -780,6 +791,7 @@ export interface FileRouteTypes {
     | '/app/more/account'
     | '/app/more/assistant'
     | '/app/more/hours'
+    | '/app/more/lessons'
     | '/app/more/locations'
     | '/app/more/payments'
     | '/app/series/$id'
@@ -1236,6 +1248,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMoreHoursRouteImport
       parentRoute: typeof AppMoreRoute
     }
+    '/app/more/lessons': {
+      id: '/app/more/lessons'
+      path: '/lessons'
+      fullPath: '/app/more/lessons'
+      preLoaderRoute: typeof AppMoreLessonsRouteImport
+      parentRoute: typeof AppMoreRoute
+    }
     '/app/more/locations': {
       id: '/app/more/locations'
       path: '/locations'
@@ -1328,6 +1347,7 @@ interface AppMoreRouteChildren {
   AppMoreAccountRoute: typeof AppMoreAccountRoute
   AppMoreAssistantRoute: typeof AppMoreAssistantRoute
   AppMoreHoursRoute: typeof AppMoreHoursRoute
+  AppMoreLessonsRoute: typeof AppMoreLessonsRoute
   AppMoreLocationsRoute: typeof AppMoreLocationsRoute
   AppMorePaymentsRoute: typeof AppMorePaymentsRoute
 }
@@ -1336,6 +1356,7 @@ const AppMoreRouteChildren: AppMoreRouteChildren = {
   AppMoreAccountRoute: AppMoreAccountRoute,
   AppMoreAssistantRoute: AppMoreAssistantRoute,
   AppMoreHoursRoute: AppMoreHoursRoute,
+  AppMoreLessonsRoute: AppMoreLessonsRoute,
   AppMoreLocationsRoute: AppMoreLocationsRoute,
   AppMorePaymentsRoute: AppMorePaymentsRoute,
 }

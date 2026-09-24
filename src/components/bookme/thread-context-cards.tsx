@@ -1,7 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { WeatherChipView } from "@/components/bookme/weather-chip";
 import { coachThreadCards, studentThreadCards } from "@/lib/bookme/messages-api";
 import type { ThreadCardModel } from "@/lib/bookme/thread-cards";
+import { coachThreadWeather, studentThreadWeather } from "@/lib/bookme/weather-api";
+import type { WeatherSnippet } from "@/lib/bookme/weather-service";
 
 const EMPTY: ThreadCardModel = { pending: null, booking: null };
 
@@ -16,6 +19,8 @@ export function ThreadContextCards(props: Props) {
   const clientId = props.audience === "coach" ? props.clientId : "";
   const coachId = props.audience === "student" ? props.coachId : "";
   const [cards, setCards] = useState<ThreadCardModel | null>(null);
+  const [weather, setWeather] = useState<WeatherSnippet | null>(null);
+  const bookingId = cards?.booking?.id ?? "";
 
   useEffect(() => {
     let alive = true;
@@ -31,6 +36,25 @@ export function ThreadContextCards(props: Props) {
       alive = false;
     };
   }, [audience, clientId, coachId]);
+
+  useEffect(() => {
+    if (!bookingId) {
+      setWeather(null);
+      return;
+    }
+    let alive = true;
+    const req =
+      audience === "coach"
+        ? coachThreadWeather({ data: { lessonId: bookingId } })
+        : studentThreadWeather({ data: { lessonId: bookingId } });
+    req.then((res) => {
+      if (!alive) return;
+      setWeather(res.ok ? res.weather : null);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [audience, bookingId]);
 
   if (!cards) return null;
   const { pending, booking } = cards;
@@ -73,6 +97,14 @@ export function ThreadContextCards(props: Props) {
           <p className="mt-1.5 text-sm leading-snug text-ink">
             {booking.dateLabel} · {booking.timeLabel} · {booking.place}
           </p>
+          {weather ? (
+            <div className="mt-2">
+              <WeatherChipView summary={weather.summary} icon={weather.icon} extreme={weather.extreme} size="sm" />
+              {weather.extreme && weather.signal ? (
+                <p className="mt-1 text-xs text-ink-soft">Forecast may affect an outdoor lesson · {weather.signal}</p>
+              ) : null}
+            </div>
+          ) : null}
           {props.audience === "coach" ? (
             <Link
               to="/app/lessons/$id"
@@ -80,6 +112,14 @@ export function ThreadContextCards(props: Props) {
               className="mt-1 inline-block text-sm text-muted"
             >
               Open lesson
+            </Link>
+          ) : weather?.extreme ? (
+            <Link
+              to="/manage"
+              search={{ email: undefined, token: undefined }}
+              className="mt-1 inline-block text-sm font-semibold text-forest"
+            >
+              Review lesson
             </Link>
           ) : null}
         </div>
