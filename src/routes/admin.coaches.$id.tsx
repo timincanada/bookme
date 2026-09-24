@@ -53,7 +53,7 @@ function CoachDetail() {
         {c.deletedAt ? <Chip tone="bad">deleted</Chip> : null}
       </div>
       <p className="mt-1 text-sm text-muted">
-        {c.email} · <a className="text-forest" href={`/${c.slug}`}>/{c.slug}</a> · {c.city || "—"} · {c.timezone}
+        {c.specialty} · {c.email} · <a className="text-forest" href={`/${c.slug}`}>/{c.slug}</a> · {c.city || "—"} · {c.timezone}
       </p>
 
       <section className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

@@ -13,6 +13,7 @@ import { DEFAULT_BOOK_AHEAD_DAYS, lastBookableDateKey, normalizeBookAheadDays } 
 import { formatDateKey, todayKey } from "@/lib/bookme/time";
 import type { HourSegment } from "@/lib/bookme/hours";
 import { DURATIONS } from "@/lib/bookme/setup";
+import { coachBasicsFromSelection, isOtherVerticalId, selectionFromCoach } from "@/lib/bookme/verticals";
 import { cn } from "@/lib/utils";
 import { useCoach } from "@/lib/bookme/coach-context";
 
@@ -22,7 +23,9 @@ function Setup() {
   const { coach, reload } = useCoach();
   const [step, setStep] = useState(coach?.setup ? 3 : 0);
   const [name, setName] = useState(coach?.name ?? "");
-  const [title, setTitle] = useState(coach?.title?.replace(/ coach/i, "") || "Tennis");
+  const initialVertical = selectionFromCoach(coach?.title, coach?.sport);
+  const [verticalId, setVerticalId] = useState(initialVertical.id);
+  const [customDiscipline, setCustomDiscipline] = useState(initialVertical.custom ? initialVertical.label : "");
   const [durations, setDurations] = useState<number[]>(() => {
     const svc = coach?.services[0];
     const fromSvc = (svc as { durations?: number[] } | undefined)?.durations;
@@ -80,10 +83,14 @@ function Setup() {
           </label>
           <div className="mt-4">
             <p className="mb-1.5 text-sm font-medium">What do you coach?</p>
-            <p className="mb-3 text-sm text-muted">Sport, fitness, music, arts, or academic.</p>
+            <p className="mb-3 text-sm text-muted">Sport, fitness, music, arts, or academic. Choose Other to name your own.</p>
             <VerticalPicker
-              value={title}
-              onChange={(_id, label) => setTitle(label)}
+              value={verticalId}
+              customLabel={customDiscipline}
+              onChange={(id, label) => {
+                setVerticalId(id);
+                if (isOtherVerticalId(id)) setCustomDiscipline(label);
+              }}
             />
           </div>
           <p className="mt-4 text-sm font-medium">Duration</p>
@@ -137,15 +144,15 @@ function Setup() {
             size="field"
             disabled={busy || durations.length === 0}
             onClick={async () => {
+              const named = coachBasicsFromSelection(verticalId, customDiscipline);
+              if (!named.ok) return toast.error(named.error);
+              if (!durations.length) return toast.error("Pick at least one duration");
               setBusy(true);
-              if (!durations.length) {
-                setBusy(false);
-                return toast.error("Pick at least one duration");
-              }
               const res = await saveCoachBasics({
                 data: {
                   name,
-                  title: `${title} Coach`,
+                  title: named.title,
+                  sport: named.sport,
                   durations,
                   duration: durations[0],
                   priceCad: Number(price) || 0,

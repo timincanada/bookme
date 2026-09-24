@@ -38,11 +38,13 @@ function Find() {
       const s = asSport(c.sport);
       if (sport !== "all" && groupForVertical(s)?.id !== sport) return false;
       if (!query) return true;
-      const label = labelForSport(s).toLowerCase();
+      const label = labelForSport(s, c.title).toLowerCase();
+      const titled = (c.title || "").toLowerCase();
       return (
         c.name.toLowerCase().includes(query) ||
         c.city.toLowerCase().includes(query) ||
-        label.includes(query)
+        label.includes(query) ||
+        titled.includes(query)
       );
     });
   }, [all, sport, q]);
@@ -98,7 +100,7 @@ function Find() {
               <div className="p-4">
                 <div className="flex items-center gap-2 text-xs font-medium text-forest">
                   <SportIcon sport={s} className="size-4" />
-                  {labelForSport(s)}
+                  {labelForSport(s, c.title)}
                 </div>
                 <h2 className="mt-1 font-display text-2xl font-medium">{c.name}</h2>
                 <p className="mt-1 flex items-center gap-1 text-sm text-muted">

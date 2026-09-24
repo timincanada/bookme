@@ -20,6 +20,7 @@ import {
 import { isAdminEmail } from "./admin";
 import { normalizeEmail } from "./email";
 import { addDaysKey, todayKey, zonedInstant } from "./time";
+import { specialtyLabel } from "./verticals";
 
 type QuerySql = Pick<Sql, "query">;
 
@@ -302,6 +303,8 @@ export async function listCoaches(
     name: string;
     email: string;
     slug: string;
+    title: string;
+    sport: string;
     city: string;
     plan: string;
     subscription_status: string;
@@ -322,7 +325,7 @@ export async function listCoaches(
        select c.* from coaches c where ${REAL_COACHES} and ${statusSql}
          and ($1 = '' or lower(c.name) like '%' || $1 || '%' or lower(c.email) like '%' || $1 || '%' or lower(c.slug) like '%' || $1 || '%')
      )
-     select c.id, c.name, c.email, c.slug, c.city, c.plan, c.subscription_status, c.trial_ends_at, c.banned,
+     select c.id, c.name, c.email, c.slug, c.title, c.sport, c.city, c.plan, c.subscription_status, c.trial_ends_at, c.banned,
             c.access_grant, c.stripe_account_id, c.created_at,
             coalesce(l.confirmed, 0)::int as lessons_confirmed,
             coalesce(l.upcoming, 0)::int as lessons_upcoming,
@@ -360,6 +363,9 @@ export async function listCoaches(
       name: r.name,
       email: r.email,
       slug: r.slug,
+      title: r.title || "",
+      sport: r.sport || "",
+      specialty: specialtyLabel(r.sport, r.title),
       city: r.city,
       plan: r.plan,
       status: r.subscription_status,
@@ -382,7 +388,7 @@ export async function listCoaches(
 export async function coachDetail(sql: QuerySql, coachId: string) {
   const coach = (
     await sql.query<Record<string, unknown>>(
-      `select c.id, c.name, c.email, c.slug, c.city, c.timezone, c.plan, c.subscription_status, c.trial_ends_at,
+      `select c.id, c.name, c.email, c.slug, c.title, c.sport, c.city, c.timezone, c.plan, c.subscription_status, c.trial_ends_at,
               c.banned, c.access_grant, c.stripe_account_id, c.stripe_subscription_id, c.accept_card, c.accept_cash,
               c.created_at, c.deleted_at, c.purge_after
        from coaches c where c.id = $1`,
@@ -431,6 +437,9 @@ export async function coachDetail(sql: QuerySql, coachId: string) {
       name: String(coach.name),
       email: String(coach.email),
       slug: String(coach.slug),
+      title: String(coach.title ?? ""),
+      sport: String(coach.sport ?? ""),
+      specialty: specialtyLabel(String(coach.sport ?? ""), String(coach.title ?? "")),
       city: String(coach.city ?? ""),
       timezone: String(coach.timezone ?? TZ),
       plan: String(coach.plan ?? ""),

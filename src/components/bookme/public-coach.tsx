@@ -6,7 +6,8 @@ import { PageShell } from "@/components/page-shell";
 import { SportIcon } from "@/components/sport-icon";
 import { Button } from "@/components/ui/button";
 import { NotFound } from "@/components/not-found";
-import { SPORT_LABEL, labelForDate } from "@/lib/coaches";
+import { labelForDate } from "@/lib/coaches";
+import { specialtyLabel } from "@/lib/bookme/verticals";
 import { getOpenSlots, getPublicCoach, recordVisit, ensureDemoCoach } from "@/lib/bookme/api";
 import { asSport } from "@/lib/bookme/sport";
 import { DEMO_COACH } from "@/lib/bookme/demo";
@@ -88,6 +89,7 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
   }, [lessonId, lessonDurations.join(","), duration]);
   const location = coach.locations.find((l) => l.id === locationId) ?? coach.locations[0];
   const sport = asSport(coach.sport);
+  const specialty = specialtyLabel(coach.sport, coach.title);
   const datePair = dates.slice(0, 2);
 
   useEffect(() => {
@@ -130,7 +132,7 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
             <h1 className="font-display text-5xl font-medium">{coach.name}</h1>
             <span className="mt-3 inline-flex items-center gap-2 rounded-full bg-sage-3 px-3 py-1.5 text-sm font-medium text-forest">
               <SportIcon sport={sport} />
-              {SPORT_LABEL[sport]}
+              {specialty}
             </span>
           </div>
         </div>
@@ -138,7 +140,7 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
           <h1 className="font-display text-4xl font-medium">{coach.name}</h1>
           <span className="mt-3 inline-flex items-center gap-2 rounded-full bg-sage-3 px-3 py-1.5 text-sm font-medium text-forest">
             <SportIcon sport={sport} />
-            {SPORT_LABEL[sport]}
+            {specialty}
           </span>
         </div>
 
