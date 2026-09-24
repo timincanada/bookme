@@ -142,7 +142,7 @@ export function BookingShare({
         <div className="mt-5 grid gap-2">
           <Button size="field" onClick={() => void copyLink()}>
             {copied ? <Check className="size-4" strokeWidth={2} /> : <Copy className="size-4" strokeWidth={1.75} />}
-            {copied ? "Copied" : "Copy short link"}
+            {copied ? "Copied" : "Copy link"}
           </Button>
           {/* CEO 2026-09-22: hide until Pass Type certs — gated by walletEnabled from getMyCoach */}
           {walletEnabled ? (

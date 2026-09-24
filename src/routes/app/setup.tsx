@@ -245,7 +245,7 @@ function Setup() {
       {step === 3 ? (
         <>
           <h1 className="mt-6 font-display text-3xl font-medium">Your booking link</h1>
-          <p className="mt-1 text-muted">A short link and a QR you can forward or print.</p>
+          <p className="mt-1 text-muted">Students use this to book a new lesson.</p>
           <div className="mt-5">
             <BookingShare slug={coach.slug} name={coach.name} canShare={coach.open} walletEnabled={coach.walletEnabled} />
           </div>
