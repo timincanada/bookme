@@ -46,6 +46,7 @@ import {
   PREVIEW_CLIENT_ID,
   PREVIEW_CLIENT_SECRET,
 } from "./preview";
+import { trustedAuthOrigins } from "./trusted-origins";
 
 // Kick (and share) PGLite bootstrap as soon as the auth server module loads.
 void ensureDbReady();
@@ -103,32 +104,6 @@ export const authConfigured =
 // Explicit `string[]` (not a readonly tuple) — Better Auth's DynamicBaseURLConfig
 // requires a mutable `allowedHosts: string[]`.
 const previewAllowedHosts: string[] = [...PREVIEW_ALLOWED_HOSTS];
-// Local `npm run dev` (port 8080 contract). Browsers may send Origin as any of
-// these for the same server — trusting only `localhost` rejects `127.0.0.1` and
-// breaks email/password with "Invalid origin".
-const LOCAL_DEV_ORIGINS: string[] = [
-  "http://localhost:8080",
-  "http://127.0.0.1:8080",
-  "http://[::1]:8080",
-];
-
-/** Apex + www variants so bookme.training and www.bookme.training both work. */
-function withWwwVariants(origin: string): string[] {
-  try {
-    const u = new URL(origin);
-    const out = new Set<string>([u.origin]);
-    if (u.hostname.startsWith("www.")) out.add(`${u.protocol}//${u.hostname.slice(4)}`);
-    else out.add(`${u.protocol}//www.${u.hostname}`);
-    return [...out];
-  } catch {
-    return origin ? [origin] : [];
-  }
-}
-
-const PRODUCTION_ORIGINS = [
-  "https://bookme.training",
-  "https://www.bookme.training",
-];
 
 const baseURL = explicitBaseURL ?? {
   // Include loopback hosts so dynamic baseURL resolves for local email/password
@@ -140,22 +115,18 @@ const baseURL = explicitBaseURL ?? {
   fallback: "http://localhost:8080",
 };
 
-// Origins Better Auth accepts on credentialed POSTs (sign-up/sign-in, etc.).
-// Missing entries here surface as FORBIDDEN "Invalid origin" / callbackURL errors.
-const trustedOrigins: string[] = [
-  ...new Set([
-    ...PRODUCTION_ORIGINS,
-    ...(explicitBaseURL ? withWwwVariants(explicitBaseURL) : []),
-    ...withWwwVariants(env("BOOKME_APP_URL") ?? ""),
-    ...LOCAL_DEV_ORIGINS,
-    ...(!explicitBaseURL
-      ? [
-          ...previewAllowedHosts,
-          ...previewAllowedHosts.flatMap((host) => [`https://${host}`, `http://${host}`]),
-        ]
-      : []),
-  ]),
-].filter(Boolean);
+// Credentialed POSTs (sign-up/sign-in). A missing entry is "Invalid origin".
+// Preview still trusts its own Vercel host when BETTER_AUTH_URL is production.
+const trustedOrigins = trustedAuthOrigins(
+  {
+    BETTER_AUTH_URL: explicitBaseURL,
+    BOOKME_APP_URL: env("BOOKME_APP_URL"),
+    VERCEL_URL: env("VERCEL_URL"),
+    VERCEL_BRANCH_URL: env("VERCEL_BRANCH_URL"),
+    VERCEL_ENV: env("VERCEL_ENV"),
+  },
+  PREVIEW_ALLOWED_HOSTS,
+);
 
 const databaseUrl = env("DATABASE_URL");
 
@@ -212,8 +183,8 @@ export const auth = betterAuth({
   database,
 
   // CSRF / origin check for credentialed auth POSTs (email sign-up/sign-in, …).
-  // See `trustedOrigins` construction above — must cover live preview hosts AND
-  // local loopback variants, or clients get "Invalid origin".
+  // See `trustedAuthOrigins` — preview hosts stay trusted when BETTER_AUTH_URL
+  // points at bookme.training, or clients get "Invalid origin".
   trustedOrigins,
 
   // Direct Google OAuth for production when the Grok broker preview client cannot

@@ -6,7 +6,7 @@ import { looksLikeImportRequest, nextWeekdayKey, parseAssistant, shiftDateKey, s
 import { logAssistantFailure, resolveAssistantProvider } from "./assistant-provider";
 import { normalizeAssistantName } from "./assistant-name";
 import { bookingBucket, lessonStatusLabel, payLabel } from "./bookings";
-import { DEMO_COACH, DEMO_STUDENTS } from "./demo";
+import { DEMO_COACH, DEMO_STUDENTS, DEMO_VENUE, demoAllowed } from "./demo";
 import { looksLikeEmail, normalizeEmail } from "./email";
 import { canMoveLesson, canSelfReschedule, holdExpiresAt, statusAfterReschedule } from "./hold";
 import { type HourSegment, validateWeeklyHours } from "./hours";
@@ -1374,7 +1374,19 @@ export const getMyCoach = createServerFn({ method: "GET" })
 
 async function seedDemoBookings(sql: Sql, coachId: string) {
   const service = (await sql.query<{ id: string; price_cad: number }>(`select id, price_cad from services where coach_id = $1 limit 1`, [coachId]))[0];
-  const location = (await sql.query<{ id: string }>(`select id from locations where coach_id = $1 and active = true limit 1`, [coachId]))[0];
+  const location = (
+    await sql.query<{ id: string }>(
+      `select id from locations
+        where coach_id = $1 and active = true
+        order by case
+          when kind <> 'online' and lat is not null and lng is not null then 0
+          when kind <> 'online' then 1
+          else 2
+        end, name
+        limit 1`,
+      [coachId],
+    )
+  )[0];
   if (!service || !location) return;
   const tz = await coachTimezone(sql, coachId);
   const today = todayKey(tz);
@@ -1444,14 +1456,16 @@ async function polishDemoCoach(sql: Sql, coachId: string) {
   if (slug) {
     await sql.query(
       `update coaches
-         set slug = $1, photo_url = $2, headline = $3, bio = $4, title = $5, sport = 'tennis', city = 'Markham, ON'
+         set slug = $1, photo_url = $2, headline = $3, bio = $4, title = $5, sport = 'tennis', city = 'Markham, ON',
+             deleted_at = null, purge_after = null
        where id = $6`,
       [slug, DEMO_COACH.photoUrl, DEMO_COACH.headline, DEMO_COACH.bio, DEMO_COACH.title, coachId],
     );
   } else {
     await sql.query(
       `update coaches
-         set photo_url = $1, headline = $2, bio = $3, title = $4, sport = 'tennis', city = 'Markham, ON'
+         set photo_url = $1, headline = $2, bio = $3, title = $4, sport = 'tennis', city = 'Markham, ON',
+             deleted_at = null, purge_after = null
        where id = $5`,
       [DEMO_COACH.photoUrl, DEMO_COACH.headline, DEMO_COACH.bio, DEMO_COACH.title, coachId],
     );
@@ -1459,14 +1473,196 @@ async function polishDemoCoach(sql: Sql, coachId: string) {
   await sql.query(`update services set price_cad = $1 where coach_id = $2`, [DEMO_COACH.priceCad, coachId]);
 }
 
-function demoAllowed() {
-  return process.env.NODE_ENV !== "production" || process.env.BOOKME_ALLOW_DEMO === "1";
+/** Service, weekday hours, and an open trial so an existing demo row can take bookings. */
+async function ensureDemoOfferings(sql: Sql, coachId: string) {
+  const services = await sql.query<{ id: string }>(`select id from services where coach_id = $1 limit 1`, [coachId]);
+  if (!services[0]) {
+    await sql.query(
+      `insert into services (id, coach_id, name, duration, durations, price_cad) values ($1,$2,$3,60,array[60],$4)`,
+      [newId(), coachId, "Private tennis", DEMO_COACH.priceCad],
+    );
+  }
+  const hours = await sql.query<{ id: string }>(`select id from weekly_hours where coach_id = $1 limit 1`, [coachId]);
+  if (!hours[0]) {
+    for (const day of [1, 2, 3, 4, 5]) {
+      await sql.query(
+        `insert into weekly_hours (id, coach_id, weekday, start_min, end_min) values ($1,$2,$3,600,1200)`,
+        [newId(), coachId, day],
+      );
+    }
+  }
+  const trialEnds = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  await sql.query(
+    `update coaches
+       set subscription_status = case when subscription_status = 'active' then subscription_status else 'trialing' end,
+           plan = case when plan in ('light', 'coach', 'busy') then plan else 'light' end,
+           trial_ends_at = case
+             when subscription_status = 'active' then trial_ends_at
+             when trial_ends_at is null or trial_ends_at < now() then $2::timestamptz
+             else trial_ends_at end,
+           accept_cash = true
+     where id = $1`,
+    [coachId, trialEnds],
+  );
 }
 
-async function ensureDemoReady(sql: Sql) {
+/** In-person Mayfair pin. Leaves a location that already has coordinates alone. */
+async function ensureDemoVenue(sql: Sql, coachId: string) {
+  const rows = await sql.query<{ id: string; kind: string; lat: number | null; lng: number | null }>(
+    `select id, kind, lat, lng from locations where coach_id = $1 and active = true order by name`,
+    [coachId],
+  );
+  const inPerson = rows.filter((row) => (row.kind || "in_person") !== "online");
+  if (inPerson.some((row) => row.lat != null && row.lng != null)) return;
+  const blank = inPerson[0];
+  if (blank) {
+    await sql.query(
+      `update locations
+         set lat = $1, lng = $2,
+             name = case when name = '' then $3 else name end,
+             address = case when address = '' then $4 else address end
+       where id = $5`,
+      [DEMO_VENUE.lat, DEMO_VENUE.lng, DEMO_VENUE.name, DEMO_VENUE.address, blank.id],
+    );
+    return;
+  }
+  await sql.query(
+    `insert into locations (id, coach_id, name, address, kind, active, lat, lng)
+     values ($1,$2,$3,$4,'in_person',true,$5,$6)`,
+    [newId(), coachId, DEMO_VENUE.name, DEMO_VENUE.address, DEMO_VENUE.lat, DEMO_VENUE.lng],
+  );
+}
+
+/** Next weekday 10:00 / 16:00 / 17:00 inside the 72h weather window. */
+function nextOpenDemoStart(tz: string, now: Date): Date | null {
+  const today = todayKey(tz, now);
+  const windowEnd = now.getTime() + 72 * 60 * 60 * 1000;
+  for (let add = 0; add < 4; add++) {
+    const day = shiftDateKey(today, add);
+    const weekday = weekdayOf(day);
+    if (weekday === 0 || weekday === 6) continue;
+    for (const mins of [600, 960, 1020]) {
+      const start = zonedInstant(day, mins, tz);
+      const at = start.getTime();
+      if (at > now.getTime() && at <= windowEnd) return start;
+    }
+  }
+  return null;
+}
+
+/** One confirmed in-person lesson inside 72h so the weather chip has something to show. */
+async function ensureWeatherWindowLesson(sql: Sql, coachId: string) {
+  const now = new Date();
+  const until = new Date(now.getTime() + 72 * 60 * 60 * 1000);
+  const near = (
+    await sql.query<{ id: string }>(
+      `select id from lessons
+        where coach_id = $1 and status = 'confirmed' and start_at > $2 and start_at <= $3
+        limit 1`,
+      [coachId, now.toISOString(), until.toISOString()],
+    )
+  )[0];
+  if (near) return;
+
+  const tz = await coachTimezone(sql, coachId);
+  const start = nextOpenDemoStart(tz, now);
+  if (!start) return;
+  const end = new Date(start.getTime() + 60 * 60 * 1000);
+  const service = (
+    await sql.query<{ id: string; price_cad: number }>(
+      `select id, price_cad from services where coach_id = $1 limit 1`,
+      [coachId],
+    )
+  )[0];
+  const location = (
+    await sql.query<{ id: string }>(
+      `select id from locations
+        where coach_id = $1 and active = true and kind <> 'online' and lat is not null and lng is not null
+        limit 1`,
+      [coachId],
+    )
+  )[0];
+  if (!service || !location) return;
+
+  const movable = (
+    await sql.query<{ id: string }>(
+      `select l.id from lessons l
+        where l.coach_id = $1 and l.status = 'confirmed' and l.start_at > $2
+          and not exists (
+            select 1 from booking_requests r where r.lesson_id = l.id and r.status = 'pending'
+          )
+        order by l.start_at asc
+        limit 1`,
+      [coachId, now.toISOString()],
+    )
+  )[0];
+  if (movable) {
+    await sql.query(`update lessons set start_at = $1, end_at = $2, location_id = $3 where id = $4`, [
+      start.toISOString(),
+      end.toISOString(),
+      location.id,
+      movable.id,
+    ]);
+    return;
+  }
+
+  const student = DEMO_STUDENTS[0];
+  const client = await findOrCreateCoachClient(sql, coachId, { id: newId(), name: student.name, email: normalizeEmail(student.email) });
+  const lessonId = newId();
+  await sql.query(
+    `insert into lessons (id, coach_id, service_id, location_id, client_id, start_at, end_at, status)
+     values ($1,$2,$3,$4,$5,$6,$7,'confirmed')`,
+    [lessonId, coachId, service.id, location.id, client.id, start.toISOString(), end.toISOString()],
+  );
+  await sql.query(`insert into payments (id, lesson_id, method, status, amount_cad) values ($1,$2,'cash','unpaid',$3)`, [
+    newId(),
+    lessonId,
+    service.price_cad,
+  ]);
+}
+
+/**
+ * Existing demo users (a signup that never confirmed) stay unverified unless we
+ * repair them. Refresh the known password only in that case — hashing on every
+ * /alex load would be wasted work once the row is already good.
+ */
+async function repairDemoCredential(sql: Sql, userId: string, emailVerified: unknown) {
+  const accounts = await sql.query<{ id: string; password: string | null }>(
+    `select id, password from "account" where "userId" = $1 and "providerId" = 'credential'`,
+    [userId],
+  );
+  const verified = bool(emailVerified);
+  const hasPassword = accounts.some((account) => Boolean(account.password));
+  if (verified && hasPassword) return;
+  const now = new Date().toISOString();
+  if (!verified) {
+    await sql.query(`update "user" set "emailVerified" = true, "updatedAt" = $2 where id = $1`, [userId, now]);
+  }
+  const { hashPassword } = await import("better-auth/crypto");
+  const password = await hashPassword(DEMO_COACH.password);
+  if (accounts[0]) {
+    await sql.query(
+      `update "account" set password = $1, "updatedAt" = $2 where "userId" = $3 and "providerId" = 'credential'`,
+      [password, now, userId],
+    );
+    return;
+  }
+  await sql.query(
+    `insert into "account" (id, "accountId", "providerId", "userId", password, "createdAt", "updatedAt")
+     values ($1,$2,'credential',$3,$4,$5,$6)`,
+    [newId(), userId, userId, password, now, now],
+  );
+}
+
+async function demoSlug(sql: Sql, coachId: string) {
+  const row = (await sql.query<{ slug: string }>(`select slug from coaches where id = $1`, [coachId]))[0];
+  return row?.slug ?? DEMO_COACH.slug;
+}
+
+export async function ensureDemoReady(sql: Sql) {
   if (!demoAllowed()) return;
   const email = DEMO_COACH.email;
-  let user = (await sql.query<{ id: string }>(`select id from "user" where email = $1`, [email]))[0];
+  let user = (await sql.query<{ id: string; emailVerified: boolean }>(`select id, "emailVerified" from "user" where email = $1`, [email]))[0];
   if (!user) {
     const { hashPassword } = await import("better-auth/crypto");
     const password = await hashPassword(DEMO_COACH.password);
@@ -1481,56 +1677,44 @@ async function ensureDemoReady(sql: Sql) {
        values ($1,$2,'credential',$3,$4,$5,$6)`,
       [newId(), id, id, password, now, now],
     );
-    user = { id };
+    user = { id, emailVerified: true };
+  } else {
+    await repairDemoCredential(sql, user.id, user.emailVerified);
   }
   const existing = await sql.query<{ id: string }>(`select id from coaches where user_id = $1 limit 1`, [user.id]);
-  if (existing[0]) {
-    await polishDemoCoach(sql, existing[0].id);
-    await seedDemoBookings(sql, existing[0].id);
-    return { ok: true as const, slug: DEMO_COACH.slug };
-  }
-  const taken = await sql.query<{ id: string }>(`select id from coaches where slug = $1`, [DEMO_COACH.slug]);
-  const slug = taken[0] ? await uniqueSlug(sql, DEMO_COACH.name) : DEMO_COACH.slug;
-  const coachId = newId();
-  const trialEnds = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  await sql.query(
-    `insert into coaches (
-       id, user_id, slug, name, email, title, sport, city, timezone, languages, headline, bio, photo_url,
-       subscription_status, plan, trial_ends_at, accept_card, accept_cash
-     ) values ($1,$2,$3,$4,$5,$6,'tennis','Markham, ON',$11,'English',
-       $7,$8,$9,'trialing','light',$10,false,true)`,
-    [
-      coachId,
-      user.id,
-      slug,
-      DEMO_COACH.name,
-      email,
-      DEMO_COACH.title,
-      DEMO_COACH.headline,
-      DEMO_COACH.bio,
-      DEMO_COACH.photoUrl,
-      trialEnds,
-      DEFAULT_TIMEZONE,
-    ],
-  );
-  await sql.query(`insert into services (id, coach_id, name, duration, durations, price_cad) values ($1,$2,$3,60,array[60],$4)`, [
-    newId(),
-    coachId,
-    "Private tennis",
-    DEMO_COACH.priceCad,
-  ]);
-  await sql.query(
-    `insert into locations (id, coach_id, name, address, kind, active) values ($1,$2,$3,$4,'in_person',true)`,
-    [newId(), coachId, "Mayfair Parkway", "50 Steelcase Rd, Markham"],
-  );
-  for (const day of [1, 2, 3, 4, 5]) {
+  let coachId = existing[0]?.id;
+  if (!coachId) {
+    const taken = await sql.query<{ id: string }>(`select id from coaches where slug = $1`, [DEMO_COACH.slug]);
+    const slug = taken[0] ? await uniqueSlug(sql, DEMO_COACH.name) : DEMO_COACH.slug;
+    coachId = newId();
+    const trialEnds = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
     await sql.query(
-      `insert into weekly_hours (id, coach_id, weekday, start_min, end_min) values ($1,$2,$3,600,1200)`,
-      [newId(), coachId, day],
+      `insert into coaches (
+         id, user_id, slug, name, email, title, sport, city, timezone, languages, headline, bio, photo_url,
+         subscription_status, plan, trial_ends_at, accept_card, accept_cash
+       ) values ($1,$2,$3,$4,$5,$6,'tennis','Markham, ON',$11,'English',
+         $7,$8,$9,'trialing','light',$10,false,true)`,
+      [
+        coachId,
+        user.id,
+        slug,
+        DEMO_COACH.name,
+        email,
+        DEMO_COACH.title,
+        DEMO_COACH.headline,
+        DEMO_COACH.bio,
+        DEMO_COACH.photoUrl,
+        trialEnds,
+        DEFAULT_TIMEZONE,
+      ],
     );
   }
+  await polishDemoCoach(sql, coachId);
+  await ensureDemoOfferings(sql, coachId);
+  await ensureDemoVenue(sql, coachId);
   await seedDemoBookings(sql, coachId);
-  return { ok: true as const, slug: DEMO_COACH.slug };
+  await ensureWeatherWindowLesson(sql, coachId);
+  return { ok: true as const, slug: await demoSlug(sql, coachId) };
 }
 
 export const ensureDemoCoach = createServerFn({ method: "POST" }).handler(async () => {

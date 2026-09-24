@@ -11,6 +11,24 @@ export const DEMO_COACH = {
   priceCad: 85,
 };
 
+/** Mayfair Clubs, 50 Steelcase Rd E, Markham — in-person demo venue. */
+export const DEMO_VENUE = {
+  name: "Mayfair Parkway",
+  address: "50 Steelcase Rd, Markham",
+  lat: 43.8365,
+  lng: -79.348,
+};
+
+/**
+ * Demo seed stays off on production (`VERCEL_ENV=production`).
+ * Local dev, `BOOKME_ALLOW_DEMO=1`, and Vercel Preview may seed.
+ */
+export function demoAllowed(
+  env: { NODE_ENV?: string; BOOKME_ALLOW_DEMO?: string; VERCEL_ENV?: string } = process.env,
+) {
+  return env.NODE_ENV !== "production" || env.BOOKME_ALLOW_DEMO === "1" || env.VERCEL_ENV?.toLowerCase() === "preview";
+}
+
 export const DEMO_STUDENTS = [
   { name: "Emma Chen", email: "emma@bookme.test" },
   { name: "Jordan Lee", email: "jordan@bookme.test" },

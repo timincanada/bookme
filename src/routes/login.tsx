@@ -31,6 +31,7 @@ function Login() {
     e.preventDefault();
     setBusy(true);
     setError("");
+    if (email.trim().toLowerCase() === DEMO_COACH.email) await ensureDemoCoach();
     const { error: err } = await authClient.signIn.email({ email, password });
     setBusy(false);
     if (err) {
