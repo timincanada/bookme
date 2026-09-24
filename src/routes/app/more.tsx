@@ -18,9 +18,9 @@ function More() {
   if (pathname !== "/app/more") return <Outlet />;
   if (!coach) return null;
 
-  async function copyManage() {
+  async function copyDesk() {
     const live = liveManageUrl();
-    if (await shareLink({ title: "Manage your BookMe lessons", url: live })) return;
+    if (await shareLink({ title: "Student desk", url: live })) return;
     await navigator.clipboard.writeText(live);
     setCopied(true);
     toast.success("Copied " + displayManageLink());
@@ -36,6 +36,7 @@ function More() {
           ["/app/more/assistant", "Assistant name"],
           ["/app/more/hours", "Hours & booking window"],
           ["/app/more/locations", "Locations"],
+          ["/app/more/lessons", "Lessons"],
           ["/app/more/payments", "Payments"],
           ["/app/billing", policy.showPurchases ? "Subscription & billing" : "Plan"],
           ["/app/setup", "Open for business"],
@@ -49,23 +50,25 @@ function More() {
         ))}
       </ul>
       <div className="mt-6">
-        <p className="mb-3 text-sm font-semibold">Booking page</p>
-        <BookingShare slug={coach.slug} name={coach.name} canShare={coach.open} walletEnabled={coach.walletEnabled} />
+        <h2 className="font-display text-2xl">Your booking link</h2>
+        <p className="mt-1 text-sm text-muted">Students use this to book a new lesson.</p>
+        <div className="mt-4">
+          <BookingShare slug={coach.slug} name={coach.name} canShare={coach.open} walletEnabled={coach.walletEnabled} />
+        </div>
       </div>
       <div className="mt-6 rounded-2xl bg-card p-5 ring-1 ring-line">
         <h2 className="font-display text-2xl">Student desk</h2>
         <p className="mt-1 text-sm text-muted">
-          Send this to students who need to move a lesson or message you. They sign in with a code
-          sent to the email on the booking — no password.
+          For students who already booked — move a lesson or message you. Not for new bookings.
         </p>
         <p className="mt-4 font-display text-xl">{displayManageLink()}</p>
-        <Button className="mt-4" size="field" onClick={() => void copyManage()}>
+        <Button className="mt-4" size="field" onClick={() => void copyDesk()}>
           {copied ? (
             <Check className="size-4" strokeWidth={2} />
           ) : (
             <Copy className="size-4" strokeWidth={1.75} />
           )}
-          {copied ? "Copied" : "Copy manage link"}
+          {copied ? "Copied" : "Copy desk link"}
         </Button>
         <p className="mt-3 text-xs text-muted">
           Confirmation emails already include {brandedManageUrl().replace("https://", "")}.

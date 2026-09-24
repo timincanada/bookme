@@ -1783,6 +1783,31 @@ export const saveCoachBasics = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+export const saveCoachLesson = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((input: { id: string; durations?: number[]; priceCad: number }) => guardInput(input))
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    const coach = await coachForUser(sql, context.userId);
+    if (!coach) return { ok: false as const, error: "Sign in required" };
+    const id = String(data.id || "");
+    const durations = normalizeServiceDurations(data.durations);
+    if (!id || !durations) {
+      return {
+        ok: false as const,
+        error: durations ? "Lesson not found" : `Pick at least one duration (${LESSON_DURATIONS.join(", ")} minutes)`,
+      };
+    }
+    const priceCad = Math.round(Number(data.priceCad));
+    if (!(priceCad > 0)) return { ok: false as const, error: "Price is required" };
+    const updated = await sql.query<{ id: string }>(
+      `update services set duration = $1, durations = $2, price_cad = $3 where id = $4 and coach_id = $5 returning id`,
+      [durations[0], durations, priceCad, id, coach.id],
+    );
+    if (!updated[0]) return { ok: false as const, error: "Lesson not found" };
+    return { ok: true as const };
+  });
+
 export const saveCoachLocations = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator(

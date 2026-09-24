@@ -35,7 +35,7 @@ function AppLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   function reload() {
-    getMyCoach()
+    return getMyCoach()
       .then((res) => {
         if (!res.ok) {
           setClosed(Boolean("banned" in res && res.banned));
