@@ -30,6 +30,7 @@ import { isPlacesConfigured, lookupPlace, searchPlaces } from "./places";
 import { runReminders } from "./remind-run";
 import { afterPartyDecision, ANOTHER_STUDENT, clipNote, firstName, isOpenRequest, swapPlan, viewerRequestView } from "./requests";
 import { canCopyBookingLink, durationsFromService, isSetupComplete, normalizeServiceDurations, slugifyName, sportFromTitle } from "./setup";
+import { privateLessonName, resolveStoredVertical } from "./verticals";
 import { isReservedSlug } from "./booking-link";
 import { coachTimezone, openSlots, slotDateKey } from "./slots";
 import { appleWalletSigningConfigured } from "./apple-wallet/pass-config";
@@ -1729,6 +1730,7 @@ export const saveCoachBasics = createServerFn({ method: "POST" })
     (input: {
       name: string;
       title: string;
+      sport?: string;
       duration?: number;
       durations?: number[];
       priceCad: number;
@@ -1740,7 +1742,8 @@ export const saveCoachBasics = createServerFn({ method: "POST" })
     const sql = await getSql();
     const coach = await coachForUser(sql, context.userId);
     if (!coach) return { ok: false as const, error: "Sign in required" };
-    if (!data.title.trim()) return { ok: false as const, error: "Pick a vertical" };
+    const named = resolveStoredVertical(data.title, data.sport);
+    if (!named.ok) return { ok: false as const, error: named.error };
     const durations = normalizeServiceDurations(data.durations, data.duration);
     if (!durations) {
       return {
@@ -1750,13 +1753,13 @@ export const saveCoachBasics = createServerFn({ method: "POST" })
     }
     if (!(data.priceCad > 0)) return { ok: false as const, error: "Price is required" };
     const timezone = data.timezone && isValidTimezone(data.timezone) ? data.timezone : tzOf(coach.timezone);
-    const sport = sportFromTitle(data.title);
+    const sport = named.sport;
     const defaultDuration = durations[0];
     await sql.query(
       `update coaches set name = $1, title = $2, sport = $3, timezone = $4, languages = $5 where id = $6 and user_id = $7`,
       [
         data.name.trim() || coach.name,
-        data.title.trim(),
+        named.title,
         sport,
         timezone,
         data.languages || coach.languages || "English",
@@ -1765,7 +1768,7 @@ export const saveCoachBasics = createServerFn({ method: "POST" })
       ],
     );
     const existing = await sql.query<{ id: string }>(`select id from services where coach_id = $1 order by name limit 1`, [coach.id]);
-    const serviceName = `Private ${data.title.replace(/coach/i, "").trim().toLowerCase() || sport}`;
+    const serviceName = privateLessonName(named.title, sport);
     if (existing[0]) {
       await sql.query(`update services set name = $1, duration = $2, durations = $3, price_cad = $4 where id = $5`, [
         serviceName,

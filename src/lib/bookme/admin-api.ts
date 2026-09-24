@@ -228,6 +228,7 @@ export const adminExport = createServerFn({ method: "POST" })
       rows = list.coaches as unknown as Record<string, unknown>[];
       columns = [
         { key: "name", header: "Coach" },
+        { key: "specialty", header: "Discipline" },
         { key: "email", header: "Email" },
         { key: "slug", header: "Page" },
         { key: "status", header: "Subscription" },

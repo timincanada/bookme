@@ -209,6 +209,7 @@ assert.equal((await listCoaches(sql, { limit: 10, offset: 10 })).coaches.length,
 // Coach detail
 const detail = (await coachDetail(sql, "c-ana"))!;
 assert.equal(detail.coach.email, "ana@x.test");
+assert.equal(detail.coach.specialty, "Tennis", "preset sport still labels the coach");
 assert.equal(detail.lessons.confirmed, 3);
 assert.equal(detail.lessons.cancelled, 1);
 assert.equal(detail.clients.total, 3);

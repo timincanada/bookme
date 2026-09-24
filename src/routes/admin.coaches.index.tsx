@@ -93,6 +93,7 @@ function Coaches() {
                   <Link to="/admin/coaches/$id" params={{ id: c.id }} className="font-semibold text-forest">
                     {c.name}
                   </Link>
+                  <span className="block text-xs text-muted">{c.specialty}</span>
                   <span className="block text-xs text-muted">{c.email}</span>
                 </td>
                 <td className="px-4 py-3">

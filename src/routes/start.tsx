@@ -8,7 +8,7 @@ import { useNativePlatform } from "@/lib/native/platform";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { getMyCoach, saveCoachBasics, ensureDemoCoach } from "@/lib/bookme/api";
 import { DEMO_COACH } from "@/lib/bookme/demo";
-import { verticalById, type VerticalId } from "@/lib/bookme/verticals";
+import { coachBasicsFromSelection, isOtherVerticalId, type StoredSportId } from "@/lib/bookme/verticals";
 
 export const Route = createFileRoute("/start")({ component: Start });
 
@@ -18,10 +18,10 @@ function Start() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [verticalId, setVerticalId] = useState<VerticalId>("tennis");
+  const [verticalId, setVerticalId] = useState<StoredSportId>("tennis");
+  const [customDiscipline, setCustomDiscipline] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const vertical = verticalById(verticalId);
 
   useEffect(() => {
     void ensureDemoCoach();
@@ -32,6 +32,11 @@ function Start() {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    const named = coachBasicsFromSelection(verticalId, customDiscipline);
+    if (!named.ok) {
+      setError(named.error);
+      return;
+    }
     setBusy(true);
     setError("");
     const { data: created, error: err } = await authClient.signUp.email({
@@ -54,7 +59,7 @@ function Start() {
     try {
       await getMyCoach();
       await saveCoachBasics({
-        data: { name, title: `${vertical?.label ?? "Tennis"} Coach`, duration: 60, durations: [60], priceCad: 80 },
+        data: { name, title: named.title, sport: named.sport, duration: 60, durations: [60], priceCad: 80 },
       });
     } catch {
       /* setup can finish later */
@@ -98,8 +103,15 @@ function Start() {
           </label>
           <div>
             <p className="mb-2 text-sm font-medium">What do you coach?</p>
-            <p className="mb-3 text-sm text-muted">Sport, fitness, music, arts, or academic — pick the closest fit.</p>
-            <VerticalPicker value={verticalId} onChange={(id) => setVerticalId(id)} />
+            <p className="mb-3 text-sm text-muted">Sport, fitness, music, arts, or academic. Choose Other to name your own.</p>
+            <VerticalPicker
+              value={verticalId}
+              customLabel={customDiscipline}
+              onChange={(id, label) => {
+                setVerticalId(id);
+                if (isOtherVerticalId(id)) setCustomDiscipline(label);
+              }}
+            />
           </div>
           {error ? <p className="text-sm text-coral">{error}</p> : null}
           <Button type="submit" size="field" disabled={busy}>

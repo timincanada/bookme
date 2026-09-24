@@ -14,6 +14,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { PKPass } from "passkit-generator";
 import { brandedBookingUrl, displayBookingLink } from "@/lib/bookme/booking-link";
+import { walletRoleLine } from "@/lib/bookme/verticals";
 import {
   appleWalletSigningConfigured,
   getAppleWalletEnv,
@@ -43,12 +44,7 @@ async function readBrand(file: string): Promise<Buffer> {
 }
 
 function roleLine(coach: CoachPassInput): string {
-  const sport = (coach.sport || "").trim();
-  const title = (coach.title || "").trim();
-  if (sport && title && !title.toLowerCase().includes(sport.toLowerCase())) {
-    return `${title} · ${sport}`;
-  }
-  return title || sport || "Coach";
+  return walletRoleLine(coach.title, coach.sport);
 }
 
 function locationLine(coach: CoachPassInput): string | null {

@@ -1,7 +1,7 @@
-import { VERTICAL_GROUPS, VERTICAL_ITEMS, type VerticalGroupId, type VerticalId, verticalLabel } from "./bookme/verticals";
+import { VERTICAL_GROUPS, type StoredSportId, type VerticalGroupId, specialtyLabel } from "./bookme/verticals";
 import { addDays, isoDate, parseISODate } from "./utils";
 
-export type Sport = VerticalId;
+export type Sport = StoredSportId;
 
 export type Lesson = {
   id: string;
@@ -42,12 +42,8 @@ export const SPORTS: { id: FindFilter; label: string }[] = [
   ...VERTICAL_GROUPS.map((g) => ({ id: g.id, label: g.label })),
 ];
 
-export const SPORT_LABEL: Record<string, string> = Object.fromEntries(
-  VERTICAL_ITEMS.map((item) => [item.id, item.label]),
-);
-
-export function labelForSport(id: string) {
-  return SPORT_LABEL[id] ?? verticalLabel(id);
+export function labelForSport(id: string, title?: string | null) {
+  return specialtyLabel(id, title);
 }
 
 export const HST = 0.13;

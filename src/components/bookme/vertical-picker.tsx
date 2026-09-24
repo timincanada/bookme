@@ -1,30 +1,44 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SportIcon } from "@/components/sport-icon";
 import {
+  CUSTOM_DISCIPLINE_MAX,
   VERTICAL_GROUPS,
   groupForVertical,
-  verticalById,
-  verticalByLabel,
+  isOtherVerticalId,
+  resolvePickerId,
+  tilesForGroup,
+  type StoredSportId,
   type VerticalGroupId,
-  type VerticalId,
 } from "@/lib/bookme/verticals";
 import { cn } from "@/lib/utils";
 
 export function VerticalPicker({
   value,
+  customLabel = "",
   onChange,
 }: {
   value: string;
-  onChange: (id: VerticalId, label: string) => void;
+  /** Draft typed under Other. Kept when the coach switches category chips. */
+  customLabel?: string;
+  onChange: (id: StoredSportId, label: string) => void;
 }) {
-  const selected =
-    verticalById(value)?.id ?? verticalByLabel(value)?.id ?? (value as VerticalId);
-  const initialGroup = groupForVertical(selected)?.id ?? "sport";
+  const selected = resolvePickerId(value);
+  const initialGroup = (selected && groupForVertical(selected)?.id) ?? "sport";
   const [groupId, setGroupId] = useState<VerticalGroupId>(initialGroup);
   const group = useMemo(
     () => VERTICAL_GROUPS.find((g) => g.id === groupId) ?? VERTICAL_GROUPS[0],
     [groupId],
   );
+  const tiles = useMemo(() => tilesForGroup(group.id), [group.id]);
+  const showCustom = !!selected && isOtherVerticalId(selected) && groupForVertical(selected)?.id === group.id;
+  const fieldRef = useRef<HTMLInputElement>(null);
+  const focusOnShow = useRef(false);
+
+  useEffect(() => {
+    if (!focusOnShow.current || !showCustom) return;
+    focusOnShow.current = false;
+    fieldRef.current?.focus();
+  }, [showCustom]);
 
   return (
     <div>
@@ -49,13 +63,16 @@ export function VerticalPicker({
         })}
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2">
-        {group.items.map((item) => {
+        {tiles.map((item) => {
           const on = selected === item.id;
           return (
             <button
               key={item.id}
               type="button"
-              onClick={() => onChange(item.id, item.label)}
+              onClick={() => {
+                if (item.custom) focusOnShow.current = true;
+                onChange(item.id, item.custom ? customLabel : item.label);
+              }}
               className={cn(
                 "flex min-h-[4.5rem] items-start gap-3 rounded-2xl px-3 py-3 text-left ring-1 transition-colors",
                 on ? "bg-forest text-on-forest ring-forest" : "bg-card ring-line hover:bg-paper-2",
@@ -79,6 +96,23 @@ export function VerticalPicker({
           );
         })}
       </div>
+      {showCustom ? (
+        <label className="mt-3 block">
+          <span className="mb-1.5 block text-sm font-medium">Your discipline</span>
+          <input
+            ref={fieldRef}
+            className="field"
+            value={customLabel}
+            maxLength={CUSTOM_DISCIPLINE_MAX}
+            placeholder="What do you coach?"
+            aria-label="Your discipline"
+            required
+            onChange={(e) => {
+              if (selected && isOtherVerticalId(selected)) onChange(selected, e.target.value);
+            }}
+          />
+        </label>
+      ) : null}
     </div>
   );
 }

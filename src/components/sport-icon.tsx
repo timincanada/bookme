@@ -1,3 +1,4 @@
+import { isOtherVerticalId } from "@/lib/bookme/verticals";
 import {
   Camera,
   Circle,
@@ -16,6 +17,7 @@ import {
   Music,
   Music2,
   Palette,
+  PenLine,
   PersonStanding,
   Piano,
   Snowflake,
@@ -63,6 +65,6 @@ export function SportIcon({
   sport: string;
   className?: string;
 }) {
-  const Icon = MAP[sport] ?? CircleDot;
+  const Icon = MAP[sport] ?? (isOtherVerticalId(sport) ? PenLine : CircleDot);
   return <Icon className={cn("size-4", className)} strokeWidth={1.75} />;
 }
