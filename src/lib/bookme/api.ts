@@ -25,7 +25,7 @@ import {
 import { notifyLessonConfirmed } from "./mail-send";
 import { pushLater, pushToCoach, pushToStudentEmail } from "./push";
 import { canUseMethod, enabledMethods, normalizeAccepted } from "./payments";
-import { cityFromAddressComponents, googleMapsApiKey, isPlacesConfigured, type PlaceSuggestion } from "./places";
+import { isPlacesConfigured, lookupPlace, searchPlaces } from "./places";
 import { runReminders } from "./remind-run";
 import { afterPartyDecision, ANOTHER_STUDENT, clipNote, firstName, isOpenRequest, swapPlan, viewerRequestView } from "./requests";
 import { canCopyBookingLink, durationsFromService, isSetupComplete, normalizeServiceDurations, slugifyName, sportFromTitle } from "./setup";
@@ -3045,87 +3045,14 @@ export const placesAutocomplete = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .validator((input: { q: string }) => guardInput(input))
   .handler(async ({ data }) => {
-    if (!isPlacesConfigured()) {
-      return { configured: false as const, suggestions: [] as PlaceSuggestion[] };
-    }
-    const q = data.q.trim();
-    if (q.length < 2) return { configured: true as const, suggestions: [] as PlaceSuggestion[] };
-    const key = googleMapsApiKey()!;
-    const url = new URL("https://maps.googleapis.com/maps/api/place/autocomplete/json");
-    url.searchParams.set("input", q);
-    url.searchParams.set("key", key);
-    url.searchParams.set("types", "address");
-    try {
-      const res = await fetch(url.toString());
-      const body = await res.json();
-      if (body.status && body.status !== "OK" && body.status !== "ZERO_RESULTS") {
-        return { configured: true as const, suggestions: [] as PlaceSuggestion[], error: body.status, allowManual: true };
-      }
-      const suggestions: PlaceSuggestion[] = (body.predictions || []).slice(0, 6).map(
-        (p: {
-          place_id: string;
-          description: string;
-          structured_formatting?: { main_text?: string; secondary_text?: string };
-        }) => ({
-          placeId: p.place_id,
-          description: p.description,
-          mainText: p.structured_formatting?.main_text || p.description,
-          secondaryText: p.structured_formatting?.secondary_text || "",
-        }),
-      );
-      return { configured: true as const, suggestions };
-    } catch {
-      return { configured: true as const, suggestions: [] as PlaceSuggestion[], error: "Places request failed", allowManual: true };
-    }
+    return searchPlaces(String(data?.q || ""));
   });
 
 export const placesDetails = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .validator((input: { placeId: string }) => guardInput(input))
   .handler(async ({ data }) => {
-    if (!isPlacesConfigured()) return { ok: false as const, error: "Address search unavailable" };
-    const placeId = data.placeId.trim();
-    if (!placeId) return { ok: false as const, error: "placeId required" };
-    const key = googleMapsApiKey()!;
-    const url = new URL("https://maps.googleapis.com/maps/api/place/details/json");
-    url.searchParams.set("place_id", placeId);
-    url.searchParams.set("fields", "place_id,formatted_address,geometry,address_component");
-    url.searchParams.set("key", key);
-    try {
-      const res = await fetch(url.toString());
-      const body = await res.json();
-      if (body.status !== "OK" || !body.result) {
-        return { ok: false as const, error: body.status || "Details failed", allowManual: true };
-      }
-      const r = body.result;
-      const lat = r.geometry?.location?.lat ?? null;
-      const lng = r.geometry?.location?.lng ?? null;
-      let timezone: string | null = null;
-      if (typeof lat === "number" && typeof lng === "number") {
-        try {
-          const tzUrl = new URL("https://maps.googleapis.com/maps/api/timezone/json");
-          tzUrl.searchParams.set("location", `${lat},${lng}`);
-          tzUrl.searchParams.set("timestamp", String(Math.floor(Date.now() / 1000)));
-          tzUrl.searchParams.set("key", key);
-          const tzRes = await fetch(tzUrl.toString());
-          const tzData = await tzRes.json();
-          if (tzData.status === "OK" && isValidTimezone(tzData.timeZoneId)) timezone = tzData.timeZoneId;
-        } catch {
-          timezone = null;
-        }
-      }
-      return {
-        ok: true as const,
-        placeId: r.place_id || placeId,
-        formattedAddress: r.formatted_address || "",
-        lat,
-        lng,
-        city: cityFromAddressComponents(r.address_components),
-        timezone,
-      };
-    } catch {
-      return { ok: false as const, error: "Details request failed", allowManual: true };
-    }
+    return lookupPlace(String(data?.placeId || ""));
   });
 
 export const runReminderPass = createServerFn({ method: "POST" })

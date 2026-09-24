@@ -5,7 +5,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { guardInput } from "./input-guard";
 import { getSql } from "@/lib/db";
 import { publicAppUrl as appUrl } from "./app-url";
-import { manageLinkMail, sendMail } from "./mail";
+import { manageLinkMail, productionMailConfigError, sendMail } from "./mail";
 import { devShowsCode } from "./student-auth";
 const session = () => import("./student-session.server");
 import { createSession, requestCode, verifyCode, verifyToken, type VerifyResult } from "./student-service";
@@ -15,13 +15,24 @@ const SENT = "If we have bookings for that email, we sent a one-time link and a 
 export const requestStudentCode = createServerFn({ method: "POST" })
   .validator((input: { email: string }) => guardInput(input))
   .handler(async ({ data }) => {
+    const configError = productionMailConfigError();
+    if (configError) {
+      console.error(JSON.stringify({ msg: "student_code_undelivered", template: "student_code", error: configError }));
+      return {
+        sent: false as const,
+        message: "We couldn't send a sign-in email right now. Try again in a few minutes.",
+      };
+    }
     const sql = await getSql();
     const result = await requestCode(sql, String(data?.email || ""), (await session()).requestIp());
     if (!result.issue) return { sent: true as const, message: SENT };
-    await sendMail(
+    const delivery = await sendMail(
       manageLinkMail({ email: result.email, link: `${appUrl()}/manage?token=${result.token}`, code: result.code }),
       { template: "student_code" },
     );
+    if (!delivery.ok) {
+      console.error(JSON.stringify({ msg: "student_code_undelivered", template: "student_code", error: delivery.error }));
+    }
     return devShowsCode()
       ? { sent: true as const, message: SENT, previewCode: result.code }
       : { sent: true as const, message: SENT };

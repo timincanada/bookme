@@ -1,5 +1,27 @@
-export type Mail = { to: string; subject: string; text: string };
-export type SendMailResult = { ok: true } | { ok: false; error: string };
+export type Mail = { to: string; subject: string; text: string; html?: string };
+export type SendMailResult = { ok: true; id?: string } | { ok: false; error: string };
+
+const DEFAULT_FROM = "BookMe <noreply@bookme.training>";
+
+export function resendApiKey(env: NodeJS.ProcessEnv = process.env) {
+  return env.RESEND_API_KEY?.trim() || "";
+}
+
+/** Production has no local stub. A missing key must not look like a delivered email. */
+export function productionMailConfigError(env: NodeJS.ProcessEnv = process.env): string | null {
+  if (env.NODE_ENV !== "production") return null;
+  if (!resendApiKey(env)) return "RESEND_API_KEY is not set";
+  return null;
+}
+
+function htmlFromText(text: string) {
+  const escaped = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const body = escaped
+    .split(/\n{2,}/)
+    .map((part) => `<p>${part.replace(/\n/g, "<br>\n")}</p>`)
+    .join("\n");
+  return `<!DOCTYPE html><html><body style="font-family:sans-serif;font-size:16px;color:#1a1a1a">${body}</body></html>`;
+}
 
 export type MailMeta = {
   bookingId?: string;
@@ -50,36 +72,52 @@ export async function sendMail(mail: Mail, meta: MailMeta = {}): Promise<SendMai
     return { ok: true };
   }
 
-  if (!process.env.RESEND_API_KEY) {
+  const configError = productionMailConfigError();
+  if (!resendApiKey()) {
+    if (configError) {
+      logMail({ msg: "mail_not_configured", ...base, error: configError });
+      return { ok: false, error: configError };
+    }
     logMail({ msg: "mail_stub", ...base, subject: mail.subject });
     console.log("[mail stub]", mail.to, mail.subject, mail.text);
     return { ok: true };
   }
 
+  const from = process.env.MAIL_FROM?.trim() || DEFAULT_FROM;
+  const fromDefault = !process.env.MAIL_FROM?.trim();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), MAIL_TIMEOUT_MS);
   try {
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        Authorization: `Bearer ${resendApiKey()}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: process.env.MAIL_FROM || "BookMe <noreply@bookme.training>",
+        from,
         to: [mail.to],
         subject: mail.subject,
         text: mail.text,
+        html: mail.html || htmlFromText(mail.text),
       }),
       signal: controller.signal,
     });
     if (!response.ok) {
       const body = await response.text().catch(() => "");
       const error = `Resend ${response.status}: ${body.slice(0, 500)}`;
-      logMail({ msg: "mail_send_failed", ...base, error });
+      logMail({ msg: "mail_send_failed", ...base, error, fromDefault });
       return { ok: false, error };
     }
-    return { ok: true };
+    const payload = (await response.json().catch(() => null)) as { id?: unknown } | null;
+    const id = payload && typeof payload.id === "string" ? payload.id : "";
+    if (!id) {
+      const error = "Resend response missing message id";
+      logMail({ msg: "mail_send_failed", ...base, error, fromDefault });
+      return { ok: false, error };
+    }
+    logMail({ msg: "mail_sent", ...base, id, fromDefault });
+    return { ok: true, id };
   } catch (err) {
     const error =
       err instanceof Error
@@ -197,8 +235,8 @@ export function reminderMails(input: {
 export function manageLinkMail(input: { email: string; link: string; code: string }): Mail {
   return {
     to: input.email,
-    subject: "Your BookMe bookings link",
-    text: `Open this one-time link to manage your private lessons: ${input.link}\n\nOr enter this code: ${input.code}\nIt expires in 30 minutes. Request a new one if it was already used.`,
+    subject: "Your BookMe sign-in code",
+    text: `Your BookMe sign-in code is ${input.code}.\n\nIt expires in 30 minutes. You can also open this one-time link:\n${input.link}\n\nIf you didn't request this, you can ignore this email.`,
   };
 }
 
@@ -277,7 +315,7 @@ export function newMessageMail(input: { to: string; name: string; fromName: stri
 }
 
 export function mailIsStub() {
-  return !process.env.RESEND_API_KEY;
+  return !resendApiKey();
 }
 
 export function studentMoveRequestMails(input: {

@@ -38,8 +38,8 @@ Required — the site is broken without these:
 | `BETTER_AUTH_URL` | `https://bookme.training` |
 | `BOOKME_APP_URL` | `https://bookme.training` |
 | `VITE_AUTH_ENABLED` | `true` |
-| `RESEND_API_KEY` | Resend API key — without it coaches cannot confirm sign-up and students cannot sign in |
-| `MAIL_FROM` | e.g. `BookMe <hello@bookme.training>` (verified domain) |
+| `RESEND_API_KEY` | Resend API key — without it production refuses to pretend a student code was sent |
+| `MAIL_FROM` | e.g. `BookMe <hello@bookme.training>` on a domain verified in Resend (SPF and DKIM). Unset uses `BookMe <noreply@bookme.training>`, which only delivers if that address is verified |
 | `STRIPE_SECRET_KEY` | Stripe secret key |
 | `STRIPE_WEBHOOK_SECRET` | From step 4 |
 | `STRIPE_PRICE_LIGHT` / `STRIPE_PRICE_COACH` / `STRIPE_PRICE_BUSY` | Subscription price IDs |
@@ -51,7 +51,7 @@ Recommended:
 |---|---|
 | `CSP_REPORT_ONLY` | `1` for the first deploy (see step 6), then delete |
 | `XAI_API_KEY` | Assistant (text/voice). Without it the assistant falls back to a simple parser |
-| `GOOGLE_MAPS_API_KEY` | Address autocomplete when adding locations |
+| `GOOGLE_MAPS_API_KEY` | Server key for address autocomplete (Places API New enabled; not restricted to browser referrers). Legacy Places, Geocoding, and Time Zone improve coverage. Coaches can still type an unverified address when search is off or finds nothing |
 | `APPLE_TEAM_ID` | 10 characters; makes `/.well-known/apple-app-site-association` serve (iOS deep links) |
 | `ANDROID_CERT_SHA256` | Play app-signing SHA-256 (`AA:BB:…`); makes `/.well-known/assetlinks.json` serve |
 
@@ -103,6 +103,8 @@ CSP messages):
 2. Finish setup, start the trial, copy the booking link, book a lesson as a student
    (cash and card; card needs Stripe test mode).
 3. `/manage`: request a code, sign in, cancel a lesson, send a message to the coach.
+   A delivered student code logs `{"msg":"mail_sent","template":"student_code","id":"<Resend email id>"}`.
+   That `id` is the message in the Resend dashboard. `mail_not_configured` or `student_code_undelivered` means it did not send.
 4. Remove `CSP_REPORT_ONLY` and redeploy once the console is clean.
 
 ## 7. Right after go-live
