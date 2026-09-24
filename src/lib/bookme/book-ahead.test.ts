@@ -11,7 +11,11 @@ assert.equal(DEFAULT_BOOK_AHEAD_DAYS, 28);
 assert.equal(normalizeBookAheadDays(7), 7);
 assert.equal(normalizeBookAheadDays(14), 14);
 assert.equal(normalizeBookAheadDays(28), 28);
-assert.equal(normalizeBookAheadDays(99), 28);
+assert.equal(normalizeBookAheadDays(99), 99);
+assert.equal(normalizeBookAheadDays(121), 28);
+assert.equal(normalizeBookAheadDays(1), 1);
+assert.equal(normalizeBookAheadDays(120), 120);
+assert.equal(normalizeBookAheadDays(0), 28);
 assert.equal(normalizeBookAheadDays(undefined), 28);
 assert.equal(normalizeBookAheadDays("14"), 14);
 
@@ -26,5 +30,8 @@ assert.equal(isWithinBookAhead("2026-10-11", 28, today), true);
 assert.equal(isWithinBookAhead("2026-10-12", 28, today), false);
 assert.equal(isWithinBookAhead("2026-09-13", 7, today), false);
 assert.equal(bookAheadLabel(14), "2 weeks");
+assert.equal(bookAheadLabel(2), "2 days");
+assert.equal(bookAheadLabel(1), "1 day");
+assert.equal(bookAheadLabel(6), "6 days");
 
 console.log("book-ahead tests ok");

@@ -112,3 +112,31 @@ export function shouldPriceInvoiceFromLastMonth(opts: {
   }
   return true;
 }
+
+/** Plain-language subscription status for the billing page. */
+export function subscriptionStatusLabel(status: string | null | undefined, trialEndsAt?: string | null) {
+  const trialDate = trialEndsAt ? trialEndsAt.slice(0, 10) : null;
+  switch (String(status || "none")) {
+    case "trialing":
+      return trialDate ? `Free trial until ${trialDate}` : "Free trial";
+    case "active":
+      return "Active subscription";
+    case "past_due":
+      return "Payment failed — update your card";
+    case "unpaid":
+      return "Unpaid — subscription paused";
+    case "canceled":
+      return "Cancelled — no active subscription";
+    default:
+      return "No subscription yet";
+  }
+}
+
+export function planTierLabel(status: string | null | undefined, plan: string | null | undefined) {
+  const p = String(plan || "none");
+  if (p === "none" || String(status || "none") === "none") {
+    return "Start the trial to publish your booking page.";
+  }
+  const names: Record<string, string> = { light: "Light", coach: "Coach", busy: "Busy" };
+  return `Tier: ${names[p] ?? p}`;
+}

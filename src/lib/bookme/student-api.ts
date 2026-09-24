@@ -69,3 +69,8 @@ export const studentSignOut = createServerFn({ method: "POST" }).handler(async (
   await (await session()).clearStudentSession();
   return { ok: true as const };
 });
+
+/** Whether the demo student shortcut may be shown (never in production unless allowed). */
+export const demoAvailable = createServerFn({ method: "GET" }).handler(async () => ({
+  demo: process.env.NODE_ENV !== "production" || process.env.BOOKME_ALLOW_DEMO === "1",
+}));

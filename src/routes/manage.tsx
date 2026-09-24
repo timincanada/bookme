@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ensureDemoCoach } from "@/lib/bookme/api";
 import { DEMO_STUDENTS } from "@/lib/bookme/demo";
 import { StudentContext } from "@/lib/bookme/student-context";
-import { getStudentMe, requestStudentCode, studentSignOut, verifyStudentCode, verifyStudentLink } from "@/lib/bookme/student-api";
+import { demoAvailable, getStudentMe, requestStudentCode, studentSignOut, verifyStudentCode, verifyStudentLink } from "@/lib/bookme/student-api";
 import { cn } from "@/lib/utils";
 import { forgetDevice } from "@/lib/native/device";
 
@@ -32,6 +32,7 @@ function Portal() {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [previewCode, setPreviewCode] = useState("");
+  const [showDemo, setShowDemo] = useState(false);
 
   useEffect(() => {
     try {
@@ -53,6 +54,7 @@ function Portal() {
       return;
     }
     getStudentMe().then((r) => setMe(r.signedIn ? r.email : null));
+    demoAvailable().then((r) => setShowDemo(r.demo));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -117,10 +119,12 @@ function Portal() {
                 <Button className="mt-3" size="field" disabled={busy || !email} onClick={() => void sendCode()}>
                   Email me a code
                 </Button>
-                <button type="button" className="mt-4 text-left text-sm text-forest" onClick={() => setEmail(DEMO_STUDENTS[0].email)}>
-                  Use demo student
-                  <span className="mt-0.5 block text-muted">{DEMO_STUDENTS[0].email}</span>
-                </button>
+                {showDemo ? (
+                  <button type="button" className="mt-4 text-left text-sm text-forest" onClick={() => setEmail(DEMO_STUDENTS[0].email)}>
+                    Use demo student
+                    <span className="mt-0.5 block text-muted">{DEMO_STUDENTS[0].email}</span>
+                  </button>
+                ) : null}
               </>
             ) : (
               <>
