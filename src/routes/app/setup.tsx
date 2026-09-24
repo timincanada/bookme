@@ -29,7 +29,8 @@ function Setup() {
     if (Array.isArray(fromSvc) && fromSvc.length) return [...fromSvc].sort((a, b) => a - b);
     return [svc?.duration || 60];
   });
-  const [price, setPrice] = useState(coach?.services[0]?.priceCad || 80);
+  // Kept as text so the field can be emptied instead of snapping back to 0.
+  const [price, setPrice] = useState(String(coach?.services[0]?.priceCad ?? 80));
   const [timezone, setTimezone] = useState(coach?.timezone || "America/Toronto");
   const [locations, setLocations] = useState<
     { id?: string; name: string; kind: string; active?: boolean; addressValue: AddressValue }[]
@@ -116,7 +117,16 @@ function Setup() {
           </div>
           <label className="mt-4 block">
             <span className="mb-1.5 block text-sm font-medium">Price (CAD)</span>
-            <input className="field" type="number" value={price} onChange={(e) => setPrice(Number(e.target.value))} />
+            <input
+              className="field"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              value={price}
+              onFocus={(e) => e.currentTarget.select()}
+              onChange={(e) => setPrice(e.target.value.replace(/[^\d]/g, ""))}
+              onBlur={() => setPrice((v) => (v.trim() === "" ? "0" : String(Number(v))))}
+            />
           </label>
           <label className="mt-4 block">
             <span className="mb-1.5 block text-sm font-medium">Timezone</span>
@@ -138,7 +148,7 @@ function Setup() {
                   title: `${title} Coach`,
                   durations,
                   duration: durations[0],
-                  priceCad: price,
+                  priceCad: Number(price) || 0,
                   timezone,
                 },
               });
