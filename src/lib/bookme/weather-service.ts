@@ -2,13 +2,18 @@
  * Open-Meteo forecasts for in-person venues, plus weather_ask open / keep / cancel.
  *
  * Riley can mock the forecast without a network:
- *   BOOKME_OPEN_METEO_FIXTURE=/absolute/path/open-meteo.json
- *     Raw Open-Meteo JSON. `hourly.time` may be unix seconds or ISO strings.
- *     Every lookup returns that body.
+ *   BOOKME_OPEN_METEO_FIXTURE=extreme
+ *     Shipped fixtures/open-meteo-extreme.json (rain, gusts, and thunder above
+ *     the v1 thresholds). hourly.time is rewritten onto the lookup hour so a
+ *     lesson inside 72h matches. This is the Preview setting — no filesystem path.
+ *   BOOKME_OPEN_METEO_FIXTURE=/absolute/or/cwd-relative/open-meteo.json
+ *     Raw Open-Meteo JSON, used as-is. hourly.time may be unix seconds or ISO.
  *   BOOKME_OPEN_METEO_BASE=https://example.test/v1/forecast
  *     Replaces https://api.open-meteo.com/v1/forecast. The query string is unchanged.
  * Cache is in-process, keyed by rounded lat/lng and UTC hour, for 45 minutes.
  */
+import { isAbsolute, resolve } from "node:path";
+import extremeFixtureJson from "../../../fixtures/open-meteo-extreme.json";
 import { publicAppUrl } from "./app-url";
 import { sendMail, type Mail } from "./mail";
 import { googleMapsApiKey, isPlacesConfigured } from "./places";
@@ -111,15 +116,52 @@ function isUnique(err: unknown) {
   return typeof err === "object" && err !== null && "code" in err && (err as { code?: string }).code === "23505";
 }
 
+type ExtremeFixture = {
+  hourly?: {
+    time?: unknown[];
+    [key: string]: unknown;
+  };
+};
+
+const extremeFixture = extremeFixtureJson as ExtremeFixture;
+
 async function readFixture(path: string) {
   const { readFile } = await import("node:fs/promises");
   return readFile(path, "utf8");
 }
 
-async function fetchOpenMeteo(lat: number, lng: number): Promise<HourPoint[]> {
+/** `extreme` is the shipped storm. Anything else is a file path, absolute or from cwd. */
+export function resolveOpenMeteoFixture(spec: string, cwd = process.cwd()) {
+  const trimmed = spec.trim();
+  if (trimmed === "extreme") return { kind: "extreme" as const };
+  const path = isAbsolute(trimmed) ? trimmed : resolve(cwd, trimmed);
+  return { kind: "file" as const, path };
+}
+
+/** Shift shipped hourly.time so hour 0 is the previous UTC hour. Values stay extreme. */
+export function alignExtremeFixture(body: ExtremeFixture, now: Date): ExtremeFixture {
+  const time = body.hourly?.time;
+  if (!Array.isArray(time) || time.length === 0) return body;
+  const startSec = Math.floor(now.getTime() / 3_600_000) * 3600 - 3600;
+  return {
+    ...body,
+    hourly: {
+      ...body.hourly,
+      time: time.map((_, i) => startSec + i * 3600),
+    },
+  };
+}
+
+async function fixtureBody(spec: string, now: Date) {
+  const resolved = resolveOpenMeteoFixture(spec);
+  if (resolved.kind === "extreme") return alignExtremeFixture(extremeFixture, now);
+  return JSON.parse(await readFixture(resolved.path)) as unknown;
+}
+
+async function fetchOpenMeteo(lat: number, lng: number, now: Date): Promise<HourPoint[]> {
   const fixture = process.env.BOOKME_OPEN_METEO_FIXTURE?.trim();
   if (!weatherTransport && fixture) {
-    return parseOpenMeteo(JSON.parse(await readFixture(fixture)));
+    return parseOpenMeteo(await fixtureBody(fixture, now));
   }
   const base = (process.env.BOOKME_OPEN_METEO_BASE || OPEN_METEO_DEFAULT).trim();
   const url = new URL(base);
@@ -145,7 +187,7 @@ async function cachedForecast(lat: number, lng: number, now: Date): Promise<Hour
   const hit = forecastCache().get(key);
   if (hit && hit.exp > Date.now()) return hit.points;
   try {
-    const points = await fetchOpenMeteo(lat, lng);
+    const points = await fetchOpenMeteo(lat, lng, now);
     forecastCache().set(key, { exp: Date.now() + FORECAST_CACHE_MS, points });
     return points;
   } catch (err) {

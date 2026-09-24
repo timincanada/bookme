@@ -4,9 +4,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import {
+  alignExtremeFixture,
   openAskAsStudent,
   resetWeatherForTests,
   resolveAskAsCoach,
+  resolveOpenMeteoFixture,
   setGeocodeTransport,
   setWeatherTransport,
   weatherForCoach,
@@ -333,6 +335,54 @@ await sql.query(
   });
   delete process.env.BOOKME_OPEN_METEO_FIXTURE;
   assert.equal(fromFile?.summary, "11° · 15%");
+}
+
+{
+  assert.deepEqual(resolveOpenMeteoFixture("extreme"), { kind: "extreme" });
+  assert.deepEqual(resolveOpenMeteoFixture("  extreme  "), { kind: "extreme" });
+  const resolvedRel = resolveOpenMeteoFixture("fixtures/open-meteo-extreme.json", "/srv/bookme");
+  const resolvedAbs = resolveOpenMeteoFixture("/tmp/open-meteo.json");
+  assert.equal(resolvedRel.kind, "file");
+  assert.equal(resolvedAbs.kind, "file");
+  if (resolvedRel.kind === "file") assert.equal(resolvedRel.path, "/srv/bookme/fixtures/open-meteo-extreme.json");
+  if (resolvedAbs.kind === "file") assert.equal(resolvedAbs.path, "/tmp/open-meteo.json");
+
+  const shipped = JSON.parse(readFileSync(new URL("../../../fixtures/open-meteo-extreme.json", import.meta.url), "utf8")) as {
+    hourly: {
+      time: number[];
+      precipitation_probability: number[];
+      precipitation: number[];
+      wind_gusts_10m: number[];
+      weather_code: number[];
+    };
+  };
+  assert.ok(shipped.hourly.time.length >= 80);
+  assert.ok(Math.max(...shipped.hourly.precipitation_probability) >= 70);
+  assert.ok(Math.max(...shipped.hourly.precipitation) >= 5);
+  assert.ok(Math.max(...shipped.hourly.wind_gusts_10m) >= 60);
+  assert.ok(shipped.hourly.weather_code.some((code) => code >= 95 && code <= 99));
+  const aligned = alignExtremeFixture(shipped, NOW);
+  const startSec = Math.floor(NOW.getTime() / 3_600_000) * 3600 - 3600;
+  assert.equal(aligned.hourly?.time?.[0], startSec);
+
+  resetWeatherForTests();
+  const previous = process.env.BOOKME_OPEN_METEO_FIXTURE;
+  process.env.BOOKME_OPEN_METEO_FIXTURE = "extreme";
+  const storm = await weatherForVenue(sql, {
+    slug: "daniel-kim",
+    locationId: "loc-wx",
+    start: START.toISOString(),
+    durationMin: 60,
+    now: NOW,
+  });
+  if (previous === undefined) delete process.env.BOOKME_OPEN_METEO_FIXTURE;
+  else process.env.BOOKME_OPEN_METEO_FIXTURE = previous;
+  assert.equal(storm?.extreme, true);
+  assert.equal(storm?.summary, "18° · 90%");
+  assert.equal(storm?.icon, "thunder");
+  assert.ok(storm?.signals.some((signal) => signal.code === "precip"));
+  assert.ok(storm?.signals.some((signal) => signal.code === "wind"));
+  assert.ok(storm?.signals.some((signal) => signal.code === "thunder"));
 }
 
 {

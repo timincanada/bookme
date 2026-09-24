@@ -102,6 +102,20 @@ try {
   assert.equal(created.locations, 1);
   assert.equal(await verifyPassword({ hash: created.password, password: DEMO_COACH.password }), true);
   assert.equal(await hasWindowLesson(blocked), true);
+  const students = await blocked.query<{ email: string }>(
+    `select lower(email) as email from clients
+      where lower(email) in ('emma@bookme.test', 'jordan@bookme.test', 'sam@bookme.test')
+      order by email`,
+  );
+  assert.deepEqual(
+    students.map((row) => row.email),
+    ["emma@bookme.test", "jordan@bookme.test", "sam@bookme.test"],
+  );
+  process.env.BETTER_AUTH_SECRET ??= "demo-seed-test-secret-demo-seed-test-secret";
+  const { requestCode } = await import("./student-service.ts");
+  const issued = await requestCode(blocked, "emma@bookme.test", "203.0.113.5");
+  assert.equal(issued.issue, true);
+  if (issued.issue) assert.match(issued.code, /^\d{6}$/);
 
   const again = await ensureDemoReady(blocked);
   assert.equal(again?.slug, "alex");
