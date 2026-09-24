@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { changeMails, coachSwapRequestMail,
-  newMessageMail, confirmationMails, manageLinkMail, reminderMails, requestResolvedMail, sendMail, studentMessageMail, studentMoveRequestMails } from "./mail.ts";
+  newMessageMail, confirmationMails, manageLinkMail, productionMailConfigError, reminderMails, requestResolvedMail, sendMail, studentMessageMail, studentMoveRequestMails } from "./mail.ts";
 
 const mails = confirmationMails({
   coachName: "Tim Zhang",
@@ -187,26 +187,50 @@ async function testSendMail() {
   };
 
   try {
-    await withEnv("RESEND_API_KEY", undefined, async () => {
-      logs.length = 0;
-      const result = await sendMail(
-        { to: "emma@test.com", subject: "Hi", text: "Hello" },
-        { bookingId: "b1", template: "confirm" },
-      );
-      assert.equal(result.ok, true);
-      assert.ok(logs.some((line) => line.includes("[mail stub]")));
-      assert.ok(logs.some((line) => line.includes("mail_stub") && line.includes("emma@test.com")));
+    await withEnv("NODE_ENV", "development", async () => {
+      await withEnv("RESEND_API_KEY", undefined, async () => {
+        logs.length = 0;
+        const result = await sendMail(
+          { to: "emma@test.com", subject: "Hi", text: "Hello" },
+          { bookingId: "b1", template: "confirm" },
+        );
+        assert.equal(result.ok, true);
+        assert.ok(logs.some((line) => line.includes("[mail stub]")));
+        assert.ok(logs.some((line) => line.includes("mail_stub") && line.includes("emma@test.com")));
+      });
     });
 
+    await withEnv("NODE_ENV", "production", async () => {
+      await withEnv("RESEND_API_KEY", undefined, async () => {
+        logs.length = 0;
+        const missing = await sendMail(
+          { to: "emma@test.com", subject: "Hi", text: "Hello" },
+          { template: "student_code" },
+        );
+        assert.equal(missing.ok, false);
+        if (!missing.ok) assert.match(missing.error, /RESEND_API_KEY/);
+        assert.ok(logs.some((line) => line.includes("mail_not_configured") && line.includes("student_code")));
+        assert.equal(productionMailConfigError(), "RESEND_API_KEY is not set");
+      });
+    });
+    assert.equal(productionMailConfigError(), null);
+
     await withEnv("RESEND_API_KEY", "re_test", async () => {
-      globalThis.fetch = (async () =>
-        new Response(JSON.stringify({ id: "email_1" }), { status: 200 })) as typeof fetch;
+      let sentBody = "";
+      globalThis.fetch = (async (_input: unknown, init?: RequestInit) => {
+        sentBody = String(init?.body || "");
+        return new Response(JSON.stringify({ id: "email_1" }), { status: 200 });
+      }) as typeof fetch;
       logs.length = 0;
       const ok = await sendMail(
         { to: "emma@test.com", subject: "Hi", text: "Hello" },
         { bookingId: "b2", template: "confirm" },
       );
       assert.equal(ok.ok, true);
+      if (ok.ok) assert.equal(ok.id, "email_1");
+      assert.match(sentBody, /"html":/);
+      assert.match(sentBody, /Hello/);
+      assert.ok(logs.some((line) => line.includes("mail_sent") && line.includes("email_1") && line.includes("confirm")));
 
       globalThis.fetch = (async () =>
         new Response("bad key", { status: 401 })) as typeof fetch;

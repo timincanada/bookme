@@ -62,8 +62,12 @@ function Portal() {
     if (DEMO_STUDENTS.some((s) => s.email === email.trim().toLowerCase())) await ensureDemoCoach();
     const res = await requestStudentCode({ data: { email } });
     setBusy(false);
-    setStep("code");
     setMsg(res.message);
+    if (!res.sent) {
+      setPreviewCode("");
+      return;
+    }
+    setStep("code");
     setPreviewCode("previewCode" in res && res.previewCode ? res.previewCode : "");
   }
 

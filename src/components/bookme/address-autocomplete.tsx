@@ -18,19 +18,34 @@ type Props = {
   id?: string;
 };
 
+const EMPTY_NOTICE = "No matching addresses. You can keep what you typed and save it unverified.";
+const FAIL_NOTICE = "Address search failed. You can keep what you typed and save it unverified.";
+const MANUAL_NOTICE = "This address will be saved unverified, without a map pin.";
+
 export function AddressAutocomplete({ value, onChange, id }: Props) {
   const [configured, setConfigured] = useState<boolean | null>(null);
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [apiFailed, setApiFailed] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [notice, setNotice] = useState("");
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const searchGen = useRef(0);
+  const pendingQuery = useRef<string | null>(null);
 
   useEffect(() => {
     placesStatus()
-      .then((d) => setConfigured(Boolean(d.configured)))
+      .then((d) => {
+        const on = Boolean(d.configured);
+        setConfigured(on);
+        const pending = pendingQuery.current;
+        if (on && pending) scheduleSearch(pending, true);
+      })
       .catch(() => setConfigured(false));
+    return () => {
+      if (debounce.current) clearTimeout(debounce.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -51,36 +66,68 @@ export function AddressAutocomplete({ value, onChange, id }: Props) {
       city: value.city,
       timezone: value.timezone,
     });
-    setApiFailed(false);
+    setNotice("");
   }
 
-  function scheduleSearch(q: string) {
+  function keepTypedAddress() {
+    setOpen(false);
+    setSuggestions([]);
+    onChange({
+      address: value.address,
+      placeId: null,
+      lat: null,
+      lng: null,
+      verified: false,
+      city: value.city,
+      timezone: value.timezone,
+    });
+    setNotice(value.address.trim() ? MANUAL_NOTICE : "");
+  }
+
+  function scheduleSearch(q: string, enabled = configured === true) {
     if (debounce.current) clearTimeout(debounce.current);
-    if (!configured) return;
+    searchGen.current += 1;
+    if (!enabled) {
+      pendingQuery.current = q.trim().length >= 2 ? q : null;
+      return;
+    }
+    pendingQuery.current = null;
     if (q.trim().length < 2) {
       setSuggestions([]);
       setOpen(false);
+      setSearching(false);
+      setNotice("");
       return;
     }
+    const gen = searchGen.current;
     debounce.current = setTimeout(async () => {
-      setLoading(true);
+      setSearching(true);
       try {
         const data = await placesAutocomplete({ data: { q: q.trim() } });
-        if (data.error) {
-          setApiFailed(true);
+        if (gen !== searchGen.current) return;
+        if (data.configured === false) {
+          setConfigured(false);
           setSuggestions([]);
           setOpen(false);
           return;
         }
-        setApiFailed(false);
-        setSuggestions(data.suggestions || []);
+        const found = data.suggestions || [];
+        if (data.error || found.length === 0) {
+          setSuggestions([]);
+          setOpen(true);
+          setNotice(data.error ? FAIL_NOTICE : EMPTY_NOTICE);
+          return;
+        }
+        setNotice("");
+        setSuggestions(found);
         setOpen(true);
       } catch {
-        setApiFailed(true);
+        if (gen !== searchGen.current) return;
         setSuggestions([]);
-        setOpen(false);
+        setOpen(true);
+        setNotice(FAIL_NOTICE);
       } finally {
-        setLoading(false);
+        if (gen === searchGen.current) setSearching(false);
       }
     }, 220);
   }
@@ -90,42 +137,46 @@ export function AddressAutocomplete({ value, onChange, id }: Props) {
     setSuggestions([]);
     try {
       const data = await placesDetails({ data: { placeId: s.placeId } });
-      if (!data.ok) {
+      const lat = data.ok && typeof data.lat === "number" ? data.lat : null;
+      const lng = data.ok && typeof data.lng === "number" ? data.lng : null;
+      if (!data.ok || lat == null || lng == null) {
         onChange({
           address: s.description,
-          placeId: s.placeId,
+          placeId: null,
           lat: null,
           lng: null,
           verified: false,
           city: value.city,
-          timezone: null,
+          timezone: value.timezone,
         });
-        setApiFailed(true);
+        setNotice(FAIL_NOTICE);
         return;
       }
       onChange({
         address: data.formattedAddress || s.description,
         placeId: data.placeId || s.placeId,
-        lat: typeof data.lat === "number" ? data.lat : null,
-        lng: typeof data.lng === "number" ? data.lng : null,
+        lat,
+        lng,
         verified: true,
         city: data.city || null,
         timezone: data.timezone || null,
       });
-      setApiFailed(false);
+      setNotice("");
     } catch {
       onChange({
         address: s.description,
-        placeId: s.placeId,
+        placeId: null,
         lat: null,
         lng: null,
         verified: false,
         city: value.city,
-        timezone: null,
+        timezone: value.timezone,
       });
-      setApiFailed(true);
+      setNotice(FAIL_NOTICE);
     }
   }
+
+  const showEmptyPanel = open && suggestions.length === 0 && !searching && Boolean(notice);
 
   return (
     <div ref={wrapRef} className="relative">
@@ -141,18 +192,29 @@ export function AddressAutocomplete({ value, onChange, id }: Props) {
           scheduleSearch(e.target.value);
         }}
         onFocus={() => {
-          if (suggestions.length) setOpen(true);
+          if (suggestions.length || notice) setOpen(true);
         }}
         className="field mt-1"
       />
-      {configured === false && <p className="mt-1 text-sm text-muted">Type the address — live search is off in this environment.</p>}
-      {configured && apiFailed && (
-        <p className="mt-1 text-sm text-muted">No match — enter address manually (unverified)</p>
+      {configured === false && (
+        <p className="mt-1 text-sm text-muted">Type the address. Live search is off in this environment, so it will be saved unverified.</p>
       )}
-      {configured && value.address && !value.verified && !apiFailed && !open && (
-        <p className="mt-1 text-sm text-muted">Unverified address</p>
+      {searching && <p className="mt-1 text-sm text-muted">Searching addresses…</p>}
+      {configured && !open && notice && <p className="mt-1 text-sm text-muted">{notice}</p>}
+      {configured && value.address && !value.verified && !notice && !open && !searching && (
+        <p className="mt-1 text-sm text-muted">Unverified address. Pick a match to save the map location, or keep this text.</p>
       )}
       {configured && value.verified && <p className="mt-1 text-sm text-success">Verified place</p>}
+      {showEmptyPanel && (
+        <div className="absolute z-20 mt-1 w-full rounded-xl border border-line bg-card p-3 shadow-soft">
+          <p className="text-sm text-ink">{notice}</p>
+          {value.address.trim() ? (
+            <button type="button" className="mt-2 text-sm font-semibold text-forest" onClick={keepTypedAddress}>
+              Use this address
+            </button>
+          ) : null}
+        </div>
+      )}
       {open && suggestions.length > 0 && (
         <ul className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-xl border border-line bg-card shadow-soft">
           {suggestions.map((s) => (
@@ -174,7 +236,6 @@ export function AddressAutocomplete({ value, onChange, id }: Props) {
           ))}
         </ul>
       )}
-      {loading && <span className="sr-only">Searching</span>}
     </div>
   );
 }

@@ -43,7 +43,7 @@ export async function requestCode(sql: QuerySql, rawEmail: string, ip: string | 
     );
     if (Number(perIp[0]?.n ?? 0) >= MAX_CODES_PER_IP_PER_HOUR) return { issue: false, reason: "rate_ip" };
   }
-  const known = await sql.query<{ id: string }>(`select id from clients where lower(email) = $1 limit 1`, [email]);
+  const known = await sql.query<{ id: string }>(`select id from clients where lower(trim(email)) = $1 limit 1`, [email]);
   if (!known[0]) return { issue: false, reason: "unknown" };
 
   await sql.query(`update manage_links set used_at = $2 where lower(email) = $1 and used_at is null`, [email, now.toISOString()]);

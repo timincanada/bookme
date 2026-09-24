@@ -117,12 +117,16 @@ await lesson("dd1", MAYA, "maya-done", new Date(NOW.getTime() - 20 * DAY), "comp
   assert.deepEqual(unknown, { issue: false, reason: "unknown" });
   assert.equal((await sql.query(`select 1 from manage_links`)).length, 0, "nothing stored for unknown emails");
 
+  await pg.exec(`insert into clients (id, coach_id, name, email) values ('dan-pad', '${DAN}', 'Padded', '  padded@x.test  ')`);
+  const padded = await requestCode(sql, "padded@x.test", "4.4.4.4", NOW);
+  assert.ok(padded.issue, "stored email with surrounding spaces still gets a code");
+
   const r = await requestCode(sql, "  EMMA@x.TEST ", "1.1.1.1", NOW);
   assert.ok(r.issue);
   if (!r.issue) throw new Error();
   assert.equal(r.email, "emma@x.test");
   const row = await one<{ code: string | null; token: string | null; code_hash: string; token_hash: string }>(
-    `select code, token, code_hash, token_hash from manage_links`,
+    `select code, token, code_hash, token_hash from manage_links where email = 'emma@x.test'`,
   );
   assert.equal(row.code, null, "no plaintext code");
   assert.equal(row.token, null, "no plaintext token");
