@@ -9,7 +9,7 @@ Apply after 0006–0008 (see `production-0006-0008.md`). Back up first.
 | `CRON_SECRET` | **yes** | Cron endpoints now refuse every call when it is unset. Schedule `/api/cron/reminders` (daily or more) with `Authorization: Bearer <secret>` |
 | `RESEND_API_KEY`, `MAIL_FROM` | **yes** | Coach sign-up now requires confirming the email; without mail nobody can finish signing up |
 | `BETTER_AUTH_URL` | **yes** | Used in the email-confirmation link |
-| `BOOKME_ALLOW_DEMO` | must be unset | The demo coach/students are created only outside production unless this is `1` |
+| `BOOKME_ALLOW_DEMO` | must be unset | Demo coach seed runs outside production, on Vercel Preview (`VERCEL_ENV=preview`), or when this is `1`. Leave it unset on Production |
 | `APPLE_TEAM_ID`, `ANDROID_CERT_SHA256` | for the apps | See `docs/mobile/README.md` |
 | `CSP_REPORT_ONLY` | optional | `1` sends the CSP as report-only (violations are only logged). Use for the first deploy, check the browser console, then remove it to enforce |
 | `GROK_EXTENSIONS_ENABLED` | must be unset | The grok.com banner script is no longer injected unless this is `1` (it would violate the CSP) |

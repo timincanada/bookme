@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { createBooking, getPublicCoach, recordVisit } from "@/lib/bookme/api";
+import { PublicVenueWeather } from "@/components/bookme/weather-chip";
 import { formatWhen } from "@/lib/bookme/time";
 import { formatMoney } from "@/lib/utils";
 
@@ -100,10 +101,18 @@ function BookPage() {
             <CalendarDays className="size-4 text-forest" />
             {coach ? formatWhen(new Date(search.start), coach.timezone) : ""}
           </p>
-          <p className="mt-2 flex items-center gap-2 text-sm">
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
             <MapPin className="size-4 text-forest" />
-            {location?.name ?? "Location"}
-          </p>
+            <span>{location?.name ?? "Location"}</span>
+            {search.start ? (
+              <PublicVenueWeather
+                slug={slug}
+                locationId={location?.id ?? search.location}
+                start={search.start}
+                durationMin={search.duration ?? lesson?.duration}
+              />
+            ) : null}
+          </div>
           {lesson ? (
             <p className="mt-4 border-t border-line pt-4 text-sm font-semibold">
               {formatMoney(lesson.priceCad)} · {method === "card" ? "pay by card · 15-minute hold" : "pay in person"}

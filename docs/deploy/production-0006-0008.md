@@ -28,7 +28,7 @@ data handling and its manual rollback: `docs/migrations/0006-client-isolation.md
 | `RESEND_API_KEY` | yes | Student login codes are only delivered by email; they are never shown in the browser in production |
 | `MAIL_FROM` | recommended | Sender for codes and message notices |
 | `BOOKME_APP_URL` | yes | Links in code, reminder and message emails |
-| `BOOKME_DEV_SHOW_CODE` | **must be unset** | Development-only switch |
+| `BOOKME_DEV_SHOW_CODE` | **must be unset** | Shows the code in the browser outside production. Ignored when `VERCEL_ENV=production`, so bookme.training never displays it. Vercel Preview shows the code without this flag |
 | `CRON_SECRET` | recommended | Reminders now also go to imported recurring lessons |
 
 ### 1.2 Pre-checks (read-only, on production)
