@@ -3,6 +3,7 @@ import {
   DEFAULT_TIMEZONE,
   isValidTimezone,
   listIanaTimezones,
+  nextHighlightIndex,
   searchTimezones,
   timezoneFriendlyName,
 } from "./timezone.ts";
@@ -22,5 +23,11 @@ assert.ok(zones.length > 50);
 const tor = searchTimezones("tor");
 assert.ok(tor.some((z) => z.includes("Toronto")));
 assert.equal(timezoneFriendlyName("America/Toronto"), "Eastern Time");
+assert.equal(nextHighlightIndex(-1, 0, 1), -1);
+assert.equal(nextHighlightIndex(-1, 4, 1), 0);
+assert.equal(nextHighlightIndex(-1, 4, -1), 3);
+assert.equal(nextHighlightIndex(0, 4, -1), 3);
+assert.equal(nextHighlightIndex(3, 4, 1), 0);
+assert.equal(nextHighlightIndex(1, 4, 1), 2);
 
 console.log("timezone tests ok");

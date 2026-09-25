@@ -5,12 +5,15 @@ import { createServerFn } from "@tanstack/react-start";
 import { guardInput } from "./input-guard";
 import { getSql } from "@/lib/db";
 import { publicAppUrl as appUrl } from "./app-url";
+import { manageEntrySlug } from "./booking-link";
 import { manageLinkMail, productionMailConfigError, sendMail } from "./mail";
 import { devShowsCode } from "./student-auth";
 const session = () => import("./student-session.server");
 import { createSession, requestCode, verifyCode, verifyToken, type VerifyResult } from "./student-service";
 
-const SENT = "If we have bookings for that email, we sent a one-time link and a 6-digit code. It expires in 30 minutes.";
+function sentMessage(email: string) {
+  return `We sent a 6-digit code to ${email}. It expires in 30 minutes. Check spam if you don't see it.`;
+}
 
 export const requestStudentCode = createServerFn({ method: "POST" })
   .validator((input: { email: string }) => guardInput(input))
@@ -25,17 +28,41 @@ export const requestStudentCode = createServerFn({ method: "POST" })
     }
     const sql = await getSql();
     const result = await requestCode(sql, String(data?.email || ""), (await session()).requestIp());
-    if (!result.issue) return { sent: true as const, message: SENT };
+    if (!result.issue) {
+      if (result.reason === "invalid") return { sent: false as const, message: "Enter a valid email." };
+      return { sent: false as const, message: "Too many codes were requested. Try again in an hour." };
+    }
+    console.log(JSON.stringify({ msg: "student_code_issued", template: "student_code", email: result.email }));
     const delivery = await sendMail(
       manageLinkMail({ email: result.email, link: `${appUrl()}/manage?token=${result.token}`, code: result.code }),
       { template: "student_code" },
     );
     if (!delivery.ok) {
       console.error(JSON.stringify({ msg: "student_code_undelivered", template: "student_code", error: delivery.error }));
+      if (process.env.NODE_ENV === "production") {
+        return { sent: false as const, message: "We couldn't send the email. Try again in a minute." };
+      }
     }
+    const message = sentMessage(result.email);
     return devShowsCode()
-      ? { sent: true as const, message: SENT, previewCode: result.code }
-      : { sent: true as const, message: SENT };
+      ? { sent: true as const, message, previewCode: result.code }
+      : { sent: true as const, message };
+  });
+
+/** Signed-out /manage?coach= or ?book= redirects only when that coach exists. */
+export const lookupCoachSlug = createServerFn({ method: "GET" })
+  .validator((input: { slug: string }) => guardInput(input))
+  .handler(async ({ data }) => {
+    const formatted = manageEntrySlug({ coach: String(data?.slug || "") }, false);
+    if (!formatted) return { exists: false as const };
+    const sql = await getSql();
+    const rows = await sql.query<{ slug: string }>(
+      `select slug from coaches where lower(slug) = $1 and deleted_at is null limit 1`,
+      [formatted],
+    );
+    const slug = rows[0]?.slug;
+    if (!slug) return { exists: false as const };
+    return { exists: true as const, slug };
   });
 
 async function startSession(result: VerifyResult) {

@@ -21,11 +21,11 @@ const HOUR_MS = 60 * 60 * 1000;
 
 export type CodeRequest =
   | { issue: true; email: string; code: string; token: string }
-  | { issue: false; reason: "invalid" | "unknown" | "rate_email" | "rate_ip" };
+  | { issue: false; reason: "invalid" | "rate_email" | "rate_ip" };
 
 /**
- * Decide whether to issue a code. The caller answers the browser identically in
- * every case, so nothing reveals whether the email has bookings.
+ * Issue a code for any valid email under the rate limits. A student row is
+ * created on verify, including people who have never booked.
  */
 export async function requestCode(sql: QuerySql, rawEmail: string, ip: string | null, now = new Date()): Promise<CodeRequest> {
   const email = normalizeEmail(rawEmail);
@@ -43,8 +43,6 @@ export async function requestCode(sql: QuerySql, rawEmail: string, ip: string | 
     );
     if (Number(perIp[0]?.n ?? 0) >= MAX_CODES_PER_IP_PER_HOUR) return { issue: false, reason: "rate_ip" };
   }
-  const known = await sql.query<{ id: string }>(`select id from clients where lower(trim(email)) = $1 limit 1`, [email]);
-  if (!known[0]) return { issue: false, reason: "unknown" };
 
   await sql.query(`update manage_links set used_at = $2 where lower(email) = $1 and used_at is null`, [email, now.toISOString()]);
   const code = makeCode();

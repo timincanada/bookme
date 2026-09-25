@@ -8,7 +8,14 @@ export const DEMO_COACH = {
   headline: "Private tennis for every level — technique, match play, and confidence.",
   bio: "Patient, structured lessons for juniors and adults.",
   title: "Tennis Coach",
+  /** 60-minute rate. 30 minutes is cheaper; see DEMO_DURATION_PRICES. */
   priceCad: 85,
+};
+
+/** Demo coach offers two lengths. price_cad stored on the row is the 30-minute rate. */
+export const DEMO_DURATION_PRICES: Record<string, number> = {
+  "30": 55,
+  "60": 85,
 };
 
 /** Mayfair Clubs, 50 Steelcase Rd E, Markham — in-person demo venue. */

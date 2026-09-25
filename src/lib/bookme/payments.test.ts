@@ -1,8 +1,12 @@
 import assert from "node:assert/strict";
+import { priceForDuration } from "./duration-prices.ts";
 import { canTakeCard, canUseMethod, enabledMethods, normalizeAccepted, platformFeeCents } from "./payments.ts";
 
 assert.equal(platformFeeCents(80), 400);
 assert.equal(platformFeeCents(19), 95);
+const booked = priceForDuration({ priceCad: 85, durationPrices: { "30": 55, "60": 85 } }, 30);
+assert.equal(booked, 55);
+assert.equal(platformFeeCents(booked), platformFeeCents(55));
 assert.equal(canTakeCard(true, null), false);
 assert.equal(canTakeCard(true, "acct_1"), true);
 assert.equal(canTakeCard(false, "acct_1"), false);

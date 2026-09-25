@@ -116,3 +116,13 @@ export function searchTimezones(query: string, limit = 12): string[] {
     })
     .slice(0, limit);
 }
+
+/** Next combobox highlight. Empty lists stay at -1. Out-of-range starts at an end. Wraps. */
+export function nextHighlightIndex(current: number, length: number, delta: number): number {
+  if (length <= 0) return -1;
+  const step = delta < 0 ? -1 : 1;
+  if (!Number.isInteger(current) || current < 0 || current >= length) {
+    return step > 0 ? 0 : length - 1;
+  }
+  return (current + step + length) % length;
+}

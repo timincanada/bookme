@@ -3,18 +3,21 @@ import { useEffect, useState } from "react";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { ensureDemoCoach } from "@/lib/bookme/api";
+import { manageEntrySlug } from "@/lib/bookme/booking-link";
 import { DEMO_STUDENTS } from "@/lib/bookme/demo";
 import { StudentContext } from "@/lib/bookme/student-context";
-import { demoAvailable, getStudentMe, requestStudentCode, studentSignOut, verifyStudentCode, verifyStudentLink } from "@/lib/bookme/student-api";
+import { demoAvailable, getStudentMe, lookupCoachSlug, requestStudentCode, studentSignOut, verifyStudentCode, verifyStudentLink } from "@/lib/bookme/student-api";
 import { cn } from "@/lib/utils";
 import { forgetDevice } from "@/lib/native/device";
 
-type Search = { email?: string; token?: string };
+type Search = { email?: string; token?: string; coach?: string; book?: string };
 
 export const Route = createFileRoute("/manage")({
   validateSearch: (s: Record<string, unknown>): Search => ({
     email: typeof s.email === "string" ? s.email : undefined,
     token: typeof s.token === "string" ? s.token : undefined,
+    coach: typeof s.coach === "string" ? s.coach : undefined,
+    book: typeof s.book === "string" ? s.book : undefined,
   }),
   component: Portal,
 });
@@ -53,7 +56,27 @@ function Portal() {
       });
       return;
     }
-    getStudentMe().then((r) => setMe(r.signedIn ? r.email : null));
+    const candidate = manageEntrySlug({ coach: search.coach, book: search.book }, false);
+    getStudentMe()
+      .then(async (r) => {
+        if (r.signedIn) {
+          setMe(r.email);
+          return;
+        }
+        if (candidate) {
+          try {
+            const found = await lookupCoachSlug({ data: { slug: candidate } });
+            if (found.exists) {
+              void navigate({ to: "/$slug", params: { slug: found.slug }, replace: true });
+              return;
+            }
+          } catch {
+            // Unknown or unreachable — stay on the desk.
+          }
+        }
+        setMe(null);
+      })
+      .catch(() => setMe(null));
     demoAvailable().then((r) => setShowDemo(r.demo));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -119,6 +142,9 @@ function Portal() {
                 <Button className="mt-3" size="field" disabled={busy || !email} onClick={() => void sendCode()}>
                   Email me a code
                 </Button>
+                <p className="mt-4 text-sm text-muted">
+                  New student? Book with your coach's own link (bookme.training/yourcoach).
+                </p>
                 {showDemo ? (
                   <button type="button" className="mt-4 text-left text-sm text-forest" onClick={() => setEmail(DEMO_STUDENTS[0].email)}>
                     Use demo student

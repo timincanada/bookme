@@ -29,4 +29,17 @@ assert.equal(named.name, "Hitting Clinic");
 assert.match(named.lines[0], /^60 min · /);
 assert.match(named.lines[0], /45/);
 
+const split = lessonCatalogLines({
+  name: "Private",
+  duration: 30,
+  durations: [30, 60],
+  priceCad: 55,
+  durationPrices: { "30": 55, "60": 85 },
+});
+assert.match(split.lines[0], /^30 min · /);
+assert.match(split.lines[0], /55/);
+assert.doesNotMatch(split.lines[0], /85/);
+assert.match(split.lines[1], /^60 min · /);
+assert.match(split.lines[1], /85/);
+
 console.log("lesson-catalog tests ok");

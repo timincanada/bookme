@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Check } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { cancelCoachPlan, startCoachTrial } from "@/lib/bookme/api";
-import { PLANS, planTierLabel, subscriptionStatusLabel } from "@/lib/bookme/subscription";
+import { cancelCoachPlan, setPreferredPlan, startCoachTrial } from "@/lib/bookme/api";
+import { PLANS, planLessonRange, planTierLabel, subscriptionStatusLabel, type PlanId } from "@/lib/bookme/subscription";
 import { cn } from "@/lib/utils";
 import { useCoach } from "@/lib/bookme/coach-context";
 import { publicSiteUrl } from "@/lib/bookme/site";
@@ -39,6 +40,9 @@ function PlanStatus({
 function Billing() {
   const { coach, reload } = useCoach();
   const policy = usePurchasePolicy();
+  const [draft, setDraft] = useState<PlanId | null>(null);
+  const [saving, setSaving] = useState(false);
+  const plans = Object.values(PLANS);
   if (!coach) return null;
   if (!policy.ready) return null;
   if (!policy.showPurchases) {
@@ -63,27 +67,88 @@ function Billing() {
         3-day trial on Light, then auto-renew. Tier follows last month’s confirmed lessons. Students book without paying.
       </p>
       <PlanStatus status={coach.status} plan={coach.plan} trialEndsAt={coach.trialEndsAt} showTierLine />
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
-        {(Object.values(PLANS) as Array<(typeof PLANS)[keyof typeof PLANS]>).map((p) => (
-          <article key={p.id} className={cn("rounded-2xl bg-card p-5 ring-1 ring-line", coach.plan === p.id && "ring-2 ring-forest")}>
-            <p className="font-semibold text-forest">{p.name}</p>
-            <p className="mt-2 font-display text-3xl">CA${p.cad}</p>
-            <p className="mt-1 text-sm text-muted">
-              {p.max === Infinity ? "61+ confirmed lessons / month" : p.id === "light" ? "Up to 20 confirmed lessons / month" : "21–60 confirmed lessons / month"}
-            </p>
-            {coach.plan === p.id && coach.status !== "none" ? (
-              <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-forest">Your tier this month</p>
-            ) : null}
-            {p.capabilities.length ? (
-              <p className="mt-3 flex items-center gap-1 text-sm">
-                <Check className="size-4 text-forest" /> Assistant
+      <div
+        role="radiogroup"
+        aria-label="Subscription plans"
+        className="mt-6 grid gap-4 sm:grid-cols-3"
+        onKeyDown={(e) => {
+          const order = plans.map((p) => p.id);
+          const current = draft ?? (order.includes(coach.preferredPlan as PlanId) ? (coach.preferredPlan as PlanId) : order[0]);
+          const i = Math.max(0, order.indexOf(current));
+          if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+            e.preventDefault();
+            setDraft(order[(i + 1) % order.length]);
+          } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+            e.preventDefault();
+            setDraft(order[(i - 1 + order.length) % order.length]);
+          }
+        }}
+      >
+        {plans.map((p) => {
+          const selectedId = draft ?? (coach.preferredPlan as PlanId | null);
+          const selected = selectedId === p.id;
+          const tab =
+            selected || (!selectedId && p.id === plans[0].id) ? 0 : -1;
+          return (
+            <button
+              key={p.id}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              tabIndex={tab}
+              onClick={() => setDraft(p.id)}
+              className={cn("rounded-2xl bg-card p-5 text-left ring-1 ring-line", selected && "ring-2 ring-forest")}
+            >
+              <p className="flex items-center gap-1 font-semibold text-forest">
+                {p.name}
+                {selected ? <Check className="size-4" aria-hidden /> : null}
               </p>
-            ) : (
-              <p className="mt-3 text-sm text-muted">Assistant on Coach & Busy</p>
-            )}
-          </article>
-        ))}
+              <p className="mt-2 font-display text-3xl">CA${p.cad}</p>
+              <p className="mt-1 text-sm text-muted">{planLessonRange(p.id)}</p>
+              {coach.plan === p.id && coach.status !== "none" ? (
+                <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-forest">Your tier this month</p>
+              ) : null}
+              {coach.preferredPlan === p.id ? (
+                <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-forest">Your choice</p>
+              ) : null}
+              {p.capabilities.length ? (
+                <p className="mt-3 flex items-center gap-1 text-sm">
+                  <Check className="size-4 text-forest" /> Assistant
+                </p>
+              ) : (
+                <p className="mt-3 text-sm text-muted">Assistant on Coach & Busy</p>
+              )}
+            </button>
+          );
+        })}
       </div>
+      {draft ? (
+        <div className="mt-4 rounded-2xl bg-card p-5 ring-1 ring-line">
+          <p className="font-semibold text-forest">{PLANS[draft].name}</p>
+          <p className="mt-2 font-display text-3xl">CA${PLANS[draft].cad}/month</p>
+          <p className="mt-1 text-sm text-muted">{planLessonRange(draft)}</p>
+          <p className="mt-2 text-sm">{PLANS[draft].capabilities.length ? "Assistant included" : "Assistant not included"}</p>
+          <p className="mt-3 text-sm text-ink-soft">
+            Billing is paused during early access — you won't be charged. Your tier still follows last month's confirmed lessons.
+          </p>
+          <Button
+            className="mt-4"
+            size="field"
+            disabled={saving}
+            onClick={async () => {
+              setSaving(true);
+              const res = await setPreferredPlan({ data: { plan: draft } });
+              setSaving(false);
+              if (!res.ok) return toast.error(res.error);
+              setDraft(null);
+              toast.success("Plan choice saved — no charge while billing is paused.");
+              reload();
+            }}
+          >
+            {saving ? "Saving…" : `Choose ${PLANS[draft].name}`}
+          </Button>
+        </div>
+      ) : null}
       {coach.status === "none" || coach.status === "canceled" ? (
         <Button className="mt-6" size="field" onClick={async () => {
           const res = await startCoachTrial();
