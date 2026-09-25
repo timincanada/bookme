@@ -27,11 +27,9 @@ function openAudioContext(): AudioContext {
     window.AudioContext ||
     (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!AC) throw new Error("Audio is not available in this browser.");
-  try {
-    return new AC({ sampleRate: VOICE_SAMPLE_RATE });
-  } catch {
-    return new AC();
-  }
+  // Device default rate. iOS Safari breaks MediaStreamSource if we force 24 kHz.
+  // Capture resamples to 24 kHz; playback buffers are 24 kHz and the device rate resamples them.
+  return new AC();
 }
 
 class PcmPlayer {
@@ -134,23 +132,49 @@ export class GrokVoiceSession {
   private inText = "";
   private awaitingIdle = false;
   private paused = false;
+  private onAudioState = () => {
+    const ctx = this.ctx;
+    if (!ctx || this.closed) return;
+    // iOS suspends or interrupts the context on a phone call or screen lock.
+    if (ctx.state === "interrupted" || ctx.state === "suspended") {
+      void ctx.resume().catch(() => {});
+    }
+  };
 
   get connected() {
     return !!this.ws && this.ws.readyState === WebSocket.OPEN && !this.closed;
   }
 
   async prepare() {
-    this.ctx = openAudioContext();
-    void this.ctx.resume();
-    this.stream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 },
-    });
+    const ctx = openAudioContext();
+    this.ctx = ctx;
+    ctx.addEventListener("statechange", this.onAudioState);
+    // resume() and getUserMedia() run in the tap turn, before the first await.
+    void ctx.resume();
+    try {
+      this.stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 },
+      });
+    } catch (err) {
+      await this.closeContext(ctx);
+      throw err;
+    }
     if (this.closed) {
       this.stream.getTracks().forEach((t) => t.stop());
       this.stream = null;
       throw new Error("Session closed");
     }
-    await this.ctx.resume();
+    await ctx.resume();
+  }
+
+  private async closeContext(ctx: AudioContext) {
+    ctx.removeEventListener("statechange", this.onAudioState);
+    if (this.ctx === ctx) this.ctx = null;
+    try {
+      await ctx.close();
+    } catch {
+      /* already closed */
+    }
   }
 
   async connect(opts: { token: string; url?: string; coachName: string; assistantName?: string; handlers: VoiceHandlers }) {
@@ -354,9 +378,11 @@ export class GrokVoiceSession {
     this.capture = null;
     this.stream?.getTracks().forEach((t) => t.stop());
     this.stream = null;
-    if (this.ctx) {
-      void this.ctx.close().catch(() => {});
-      this.ctx = null;
+    const ctx = this.ctx;
+    this.ctx = null;
+    if (ctx) {
+      ctx.removeEventListener("statechange", this.onAudioState);
+      void ctx.close().catch(() => {});
     }
   }
 }
