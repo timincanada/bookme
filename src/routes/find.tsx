@@ -7,6 +7,7 @@ import { SPORTS, type FindFilter, labelForSport } from "@/lib/coaches";
 import { listPublicCoaches } from "@/lib/bookme/api";
 import { asSport } from "@/lib/bookme/sport";
 import { groupForVertical } from "@/lib/bookme/verticals";
+import { listedFromPrice } from "@/lib/bookme/duration-prices";
 import { cn, formatMoney } from "@/lib/utils";
 
 /**
@@ -80,7 +81,7 @@ function Find() {
       <section className="mx-auto grid max-w-6xl gap-5 px-5 py-10 sm:px-8 sm:grid-cols-2 lg:grid-cols-3">
         {coaches.map((c) => {
           const s = asSport(c.sport);
-          const price = c.services.length ? Math.min(...c.services.map((x) => x.priceCad)) : 0;
+          const price = listedFromPrice(c.services);
           return (
             <Link
               key={c.slug}

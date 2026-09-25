@@ -21,6 +21,16 @@ export const PLANS = {
 
 export type PlanId = keyof typeof PLANS;
 
+export function isPreferredPlan(plan: string | null | undefined): plan is PlanId {
+  return plan === "light" || plan === "coach" || plan === "busy";
+}
+
+export function planLessonRange(plan: PlanId) {
+  if (plan === "light") return "Up to 20 confirmed lessons / month";
+  if (plan === "busy") return "61+ confirmed lessons / month";
+  return "21–60 confirmed lessons / month";
+}
+
 export function isTrialing(status?: string | null, trialEndsAt?: Date | string | null, now = new Date()) {
   if (status !== "trialing") return false;
   if (!trialEndsAt) return true;

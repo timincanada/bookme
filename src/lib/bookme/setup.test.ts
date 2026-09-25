@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { normalizeDurationPrices, priceForDuration } from "./duration-prices.ts";
 import { canCopyBookingLink, durationsFromService, isSetupComplete, normalizeServiceDurations, slugify, VERTICALS } from "./setup.ts";
 
 assert.equal(VERTICALS.includes("Tennis"), true);
@@ -22,6 +23,10 @@ assert.deepEqual(normalizeServiceDurations([90, 30, 30, 60]), [30, 60, 90]);
 assert.equal(normalizeServiceDurations([]), null);
 assert.deepEqual(durationsFromService({ duration: 45 }), [45]);
 assert.deepEqual(durationsFromService({ duration: 60, durations: [120, 30] }), [30, 120]);
+const setupPrices = normalizeDurationPrices([30, 60], { 60: 90 }, 40);
+assert.equal(setupPrices["30"], 40);
+assert.equal(setupPrices["60"], 90);
+assert.equal(priceForDuration({ priceCad: 40, durationPrices: setupPrices }, 60), 90);
 
 
 assert.equal(canCopyBookingLink(true, "trialing"), true);

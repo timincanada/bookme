@@ -1,9 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { DurationPriceList } from "@/components/bookme/price-input";
 import { Button } from "@/components/ui/button";
 import { saveCoachLesson } from "@/lib/bookme/api";
 import { useCoach } from "@/lib/bookme/coach-context";
 import { lessonCatalogLines } from "@/lib/bookme/lesson-catalog";
+import { durationPricesFromInputs, initialPriceInputs, prefillDurationPrice } from "@/lib/bookme/price-input";
 import { DURATIONS } from "@/lib/bookme/setup";
 import { cn } from "@/lib/utils";
 
@@ -76,7 +78,14 @@ function LessonEditor({
   service,
   onSaved,
 }: {
-  service: { id: string; name: string; duration: number; durations: number[]; priceCad: number };
+  service: {
+    id: string;
+    name: string;
+    duration: number;
+    durations: number[];
+    priceCad: number;
+    durationPrices?: Record<string, number> | null;
+  };
   onSaved: () => void | Promise<void>;
 }) {
   const navigate = useNavigate();
@@ -84,14 +93,27 @@ function LessonEditor({
   const [durations, setDurations] = useState<number[]>(() =>
     service.durations.length ? [...service.durations].sort((a, b) => a - b) : [service.duration || 60],
   );
-  const [price, setPrice] = useState(service.priceCad);
+  const [prices, setPrices] = useState<Record<number, string>>(() =>
+    initialPriceInputs(
+      service.durations.length ? [...service.durations].sort((a, b) => a - b) : [service.duration || 60],
+      service,
+    ),
+  );
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function save() {
     setBusy(true);
     setError("");
-    const res = await saveCoachLesson({ data: { id: service.id, durations, priceCad: price } });
+    const priced = durationPricesFromInputs(durations, prices);
+    if (!priced) {
+      setBusy(false);
+      setError("Enter a price");
+      return;
+    }
+    const res = await saveCoachLesson({
+      data: { id: service.id, durations, priceCad: priced.priceCad, durationPrices: priced.durationPrices },
+    });
     setBusy(false);
     if (!res.ok) {
       setError(res.error);
@@ -117,15 +139,20 @@ function LessonEditor({
               key={d}
               type="button"
               aria-pressed={on}
-              onClick={() =>
+              onClick={() => {
+                setPrices((prev) => {
+                  if (durations.includes(d)) return prev;
+                  if (prev[d]) return prev;
+                  return { ...prev, [d]: prefillDurationPrice(prev, durations) };
+                });
                 setDurations((prev) => {
                   if (prev.includes(d)) {
                     if (prev.length === 1) return prev;
                     return prev.filter((x) => x !== d);
                   }
                   return [...prev, d].sort((a, b) => a - b);
-                })
-              }
+                });
+              }}
               className={cn(
                 "rounded-full px-4 py-2 text-sm ring-1",
                 on ? "bg-forest text-on-forest ring-forest" : "ring-line",
@@ -136,18 +163,18 @@ function LessonEditor({
           );
         })}
       </div>
-      <label className="mt-4 block">
-        <span className="mb-1.5 block text-sm font-medium">Price (CAD)</span>
-        <input
-          className="field"
-          type="number"
-          min={1}
-          value={price}
-          onChange={(e) => setPrice(Number(e.target.value))}
-        />
-      </label>
+      <DurationPriceList
+        durations={durations}
+        prices={prices}
+        onChange={(minutes, value) => setPrices((prev) => ({ ...prev, [minutes]: value }))}
+      />
       {error ? <p className="mt-3 text-sm text-coral">{error}</p> : null}
-      <Button className="mt-6" size="field" disabled={busy || durations.length === 0 || !(price > 0)} onClick={() => void save()}>
+      <Button
+        className="mt-6"
+        size="field"
+        disabled={busy || durations.length === 0 || !durationPricesFromInputs(durations, prices)}
+        onClick={() => void save()}
+      >
         {busy ? "Saving…" : "Save"}
       </Button>
     </div>

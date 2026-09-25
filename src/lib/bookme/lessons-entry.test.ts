@@ -49,7 +49,8 @@ assert.deepEqual([...tabs.matchAll(/label: "([^"]+)"/g)].map((m) => m[1]), navLa
 
 const saveFn = api.slice(api.indexOf("export const saveCoachLesson"), api.indexOf("export const saveCoachLocations"));
 assert.match(saveFn, /update services set duration/);
-assert.match(saveFn, /where id = \$4 and coach_id = \$5/);
+assert.match(saveFn, /duration_prices/);
+assert.match(saveFn, /where id = \$5 and coach_id = \$6/);
 assert.doesNotMatch(saveFn, /update coaches|update locations|update weekly_hours|set name =/);
 
 const BOOK_NEW = /book a new lesson|book another lesson|book again/gi;

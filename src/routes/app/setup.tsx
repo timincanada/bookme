@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { AddressAutocomplete, emptyAddress, type AddressValue } from "@/components/bookme/address-autocomplete";
 import { BookAheadPicker } from "@/components/bookme/book-ahead-picker";
 import { BookingShare } from "@/components/bookme/booking-share";
+import { DurationPriceList } from "@/components/bookme/price-input";
 import { TimezoneSelect } from "@/components/bookme/timezone-select";
 import { VerticalPicker } from "@/components/bookme/vertical-picker";
 import { WeeklyHoursEditor } from "@/components/bookme/weekly-hours-editor";
@@ -12,25 +13,31 @@ import { saveCoachBasics, saveCoachHours, saveCoachLocations, startCoachTrial } 
 import { DEFAULT_BOOK_AHEAD_DAYS, lastBookableDateKey, normalizeBookAheadDays } from "@/lib/bookme/book-ahead";
 import { formatDateKey, todayKey } from "@/lib/bookme/time";
 import type { HourSegment } from "@/lib/bookme/hours";
+import { durationPricesFromInputs, initialPriceInputs, prefillDurationPrice } from "@/lib/bookme/price-input";
 import { DURATIONS } from "@/lib/bookme/setup";
 import { cn } from "@/lib/utils";
 import { useCoach } from "@/lib/bookme/coach-context";
 
 export const Route = createFileRoute("/app/setup")({ component: Setup });
 
+function setupDurations(services: { duration: number; durations?: number[] }[] | undefined) {
+  const svc = services?.[0];
+  const fromSvc = svc?.durations;
+  if (Array.isArray(fromSvc) && fromSvc.length) return [...fromSvc].sort((a, b) => a - b);
+  return [svc?.duration || 60];
+}
+
 function Setup() {
   const { coach, reload } = useCoach();
   const [step, setStep] = useState(coach?.setup ? 3 : 0);
   const [name, setName] = useState(coach?.name ?? "");
   const [title, setTitle] = useState(coach?.title?.replace(/ coach/i, "") || "Tennis");
-  const [durations, setDurations] = useState<number[]>(() => {
+  const [durations, setDurations] = useState<number[]>(() => setupDurations(coach?.services));
+  const [prices, setPrices] = useState<Record<number, string>>(() => {
+    const durs = setupDurations(coach?.services);
     const svc = coach?.services[0];
-    const fromSvc = (svc as { durations?: number[] } | undefined)?.durations;
-    if (Array.isArray(fromSvc) && fromSvc.length) return [...fromSvc].sort((a, b) => a - b);
-    return [svc?.duration || 60];
+    return initialPriceInputs(durs, svc ?? null, svc ? "" : "80");
   });
-  // Kept as text so the field can be emptied instead of snapping back to 0.
-  const [price, setPrice] = useState(String(coach?.services[0]?.priceCad ?? 80));
   const [timezone, setTimezone] = useState(coach?.timezone || "America/Toronto");
   const [locations, setLocations] = useState<
     { id?: string; name: string; kind: string; active?: boolean; addressValue: AddressValue }[]
@@ -96,15 +103,20 @@ function Setup() {
                   key={d}
                   type="button"
                   aria-pressed={on}
-                  onClick={() =>
+                  onClick={() => {
+                    setPrices((prev) => {
+                      if (durations.includes(d)) return prev;
+                      if (prev[d]) return prev;
+                      return { ...prev, [d]: prefillDurationPrice(prev, durations) };
+                    });
                     setDurations((prev) => {
                       if (prev.includes(d)) {
-                        if (prev.length === 1) return prev; // keep at least one
+                        if (prev.length === 1) return prev;
                         return prev.filter((x) => x !== d);
                       }
                       return [...prev, d].sort((a, b) => a - b);
-                    })
-                  }
+                    });
+                  }}
                   className={cn(
                     "rounded-full px-4 py-2 text-sm ring-1",
                     on ? "bg-forest text-on-forest ring-forest" : "ring-line",
@@ -115,32 +127,27 @@ function Setup() {
               );
             })}
           </div>
-          <label className="mt-4 block">
-            <span className="mb-1.5 block text-sm font-medium">Price (CAD)</span>
-            <input
-              className="field"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              value={price}
-              onFocus={(e) => e.currentTarget.select()}
-              onChange={(e) => setPrice(e.target.value.replace(/[^\d]/g, ""))}
-              onBlur={() => setPrice((v) => (v.trim() === "" ? "0" : String(Number(v))))}
-            />
-          </label>
-          <label className="mt-4 block">
-            <span className="mb-1.5 block text-sm font-medium">Timezone</span>
-            <TimezoneSelect value={timezone} onChange={setTimezone} />
-          </label>
+          <DurationPriceList
+            durations={durations}
+            prices={prices}
+            onChange={(minutes, value) => setPrices((prev) => ({ ...prev, [minutes]: value }))}
+          />
+          <div className="mt-4">
+            <p id="coach-timezone-label" className="mb-1.5 text-sm font-medium">
+              Timezone
+            </p>
+            <TimezoneSelect labelledBy="coach-timezone-label" value={timezone} onChange={setTimezone} />
+          </div>
           <Button
             className="mt-6"
             size="field"
-            disabled={busy || durations.length === 0}
+            disabled={busy || durations.length === 0 || !durationPricesFromInputs(durations, prices)}
             onClick={async () => {
               setBusy(true);
-              if (!durations.length) {
+              const priced = durationPricesFromInputs(durations, prices);
+              if (!durations.length || !priced) {
                 setBusy(false);
-                return toast.error("Pick at least one duration");
+                return toast.error(durations.length ? "Enter a price" : "Pick at least one duration");
               }
               const res = await saveCoachBasics({
                 data: {
@@ -148,7 +155,8 @@ function Setup() {
                   title: `${title} Coach`,
                   durations,
                   duration: durations[0],
-                  priceCad: Number(price) || 0,
+                  priceCad: priced.priceCad,
+                  durationPrices: priced.durationPrices,
                   timezone,
                 },
               });

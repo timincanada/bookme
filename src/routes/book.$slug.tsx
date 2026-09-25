@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { createBooking, getPublicCoach, recordVisit } from "@/lib/bookme/api";
 import { PublicVenueWeather } from "@/components/bookme/weather-chip";
 import { formatWhen } from "@/lib/bookme/time";
+import { priceForDuration } from "@/lib/bookme/duration-prices";
 import { formatMoney } from "@/lib/utils";
 
 type Search = { start?: string; location?: string; service?: string; duration?: number };
@@ -115,7 +116,8 @@ function BookPage() {
           </div>
           {lesson ? (
             <p className="mt-4 border-t border-line pt-4 text-sm font-semibold">
-              {formatMoney(lesson.priceCad)} · {method === "card" ? "pay by card · 15-minute hold" : "pay in person"}
+              {formatMoney(priceForDuration(lesson, search.duration ?? lesson.duration ?? 60))} ·{" "}
+              {method === "card" ? "pay by card · 15-minute hold" : "pay in person"}
             </p>
           ) : null}
         </div>

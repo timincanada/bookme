@@ -113,9 +113,18 @@ await lesson("dd1", MAYA, "maya-done", new Date(NOW.getTime() - 20 * DAY), "comp
 
 // ---- Codes -----------------------------------------------------------------
 {
-  const unknown = await requestCode(sql, "nobody@x.test", "1.1.1.1", NOW);
-  assert.deepEqual(unknown, { issue: false, reason: "unknown" });
-  assert.equal((await sql.query(`select 1 from manage_links`)).length, 0, "nothing stored for unknown emails");
+  assert.deepEqual(await requestCode(sql, "not-an-email", "1.1.1.1", NOW), { issue: false, reason: "invalid" });
+
+  // New students (no client row, no past booking) still receive a code.
+  const fresh = await requestCode(sql, "nobody@x.test", "1.1.1.1", NOW);
+  assert.equal(fresh.issue, true, "a new email gets a code");
+  if (!fresh.issue) throw new Error("expected a code");
+  assert.equal(fresh.email, "nobody@x.test");
+  assert.match(fresh.code, /^\d{6}$/);
+  assert.equal((await sql.query(`select 1 from manage_links where lower(email) = 'nobody@x.test'`)).length, 1);
+  const freshOk = await verifyCode(sql, "nobody@x.test", fresh.code, NOW);
+  assert.equal(freshOk.ok, true, "verifying creates the student");
+  if (freshOk.ok) assert.equal(freshOk.email, "nobody@x.test");
 
   await pg.exec(`insert into clients (id, coach_id, name, email) values ('dan-pad', '${DAN}', 'Padded', '  padded@x.test  ')`);
   const padded = await requestCode(sql, "padded@x.test", "4.4.4.4", NOW);

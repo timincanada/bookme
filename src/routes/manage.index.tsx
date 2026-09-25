@@ -136,7 +136,18 @@ function StudentLessons() {
       <ul className="mt-5 space-y-3">
         {lessons.map((l) => (
           <li key={l.id} className="rounded-2xl bg-card p-4 ring-1 ring-line">
-            <p className="font-semibold">{l.coachName}</p>
+            <div className="flex items-start justify-between gap-3">
+              <p className="font-semibold">{l.coachName}</p>
+              {l.coachSlug ? (
+                <Link
+                  to="/$slug"
+                  params={{ slug: l.coachSlug }}
+                  className="shrink-0 rounded-full bg-forest px-3 py-1.5 text-sm font-semibold text-on-forest"
+                >
+                  Book a new lesson
+                </Link>
+              ) : null}
+            </div>
             <p className="text-sm">{l.when}</p>
             <p className="text-sm text-muted">{l.locationName}</p>
             <p className="text-sm text-muted">
@@ -167,7 +178,18 @@ function StudentLessons() {
             ) : null}
           </li>
         ))}
-        {lessons.length === 0 ? <p className="text-muted">No bookings for this email.</p> : null}
+        {lessons.length === 0 ? (
+          <li>
+            <p className="text-muted">No bookings for this email.</p>
+            <p className="mt-2 text-sm text-muted">
+              Ask your coach for their booking link, or{" "}
+              <Link to="/find" className="font-semibold text-forest">
+                find a coach
+              </Link>
+              .
+            </p>
+          </li>
+        ) : null}
       </ul>
       {picked ? (
         <div className="mt-6 rounded-2xl bg-card p-4 ring-1 ring-line">

@@ -29,6 +29,20 @@ const card = confirmationMails({
 });
 assert.doesNotMatch(card[0].text, /Card payment|Pay cash/);
 
+const again = confirmationMails({
+  coachName: "Tim Zhang",
+  coachEmail: "tim@bookme.test",
+  studentName: "Emma Chen",
+  studentEmail: "emma@test.com",
+  when: "Fri",
+  location: "Court 3",
+  manageUrl: "https://bookme.training/manage?email=emma@test.com",
+  bookAgainUrl: "https://bookme.training/tim",
+});
+assert.match(again[0].text, /Book another lesson: https:\/\/bookme\.training\/tim/);
+assert.match(again[0].text, /\/manage\?email=/);
+assert.doesNotMatch(again[1].text, /Book another lesson/);
+
 const moved = changeMails({
   kind: "rescheduled",
   coachName: "Tim Zhang",

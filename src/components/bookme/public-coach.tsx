@@ -12,6 +12,7 @@ import { asSport } from "@/lib/bookme/sport";
 import { DEMO_COACH } from "@/lib/bookme/demo";
 import { datesFromToday, formatDateKey, formatTime, todayKey } from "@/lib/bookme/time";
 import { lastBookableDateKey } from "@/lib/bookme/book-ahead";
+import { listedFromPrice, priceForDuration, servicePricesDiffer } from "@/lib/bookme/duration-prices";
 import { cn, formatMoney, parseISODate } from "@/lib/utils";
 
 export function CoachPage({
@@ -173,7 +174,12 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
                         })()}
                       </span>
                     </span>
-                    <span className="font-semibold">{formatMoney(l.priceCad).replace(".00", "")}</span>
+                    <span className="font-semibold">
+                      {(() => {
+                        const label = formatMoney(listedFromPrice([l])).replace(".00", "");
+                        return servicePricesDiffer(l) ? `from ${label}` : label;
+                      })()}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -195,7 +201,7 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
                           duration === d ? "bg-forest text-on-forest ring-forest" : "ring-line",
                         )}
                       >
-                        {d} min
+                        {d} min · {formatMoney(priceForDuration(lesson ?? { priceCad: 0 }, d)).replace(".00", "")}
                       </button>
                     ))}
                   </div>

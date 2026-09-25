@@ -43,13 +43,16 @@ export function confirmationMails(input: {
   location: string;
   method?: "cash" | "card" | string;
   manageUrl?: string;
+  /** Coach booking page. Manage/cancel links stay on manageUrl. */
+  bookAgainUrl?: string;
 }): Mail[] {
   const manage = input.manageUrl ? ` Manage: ${input.manageUrl}` : "";
+  const again = input.bookAgainUrl?.trim() ? `\n\nBook another lesson: ${input.bookAgainUrl.trim()}` : "";
   return [
     {
       to: input.studentEmail,
       subject: `Booked with ${input.coachName}`,
-      text: `Hi ${input.studentName}, your private lesson with ${input.coachName} is confirmed for ${input.when} at ${input.location}.${manage}`,
+      text: `Hi ${input.studentName}, your private lesson with ${input.coachName} is confirmed for ${input.when} at ${input.location}.${manage}${again}`,
     },
     {
       to: input.coachEmail,

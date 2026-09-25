@@ -1,4 +1,5 @@
 import type { Sql } from "@/lib/db";
+import { coachBookingUrl } from "./booking-link";
 import { sendLessonConfirmations } from "./mail";
 import { appUrl } from "./stripe";
 import { formatWhen } from "./time";
@@ -24,8 +25,9 @@ export async function notifyLessonConfirmed(sql: Sql, lessonId: string) {
     client_name: string;
     client_email: string;
     location_name: string;
+    coach_slug: string;
   }>(
-    `select l.id, l.start_at, l.coach_id, c.name as coach_name, c.email as coach_email, c.timezone,
+    `select l.id, l.start_at, l.coach_id, c.name as coach_name, c.email as coach_email, c.timezone, c.slug as coach_slug,
             cl.name as client_name, cl.email as client_email, loc.name as location_name
      from lessons l
      join coaches c on c.id = l.coach_id
@@ -53,6 +55,7 @@ export async function notifyLessonConfirmed(sql: Sql, lessonId: string) {
       when: formatWhen(asDate(lesson.start_at), tzOf(lesson.timezone)),
       location: lesson.location_name,
       manageUrl: `${appUrl()}/manage?email=${encodeURIComponent(lesson.client_email || "")}`,
+      bookAgainUrl: lesson.coach_slug ? coachBookingUrl(lesson.coach_slug, appUrl()) : undefined,
     });
     if (!result.ok) {
       console.log(

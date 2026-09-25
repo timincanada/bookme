@@ -8,6 +8,7 @@
 import { createHash, randomUUID } from "crypto";
 import type { Sql } from "@/lib/db";
 import { findOrCreateCoachClient, getCoachClient } from "./clients-db";
+import { priceForDuration } from "./duration-prices";
 import {
   conflictFor,
   dateLabel,
@@ -353,6 +354,12 @@ export async function confirmImport(
       [slotIds[i], seriesId, s.weekday, s.startMin, s.durationMin],
     );
   }
+  const priced = (
+    await tx.query<{ price_cad: number; duration_prices: unknown }>(
+      `select price_cad, duration_prices from services where id = $1`,
+      [plan.serviceId],
+    )
+  )[0];
   for (const occ of plan.create) {
     const lessonId = randomUUID();
     await tx.query(
@@ -372,9 +379,12 @@ export async function confirmImport(
         occ.durationMin,
       ],
     );
+    const amountCad = priced
+      ? priceForDuration({ price_cad: priced.price_cad, duration_prices: priced.duration_prices }, occ.durationMin)
+      : 0;
     await tx.query(
-      `insert into payments (id, lesson_id, method, status, amount_cad) values ($1,$2,'offline','not_tracked',0)`,
-      [randomUUID(), lessonId],
+      `insert into payments (id, lesson_id, method, status, amount_cad) values ($1,$2,'offline','not_tracked',$3)`,
+      [randomUUID(), lessonId, amountCad],
     );
   }
 
