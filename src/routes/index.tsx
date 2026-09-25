@@ -195,7 +195,7 @@ function LifeBand() {
     {
       icon: Clock,
       title: "Save time",
-      body: "Automate bookings, payments, and reminders.",
+      body: "Automate bookings and reminders.",
     },
     {
       icon: Heart,
@@ -233,7 +233,7 @@ function LifeBand() {
           <h2 className="mt-3 max-w-sm font-display text-3xl font-medium sm:text-4xl">
             Built for the coaching life
           </h2>
-          <p className="font-script absolute right-8 top-10 text-2xl leading-tight text-forest sm:right-12 sm:top-12 sm:text-3xl">
+          <p className="font-script mt-4 text-2xl leading-tight text-forest sm:absolute sm:right-12 sm:top-12 sm:mt-0 sm:text-3xl">
             Same Passion
             <br />
             <span className="relative inline-block">
