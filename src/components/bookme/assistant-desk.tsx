@@ -7,7 +7,6 @@ import {
   ChevronRight,
   MapPin,
   MoreHorizontal,
-  Plus,
   Repeat,
   Search,
 } from "lucide-react";
@@ -442,14 +441,6 @@ export function Composer({
         onSend();
       }}
     >
-      <button
-        type="button"
-        className="grid size-11 shrink-0 place-items-center rounded-full bg-sage-3 text-forest"
-        aria-label="More"
-        onClick={() => document.getElementById("assistant-input")?.focus()}
-      >
-        <Plus className="size-5" strokeWidth={1.8} />
-      </button>
       <input
         id="assistant-input"
         className="h-11 min-w-0 flex-1 rounded-full border-0 bg-card px-4 text-sm text-ink shadow-soft ring-1 ring-line outline-none placeholder:text-muted"
