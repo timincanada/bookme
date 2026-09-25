@@ -143,10 +143,7 @@ function Portal() {
                   Email me a code
                 </Button>
                 <p className="mt-4 text-sm text-muted">
-                  New student? Book with your coach's own link (bookme.training/yourcoach).{" "}
-                  <Link to="/find" className="font-semibold text-forest">
-                    Find a coach
-                  </Link>
+                  New student? Book with your coach's own link (bookme.training/yourcoach).
                 </p>
                 {showDemo ? (
                   <button type="button" className="mt-4 text-left text-sm text-forest" onClick={() => setEmail(DEMO_STUDENTS[0].email)}>

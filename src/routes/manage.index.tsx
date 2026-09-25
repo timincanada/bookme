@@ -180,13 +180,8 @@ function StudentLessons() {
         ))}
         {lessons.length === 0 ? (
           <li>
-            <p className="text-muted">No bookings for this email.</p>
-            <p className="mt-2 text-sm text-muted">
-              Ask your coach for their booking link, or{" "}
-              <Link to="/find" className="font-semibold text-forest">
-                find a coach
-              </Link>
-              .
+            <p className="text-sm text-muted">
+              No bookings for this email yet. Ask your coach for their booking link (bookme.training/yourcoach).
             </p>
           </li>
         ) : null}
