@@ -34,12 +34,14 @@ function openAudioContext(): AudioContext {
 
 class PcmPlayer {
   private ctx: AudioContext;
+  private dest: AudioNode;
   private nextTime = 0;
   private sources: AudioBufferSourceNode[] = [];
   onIdle: (() => void) | null = null;
 
-  constructor(ctx: AudioContext) {
+  constructor(ctx: AudioContext, dest: AudioNode) {
     this.ctx = ctx;
+    this.dest = dest;
   }
 
   get isPlaying() {
@@ -53,7 +55,7 @@ class PcmPlayer {
     buf.getChannelData(0).set(float);
     const src = this.ctx.createBufferSource();
     src.buffer = buf;
-    src.connect(this.ctx.destination);
+    src.connect(this.dest);
     const start = Math.max(this.ctx.currentTime, this.nextTime);
     src.start(start);
     this.nextTime = start + buf.duration;
@@ -80,15 +82,40 @@ class PcmPlayer {
   }
 }
 
+const METER_FFT = 512;
+
+function configureMeter(node: AnalyserNode) {
+  node.fftSize = METER_FFT;
+  node.smoothingTimeConstant = 0.45;
+}
+
+/** 0..1. Time-domain RMS, with a small floor so room tone does not twitch the ring. */
+function readMeter(node: AnalyserNode | null, buf: Uint8Array<ArrayBuffer>): number {
+  if (!node) return 0;
+  node.getByteTimeDomainData(buf);
+  let sum = 0;
+  for (let i = 0; i < buf.length; i++) {
+    const s = (buf[i]! - 128) / 128;
+    sum += s * s;
+  }
+  const rms = Math.sqrt(sum / buf.length);
+  return Math.max(0, Math.min(1, (rms - 0.012) / 0.15));
+}
+
 function startMicCapture(
   stream: MediaStream,
   ctx: AudioContext,
   onPcm: (b64: string) => void,
-): { stop: () => void; pause: () => void; resume: () => void } {
+): { stop: () => void; pause: () => void; resume: () => void; analyser: AnalyserNode } {
   const src = ctx.createMediaStreamSource(stream);
   const proc = ctx.createScriptProcessor(4096, 1, 1);
   const mute = ctx.createGain();
   mute.gain.value = 0;
+  // Silent side-chain tap. The samples sent upstream still come only from the processor.
+  const analyser = ctx.createAnalyser();
+  configureMeter(analyser);
+  const meterMute = ctx.createGain();
+  meterMute.gain.value = 0;
   let paused = false;
   const fromRate = ctx.sampleRate || VOICE_SAMPLE_RATE;
   proc.onaudioprocess = (e) => {
@@ -100,13 +127,19 @@ function startMicCapture(
   src.connect(proc);
   proc.connect(mute);
   mute.connect(ctx.destination);
+  src.connect(analyser);
+  analyser.connect(meterMute);
+  meterMute.connect(ctx.destination);
   return {
+    analyser,
     stop() {
       paused = true;
       try {
         proc.disconnect();
         src.disconnect();
         mute.disconnect();
+        analyser.disconnect();
+        meterMute.disconnect();
       } catch {
         /* already closed */
       }
@@ -126,6 +159,10 @@ export class GrokVoiceSession {
   private player: PcmPlayer | null = null;
   private capture: { stop: () => void; pause: () => void; resume: () => void } | null = null;
   private stream: MediaStream | null = null;
+  private inputAnalyser: AnalyserNode | null = null;
+  private outputAnalyser: AnalyserNode | null = null;
+  private inMeter = new Uint8Array(new ArrayBuffer(METER_FFT));
+  private outMeter = new Uint8Array(new ArrayBuffer(METER_FFT));
   private handlers: VoiceHandlers | null = null;
   private closed = false;
   private outText = "";
@@ -153,7 +190,12 @@ export class GrokVoiceSession {
     void ctx.resume();
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1,
+        },
       });
     } catch (err) {
       await this.closeContext(ctx);
@@ -181,7 +223,16 @@ export class GrokVoiceSession {
     if (this.closed) throw new Error("Session closed");
     if (!this.ctx || !this.stream) await this.prepare();
     this.handlers = opts.handlers;
-    this.player = new PcmPlayer(this.ctx!);
+    const ctx = this.ctx!;
+    // Unity gain so playback level is unchanged; the analyser only feeds the voice ring.
+    const outputGain = ctx.createGain();
+    outputGain.gain.value = 1;
+    const outputAnalyser = ctx.createAnalyser();
+    configureMeter(outputAnalyser);
+    outputGain.connect(outputAnalyser);
+    outputAnalyser.connect(ctx.destination);
+    this.outputAnalyser = outputAnalyser;
+    this.player = new PcmPlayer(ctx, outputGain);
     this.player.onIdle = () => {
       if (this.awaitingIdle) {
         this.awaitingIdle = false;
@@ -209,7 +260,16 @@ export class GrokVoiceSession {
         this.handlers?.onClose();
       }
     });
-    this.capture = startMicCapture(this.stream!, this.ctx!, (b64) => this.append(b64));
+    const capture = startMicCapture(this.stream!, this.ctx!, (b64) => this.append(b64));
+    this.inputAnalyser = capture.analyser;
+    this.capture = capture;
+  }
+
+  getLevels(): { input: number; output: number } {
+    return {
+      input: readMeter(this.inputAnalyser, this.inMeter),
+      output: readMeter(this.outputAnalyser, this.outMeter),
+    };
   }
 
   async start(opts: { token: string; url?: string; coachName: string; assistantName?: string; handlers: VoiceHandlers }) {
@@ -334,6 +394,13 @@ export class GrokVoiceSession {
       if (done) this.handlers?.onCaption(done);
       return;
     }
+    if (kind === "in_update") {
+      // grok-transcribe sends the cumulative transcript so far (replace, not append).
+      const transcript = typeof ev.transcript === "string" ? ev.transcript : "";
+      this.inText = transcript;
+      if (transcript) this.handlers?.onHeard(transcript);
+      return;
+    }
     if (kind === "in_delta") {
       this.inText += String(ev.delta || ev.transcript || "");
       if (this.inText) this.handlers?.onHeard(this.inText);
@@ -372,6 +439,8 @@ export class GrokVoiceSession {
   }
 
   private cleanupMedia() {
+    this.inputAnalyser = null;
+    this.outputAnalyser = null;
     this.player?.interrupt();
     this.player = null;
     this.capture?.stop();

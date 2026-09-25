@@ -55,7 +55,7 @@ function initials(name: string) {
   return parts.map((p) => p[0]?.toUpperCase() || "").join("") || "S";
 }
 
-export function AssistantAvatar({ size = "md" }: { size?: "sm" | "md" }) {
+export function AssistantAvatar({ size = "md", className }: { size?: "sm" | "md"; className?: string }) {
   return (
     <img
       src={ASSISTANT_PHOTO}
@@ -63,6 +63,7 @@ export function AssistantAvatar({ size = "md" }: { size?: "sm" | "md" }) {
       className={cn(
         "shrink-0 rounded-full object-cover outline outline-1 -outline-offset-1 outline-black/10",
         size === "sm" ? "size-8" : "size-11",
+        className,
       )}
     />
   );
