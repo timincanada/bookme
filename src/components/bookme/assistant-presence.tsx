@@ -50,6 +50,10 @@ function focusComposer() {
   }, 0);
 }
 
+function notifyVoiceError(message: string) {
+  toast.error(message, { id: "assistant-voice-error" });
+}
+
 function voiceReason(res: object): string | undefined {
   if (!("reason" in res)) return undefined;
   const reason = (res as { reason?: unknown }).reason;
@@ -188,8 +192,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
     startingRef.current = false;
     setHoldFallback(true);
     setInCall(false);
-    toast.error(message);
-    push("assistant", message);
+    notifyVoiceError(message);
     setPhase("idle");
   }
 
@@ -208,8 +211,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
     setPreview(null);
     setAction(undefined);
     setInCall(false);
-    toast.error(message);
-    push("assistant", message);
+    notifyVoiceError(message);
     setPhase("idle");
     focusComposer();
   }
@@ -267,7 +269,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
   async function startLive() {
     if (locked || startingRef.current || sessionRef.current) return;
     if (voiceOff || voiceOffRef.current) {
-      toast.error(voiceUnavailableMessage("not_configured"));
+      notifyVoiceError(voiceUnavailableMessage("not_configured"));
       focusComposer();
       return;
     }
@@ -282,8 +284,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
     userLiveId.current = null;
     asstLiveId.current = null;
     if (typeof navigator.mediaDevices?.getUserMedia !== "function") {
-      toast.error(VOICE_UNSUPPORTED);
-      push("assistant", VOICE_UNSUPPORTED);
+      notifyVoiceError(VOICE_UNSUPPORTED);
       setPhase("idle");
       startingRef.current = false;
       focusComposer();
@@ -390,8 +391,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
         sessionRef.current?.hangup();
         sessionRef.current = null;
         setInCall(false);
-        toast.error(message);
-        push("assistant", message);
+        notifyVoiceError(message);
         setPhase("idle");
         focusComposer();
         return;
@@ -533,8 +533,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
     if (sendingRef.current) return;
     if (blob.size < 1200) {
       const message = "I didn't catch that. Tap to talk again.";
-      toast.error(message);
-      push("assistant", message);
+      notifyVoiceError(message);
       setPhase("idle");
       return;
     }
@@ -556,9 +555,8 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
           return;
         }
         const message = reason ? voiceUnavailableMessage(reason) : ("error" in res && res.error) || voiceUnavailableMessage();
-        toast.error(message);
+        notifyVoiceError(message);
         if (reason) {
-          push("assistant", message);
           setPhase("idle");
           return;
         }
@@ -571,7 +569,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
 
   async function beginListen() {
     if (voiceOff || voiceOffRef.current) {
-      toast.error(voiceUnavailableMessage("not_configured"));
+      notifyVoiceError(voiceUnavailableMessage("not_configured"));
       focusComposer();
       return;
     }
@@ -613,8 +611,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
         streamRef.current = null;
         if (!Speech) {
           const message = micErrorMessage(err);
-          toast.error(message);
-          push("assistant", message);
+          notifyVoiceError(message);
           setPhase("idle");
           return;
         }
@@ -645,8 +642,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
       typeof navigator.mediaDevices?.getUserMedia === "function"
         ? "Microphone is blocked here. Type instead."
         : VOICE_UNSUPPORTED;
-    toast.error(message);
-    push("assistant", message);
+    notifyVoiceError(message);
     setPhase("idle");
   }
 
@@ -668,7 +664,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
   function onTalkTap() {
     if (locked || phase === "thinking") return;
     if (voiceOff || voiceOffRef.current) {
-      toast.error(voiceUnavailableMessage("not_configured"));
+      notifyVoiceError(voiceUnavailableMessage("not_configured"));
       focusComposer();
       return;
     }
