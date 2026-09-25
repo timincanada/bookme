@@ -186,3 +186,110 @@
     animation: none;
   }
 }
+
+.voice-mode-panel {
+  --voice-level: 0;
+}
+
+.voice-ring {
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+  border-style: solid;
+}
+
+.voice-ring-outer {
+  inset: 0;
+  border-width: 3px;
+  border-color: color-mix(in oklab, var(--color-forest) 32%, white);
+}
+
+.voice-ring-inner {
+  inset: 10px;
+  border-width: 2px;
+  border-color: color-mix(in oklab, var(--color-forest) 18%, white);
+}
+
+.voice-mode-panel[data-state="connecting"] .voice-ring-outer {
+  animation: voice-connect-pulse 2.2s ease-in-out infinite;
+}
+
+.voice-mode-panel[data-state="listening"] .voice-ring-outer {
+  border-width: 1.5px;
+  border-color: color-mix(in oklab, var(--color-sage-2) 55%, var(--color-forest));
+  transform: scale(calc(1 + var(--voice-level) * 0.07));
+  opacity: calc(0.55 + var(--voice-level) * 0.45);
+  box-shadow: 0 0 calc(4px + var(--voice-level) * 16px) color-mix(in oklab, var(--color-sage) 80%, var(--color-forest));
+}
+
+.voice-mode-panel[data-state="listening"] .voice-ring-inner {
+  border-width: 1px;
+  border-color: color-mix(in oklab, var(--color-sage) 70%, var(--color-forest));
+  transform: scale(calc(1 + var(--voice-level) * 0.035));
+  opacity: calc(0.4 + var(--voice-level) * 0.4);
+}
+
+.voice-mode-panel[data-state="speaking"] .voice-ring-outer {
+  border-width: 4px;
+  border-color: color-mix(in oklab, var(--color-forest) 78%, white);
+  transform: scale(calc(1 + var(--voice-level) * 0.16));
+  opacity: calc(0.7 + var(--voice-level) * 0.3);
+  box-shadow: 0 0 calc(10px + var(--voice-level) * 40px) color-mix(in oklab, var(--color-forest) 42%, transparent);
+}
+
+.voice-mode-panel[data-state="speaking"] .voice-ring-inner {
+  border-width: 2px;
+  border-color: color-mix(in oklab, var(--color-forest) 55%, white);
+  transform: scale(calc(1 + var(--voice-level) * 0.08));
+  opacity: calc(0.65 + var(--voice-level) * 0.35);
+}
+
+.voice-mode-panel[data-state="thinking"] .voice-ring-outer {
+  border-style: dashed;
+  border-width: 2px;
+  opacity: 0.75;
+  animation: voice-think-spin 10s linear infinite;
+}
+
+.voice-think-dots span {
+  width: 8px;
+  height: 8px;
+  animation-duration: 1.8s;
+}
+
+@keyframes voice-connect-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(0.97);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.035);
+  }
+}
+
+@keyframes voice-think-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-mode-panel .voice-ring,
+  .voice-think-dots span {
+    animation: none !important;
+    transform: none !important;
+  }
+
+  .voice-mode-panel[data-state="speaking"] .voice-ring-outer,
+  .voice-mode-panel[data-state="listening"] .voice-ring-outer {
+    opacity: calc(0.45 + var(--voice-level) * 0.55);
+    box-shadow: none;
+  }
+
+  .voice-mode-panel[data-state="connecting"] .voice-ring-outer,
+  .voice-mode-panel[data-state="thinking"] .voice-ring-outer {
+    opacity: 0.72;
+  }
+}

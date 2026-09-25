@@ -11,6 +11,7 @@ import {
   ThinkingRow,
   UpcomingLessonCard,
 } from "@/components/bookme/assistant-desk";
+import { VoiceModePanel, type VoicePanelState } from "@/components/bookme/voice-mode-panel";
 import { Button } from "@/components/ui/button";
 import {
   getUpcomingLesson,
@@ -73,6 +74,10 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
   const [voiceOff, setVoiceOff] = useState(false);
   const [inCall, setInCall] = useState(false);
   const [upcoming, setUpcoming] = useState<UpcomingLesson | null>(null);
+  const [awaitingReply, setAwaitingReply] = useState(false);
+  const [toolBusy, setToolBusy] = useState(false);
+  const [userCaption, setUserCaption] = useState("");
+  const [asstCaption, setAsstCaption] = useState("");
 
   const phaseRef = useRef<Phase>("idle");
   const liveRef = useRef(true);
@@ -94,6 +99,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
   const listRef = useRef<HTMLDivElement | null>(null);
   const stickRef = useRef(true);
   const pendingCardRef = useRef<AssistantPreview | null>(null);
+  const toolBusyRef = useRef(false);
 
   phaseRef.current = phase;
   const locked = coach.capabilities.length === 0 && !dismissed;
@@ -185,6 +191,14 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
     }
   }
 
+  function clearVoiceChrome() {
+    toolBusyRef.current = false;
+    setToolBusy(false);
+    setAwaitingReply(false);
+    setUserCaption("");
+    setAsstCaption("");
+  }
+
   function dropToHold(message: string) {
     liveGen.current += 1;
     sessionRef.current?.hangup();
@@ -192,6 +206,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
     startingRef.current = false;
     setHoldFallback(true);
     setInCall(false);
+    clearVoiceChrome();
     notifyVoiceError(message);
     setPhase("idle");
   }
@@ -211,6 +226,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
     setPreview(null);
     setAction(undefined);
     setInCall(false);
+    clearVoiceChrome();
     notifyVoiceError(message);
     setPhase("idle");
     focusComposer();
@@ -224,6 +240,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
     setPreview(null);
     setAction(undefined);
     setInCall(false);
+    clearVoiceChrome();
     setPhase("idle");
     userLiveId.current = null;
     asstLiveId.current = null;
@@ -238,6 +255,9 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
       return;
     }
     upsert(userLiveId, "user", text);
+    toolBusyRef.current = true;
+    setToolBusy(true);
+    setAwaitingReply(true);
     setPhase("thinking");
     try {
       const res = await runAssistant({ data: { text } });
@@ -263,6 +283,9 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
         callId,
         JSON.stringify({ ok: false, status: "error", error: "Something went wrong." }),
       );
+    } finally {
+      toolBusyRef.current = false;
+      setToolBusy(false);
     }
   }
 
@@ -283,6 +306,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
     setAction(undefined);
     userLiveId.current = null;
     asstLiveId.current = null;
+    clearVoiceChrome();
     if (typeof navigator.mediaDevices?.getUserMedia !== "function") {
       notifyVoiceError(VOICE_UNSUPPORTED);
       setPhase("idle");
@@ -339,6 +363,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
           onSpeaking: (on) => {
             if (sessionRef.current !== session) return;
             if (phaseRef.current === "confirm") return;
+            if (on || !toolBusyRef.current) setAwaitingReply(false);
             setPhase(on ? "speaking" : "live");
           },
           onListening: (on) => {
@@ -347,16 +372,29 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
             if (on) {
               userLiveId.current = null;
               asstLiveId.current = null;
+              setAwaitingReply(false);
+              setUserCaption("");
+              setAsstCaption("");
+            } else if (phaseRef.current !== "speaking") {
+              // Panel-only. Phase stays "live" so the mic, composer, and thread keep their current behavior.
+              setAwaitingReply(true);
             }
             setPhase(on ? "listening" : phaseRef.current === "speaking" ? "speaking" : "live");
           },
           onCaption: (text) => {
             if (sessionRef.current !== session) return;
-            if (text) upsert(asstLiveId, "assistant", text);
+            if (text) {
+              setAwaitingReply(false);
+              setAsstCaption(text);
+              upsert(asstLiveId, "assistant", text);
+            }
           },
           onHeard: (text) => {
             if (sessionRef.current !== session) return;
-            if (text) upsert(userLiveId, "user", text);
+            if (text) {
+              setUserCaption(text);
+              upsert(userLiveId, "user", text);
+            }
           },
           onTool: (callId, name, args) => {
             if (sessionRef.current !== session) return;
@@ -371,6 +409,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
             sessionRef.current = null;
             startingRef.current = false;
             setInCall(false);
+            clearVoiceChrome();
             if (phaseRef.current !== "idle") {
               setPhase("idle");
             }
@@ -391,6 +430,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
         sessionRef.current?.hangup();
         sessionRef.current = null;
         setInCall(false);
+        clearVoiceChrome();
         notifyVoiceError(message);
         setPhase("idle");
         focusComposer();
@@ -770,6 +810,18 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
                 ? "Live · always here to help"
                 : "Always here to help";
 
+  const voicePanelOpen = (inCall || phase === "connecting") && phase !== "confirm" && phase !== "idle";
+  const voicePanelState: VoicePanelState =
+    phase === "connecting"
+      ? "connecting"
+      : phase === "speaking"
+        ? "speaking"
+        : phase === "listening"
+          ? "listening"
+          : phase === "thinking" || toolBusy || awaitingReply
+            ? "thinking"
+            : "listening";
+
   const talkLabel = callActive
     ? phase === "connecting"
       ? "Connecting…"
@@ -857,6 +909,16 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
         live={listening || callActive}
         disabled={phase === "thinking" || locked}
       />
+
+      {voicePanelOpen ? (
+        <VoiceModePanel
+          state={voicePanelState}
+          userCaption={userCaption}
+          assistantCaption={asstCaption}
+          onEnd={hangupLive}
+          getLevels={() => sessionRef.current?.getLevels() ?? { input: 0, output: 0 }}
+        />
+      ) : null}
 
       {locked ? (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-cream/80 px-6">

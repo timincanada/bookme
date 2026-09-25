@@ -1,4 +1,4 @@
-import { DEFAULT_ASSISTANT_NAME, normalizeAssistantName } from "./assistant-name";
+import { DEFAULT_ASSISTANT_NAME, normalizeAssistantName } from "./assistant-name.ts";
 
 export const VOICE_SAMPLE_RATE = 24_000;
 export const VOICE_ID = "eve";
@@ -38,6 +38,7 @@ export function voiceInstructions(coachName: string, assistantName?: string) {
     'Never claim you sent an email or changed hours unless the tool result status is "done".',
     'If status is "awaiting_confirm", tell them to confirm on the screen. Do not say it is done.',
     "If they speak Chinese, reply in Chinese. Otherwise English.",
+    "If what you hear sounds like background TV, radio, or other people not talking to you, ignore it and stay silent.",
     "Do not mention tools, APIs, models, or that you are an AI.",
   ].join(" ");
 }
@@ -50,14 +51,21 @@ export function voiceSessionUpdate(coachName: string, assistantName?: string) {
       instructions: voiceInstructions(coachName, assistantName),
       turn_detection: {
         type: "server_vad" as const,
-        threshold: 0.5,
+        // Raised from 0.5 / 400ms so TV, radio, and nearby conversation don't start a turn.
+        // prefix_padding_ms stays 300 so the onset of a real word is kept.
+        // xAI documents no server noise_reduction field — do not send one.
+        // The live mic also uses echo cancellation, noise suppression, and auto gain.
+        threshold: 0.7,
         prefix_padding_ms: 300,
-        silence_duration_ms: 400,
+        silence_duration_ms: 700,
         create_response: true,
         interrupt_response: true,
       },
       audio: {
-        input: { format: { type: "audio/pcm", rate: VOICE_SAMPLE_RATE } },
+        input: {
+          format: { type: "audio/pcm", rate: VOICE_SAMPLE_RATE },
+          transcription: { model: "grok-transcribe" },
+        },
         output: { format: { type: "audio/pcm", rate: VOICE_SAMPLE_RATE } },
       },
       tools: [BOOKME_VOICE_TOOL],
@@ -137,6 +145,11 @@ export function eventKind(type: string) {
     return "out_delta";
   if (t === "response.output_audio_transcript.done" || t === "response.audio_transcript.done" || t === "response.output_text.done")
     return "out_done";
+  if (
+    t === "conversation.item.input_audio_transcription.updated" ||
+    t === "input_audio_transcription.updated"
+  )
+    return "in_update";
   if (t === "conversation.item.input_audio_transcription.delta" || t === "input_audio_transcription.delta") return "in_delta";
   if (
     t === "conversation.item.input_audio_transcription.completed" ||

@@ -59,6 +59,9 @@ assert.equal(eventKind("input_audio_buffer.speech_started"), "speech_started");
 assert.equal(eventKind("response.output_audio.delta"), "audio");
 assert.equal(eventKind("response.audio.delta"), "audio");
 assert.equal(eventKind("response.output_audio_transcript.delta"), "out_delta");
+assert.equal(eventKind("conversation.item.input_audio_transcription.updated"), "in_update");
+assert.equal(eventKind("input_audio_transcription.updated"), "in_update");
+assert.equal(eventKind("conversation.item.input_audio_transcription.delta"), "in_delta");
 assert.equal(eventKind("conversation.item.input_audio_transcription.completed"), "in_done");
 assert.equal(eventKind("response.function_call_arguments.done"), "tool");
 assert.equal(eventKind("response.done"), "response_done");
@@ -69,6 +72,12 @@ assert.equal(inst.includes("Alex Rivera"), true);
 assert.equal(inst.includes("bookme_action"), true);
 assert.equal(inst.includes("awaiting_confirm"), true);
 assert.equal(inst.includes("You are Assistant,"), true);
+assert.equal(
+  inst.includes(
+    "If what you hear sounds like background TV, radio, or other people not talking to you, ignore it and stay silent.",
+  ),
+  true,
+);
 
 const named = voiceInstructions("Alex Rivera", "Maya");
 assert.equal(named.includes("You are Maya,"), true);
@@ -78,8 +87,15 @@ const update = voiceSessionUpdate("Alex Rivera");
 assert.equal(update.type, "session.update");
 assert.equal(update.session.voice, "eve");
 assert.equal(update.session.turn_detection.type, "server_vad");
+assert.equal(update.session.turn_detection.threshold, 0.7);
+assert.equal(update.session.turn_detection.prefix_padding_ms, 300);
+assert.equal(update.session.turn_detection.silence_duration_ms, 700);
 assert.equal(update.session.turn_detection.interrupt_response, true);
 assert.equal(update.session.audio.input.format.rate, 24_000);
+assert.equal(update.session.audio.input.transcription.model, "grok-transcribe");
+assert.equal("noise_reduction" in update.session, false);
+assert.equal("noise_reduction" in update.session.audio, false);
+assert.equal("noise_reduction" in update.session.audio.input, false);
 assert.equal(update.session.tools[0].name, BOOKME_VOICE_TOOL.name);
 assert.equal(update.session.instructions.includes("XAI_API_KEY"), false);
 
