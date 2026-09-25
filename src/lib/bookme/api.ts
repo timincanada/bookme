@@ -3047,9 +3047,45 @@ function xaiKey() {
   return String(process.env.XAI_API_KEY || "").trim();
 }
 
+function redactSecret(text: string) {
+  const key = xaiKey();
+  if (!key || !text.includes(key)) return text;
+  return text.split(key).join("[redacted]");
+}
+
+function logVoiceNotConfigured(fn: string) {
+  console.error(JSON.stringify({ msg: "voice_not_configured", missing: "XAI_API_KEY", fn }));
+}
+
+function logVoiceUpstreamStatus(fn: string, status: number, body: string) {
+  console.error(JSON.stringify({ msg: "voice_upstream_error", fn, status, body }));
+}
+
+function logVoiceUpstreamThrown(fn: string, err: unknown) {
+  const name = err instanceof Error ? err.name : "Error";
+  const message = redactSecret(err instanceof Error ? err.message : String(err));
+  console.error(JSON.stringify({ msg: "voice_upstream_error", fn, name, message }));
+}
+
+async function voiceErrorBody(res: Response) {
+  try {
+    return redactSecret(await res.text()).slice(0, 300);
+  } catch {
+    return "";
+  }
+}
+
 async function xaiTranscribe(audioB64: string, mime = "audio/webm") {
   const apiKey = xaiKey();
-  if (!apiKey) return { ok: false as const, error: "Voice is not available.", fallback: true as const };
+  if (!apiKey) {
+    logVoiceNotConfigured("xaiTranscribe");
+    return {
+      ok: false as const,
+      error: "Voice is not available.",
+      fallback: true as const,
+      reason: "not_configured" as const,
+    };
+  }
   let bytes: Buffer;
   try {
     bytes = Buffer.from(audioB64, "base64");
@@ -3070,13 +3106,17 @@ async function xaiTranscribe(audioB64: string, mime = "audio/webm") {
       body: form,
       signal: controller.signal,
     });
-    if (!res.ok) return { ok: false as const, error: "I couldn't hear that. Try again." };
+    if (!res.ok) {
+      logVoiceUpstreamStatus("xaiTranscribe", res.status, await voiceErrorBody(res));
+      return { ok: false as const, error: "I couldn't hear that. Try again.", reason: "upstream" as const };
+    }
     const body = (await res.json()) as { text?: string };
     const text = String(body.text || "").trim();
     if (!text) return { ok: false as const, error: "I didn't catch that." };
     return { ok: true as const, text };
-  } catch {
-    return { ok: false as const, error: "I couldn't hear that. Try again." };
+  } catch (err) {
+    logVoiceUpstreamThrown("xaiTranscribe", err);
+    return { ok: false as const, error: "I couldn't hear that. Try again.", reason: "upstream" as const };
   } finally {
     clearTimeout(timer);
   }
@@ -3084,7 +3124,15 @@ async function xaiTranscribe(audioB64: string, mime = "audio/webm") {
 
 async function xaiSpeak(text: string) {
   const apiKey = xaiKey();
-  if (!apiKey) return { ok: false as const, fallback: true as const, error: "Voice is not available." };
+  if (!apiKey) {
+    logVoiceNotConfigured("xaiSpeak");
+    return {
+      ok: false as const,
+      fallback: true as const,
+      error: "Voice is not available.",
+      reason: "not_configured" as const,
+    };
+  }
   const spoken = capSpokenText(speakableText(text));
   if (!spoken) return { ok: false as const, error: "Nothing to say." };
   const controller = new AbortController();
@@ -3099,12 +3147,16 @@ async function xaiSpeak(text: string) {
       body: JSON.stringify({ text: spoken, voice_id: "eve", language: ttsLanguage(spoken) }),
       signal: controller.signal,
     });
-    if (!res.ok) return { ok: false as const, fallback: true as const, error: "Voice failed." };
+    if (!res.ok) {
+      logVoiceUpstreamStatus("xaiSpeak", res.status, await voiceErrorBody(res));
+      return { ok: false as const, fallback: true as const, error: "Voice failed.", reason: "upstream" as const };
+    }
     const buf = Buffer.from(await res.arrayBuffer());
     if (buf.length < 100) return { ok: false as const, fallback: true as const, error: "Voice failed." };
     return { ok: true as const, audio: buf.toString("base64"), mime: "audio/mpeg" as const };
-  } catch {
-    return { ok: false as const, fallback: true as const, error: "Voice failed." };
+  } catch (err) {
+    logVoiceUpstreamThrown("xaiSpeak", err);
+    return { ok: false as const, fallback: true as const, error: "Voice failed.", reason: "upstream" as const };
   } finally {
     clearTimeout(timer);
   }
@@ -3163,7 +3215,13 @@ export const mintVoiceSession = createServerFn({ method: "POST" })
     if (!gate.ok) return gate;
     const apiKey = xaiKey();
     if (!apiKey) {
-      return { ok: false as const, fallback: true as const, error: "Live talk isn't available right now." };
+      logVoiceNotConfigured("mintVoiceSession");
+      return {
+        ok: false as const,
+        fallback: true as const,
+        error: "Live talk isn't available right now.",
+        reason: "not_configured" as const,
+      };
     }
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 10_000);
@@ -3178,12 +3236,28 @@ export const mintVoiceSession = createServerFn({ method: "POST" })
         signal: controller.signal,
       });
       if (!res.ok) {
-        await res.text().catch(() => "");
-        return { ok: false as const, fallback: true as const, error: "Live talk isn't available right now." };
+        logVoiceUpstreamStatus("mintVoiceSession", res.status, await voiceErrorBody(res));
+        return {
+          ok: false as const,
+          fallback: true as const,
+          error: "Live talk isn't available right now.",
+          reason: "upstream" as const,
+        };
       }
-      const secret = extractClientSecret(await res.json());
+      const payload: unknown = await res.json();
+      const secret = extractClientSecret(payload);
       if (!secret) {
-        return { ok: false as const, fallback: true as const, error: "Live talk isn't available right now." };
+        const keys =
+          payload && typeof payload === "object" && !Array.isArray(payload)
+            ? Object.keys(payload as Record<string, unknown>)
+            : [];
+        console.error(JSON.stringify({ msg: "voice_bad_secret_shape", fn: "mintVoiceSession", keys }));
+        return {
+          ok: false as const,
+          fallback: true as const,
+          error: "Live talk isn't available right now.",
+          reason: "upstream" as const,
+        };
       }
       return {
         ok: true as const,
@@ -3194,8 +3268,14 @@ export const mintVoiceSession = createServerFn({ method: "POST" })
         coachName: gate.coach.name,
         assistantName: normalizeAssistantName(gate.coach.assistant_name),
       };
-    } catch {
-      return { ok: false as const, fallback: true as const, error: "Live talk isn't available right now." };
+    } catch (err) {
+      logVoiceUpstreamThrown("mintVoiceSession", err);
+      return {
+        ok: false as const,
+        fallback: true as const,
+        error: "Live talk isn't available right now.",
+        reason: "upstream" as const,
+      };
     } finally {
       clearTimeout(timer);
     }

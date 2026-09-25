@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import {
   AssistantHeader,
   ChatBubble,
@@ -24,6 +25,7 @@ import {
 import type { AssistantAction } from "@/lib/bookme/assistant";
 import { compactVoiceToolResult, parseToolText } from "@/lib/bookme/realtime";
 import { isConfirmImportText } from "@/lib/bookme/recurring";
+import { isMicPermissionError, micErrorMessage, voiceUnavailableMessage } from "@/lib/bookme/voice-errors";
 import { usePurchasePolicy } from "@/lib/native/purchases";
 import { GrokVoiceSession } from "@/lib/bookme/realtime-session";
 import { spokenFromTurn } from "@/lib/bookme/voice";
@@ -33,6 +35,26 @@ type Phase = "idle" | "connecting" | "live" | "listening" | "thinking" | "speaki
 type ChatMsg = { id: string; role: "user" | "assistant"; text: string; at: number; card?: AssistantPreview | null };
 
 const HOLD_GREETING = "Hold to talk. I can list openings, email a student, or swap two lesson times.";
+const VOICE_UNSUPPORTED = "Voice isn't supported in this browser — try typing.";
+
+function focusComposer() {
+  const tryFocus = () => {
+    const el = document.getElementById("assistant-input");
+    if (!(el instanceof HTMLInputElement) || el.disabled) return false;
+    el.focus();
+    return true;
+  };
+  if (tryFocus()) return;
+  window.setTimeout(() => {
+    if (!tryFocus()) window.requestAnimationFrame(() => void tryFocus());
+  }, 0);
+}
+
+function voiceReason(res: object): string | undefined {
+  if (!("reason" in res)) return undefined;
+  const reason = (res as { reason?: unknown }).reason;
+  return typeof reason === "string" ? reason : undefined;
+}
 
 export function AssistantPresence({ coach }: { coach: MyCoach }) {
   const [phase, setPhase] = useState<Phase>("idle");
@@ -44,6 +66,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
   const [preview, setPreview] = useState<AssistantPreview | null>(null);
   const [action, setAction] = useState<AssistantAction | undefined>();
   const [holdFallback, setHoldFallback] = useState(false);
+  const [voiceOff, setVoiceOff] = useState(false);
   const [inCall, setInCall] = useState(false);
   const [upcoming, setUpcoming] = useState<UpcomingLesson | null>(null);
 
@@ -58,6 +81,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
   const sendingRef = useRef(false);
   const sessionRef = useRef<GrokVoiceSession | null>(null);
   const startingRef = useRef(false);
+  const voiceOffRef = useRef(false);
   const liveGen = useRef(0);
   const msgN = useRef(1);
   const userLiveId = useRef<string | null>(null);
@@ -164,8 +188,30 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
     startingRef.current = false;
     setHoldFallback(true);
     setInCall(false);
+    toast.error(message);
     push("assistant", message);
     setPhase("idle");
+  }
+
+  function markVoiceOff() {
+    const message = voiceUnavailableMessage("not_configured");
+    voiceOffRef.current = true;
+    setVoiceOff(true);
+    setHoldFallback(false);
+    liveGen.current += 1;
+    recGen.current += 1;
+    sessionRef.current?.hangup();
+    sessionRef.current = null;
+    startingRef.current = false;
+    stopPlayback();
+    stopRecorder(false);
+    setPreview(null);
+    setAction(undefined);
+    setInCall(false);
+    toast.error(message);
+    push("assistant", message);
+    setPhase("idle");
+    focusComposer();
   }
 
   function hangupLive() {
@@ -220,6 +266,11 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
 
   async function startLive() {
     if (locked || startingRef.current || sessionRef.current) return;
+    if (voiceOff || voiceOffRef.current) {
+      toast.error(voiceUnavailableMessage("not_configured"));
+      focusComposer();
+      return;
+    }
     if (phase === "thinking" || phase === "confirm") return;
     startingRef.current = true;
     liveGen.current += 1;
@@ -230,6 +281,14 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
     setAction(undefined);
     userLiveId.current = null;
     asstLiveId.current = null;
+    if (typeof navigator.mediaDevices?.getUserMedia !== "function") {
+      toast.error(VOICE_UNSUPPORTED);
+      push("assistant", VOICE_UNSUPPORTED);
+      setPhase("idle");
+      startingRef.current = false;
+      focusComposer();
+      return;
+    }
     setPhase("connecting");
     const timeout = window.setTimeout(() => {
       if (myGen === liveGen.current && phaseRef.current === "connecting") {
@@ -241,18 +300,26 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
       sessionRef.current = session;
       setInCall(true);
       await session.prepare();
-      if (myGen !== liveGen.current) {
+      if (myGen !== liveGen.current || !liveRef.current) {
         session.hangup();
         return;
       }
       const minted = await mintVoiceSession();
-      if (myGen !== liveGen.current) {
+      if (myGen !== liveGen.current || !liveRef.current) {
         session.hangup();
         return;
       }
       if (!minted.ok) {
         if ("upgrade" in minted && minted.upgrade) setUpgrade(true);
-        dropToHold(("error" in minted && minted.error) || HOLD_GREETING);
+        if ("reason" in minted && minted.reason === "not_configured") {
+          markVoiceOff();
+          return;
+        }
+        const message =
+          "reason" in minted && minted.reason === "upstream"
+            ? voiceUnavailableMessage("upstream")
+            : ("error" in minted && minted.error) || HOLD_GREETING;
+        dropToHold(message);
         return;
       }
       await session.connect({
@@ -315,8 +382,21 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
         setInCall(false);
         return;
       }
-    } catch {
-      dropToHold("Microphone is blocked here. Hold to talk or type.");
+    } catch (err) {
+      if (myGen !== liveGen.current || !liveRef.current) return;
+      const message = micErrorMessage(err);
+      if (isMicPermissionError(err)) {
+        liveGen.current += 1;
+        sessionRef.current?.hangup();
+        sessionRef.current = null;
+        setInCall(false);
+        toast.error(message);
+        push("assistant", message);
+        setPhase("idle");
+        focusComposer();
+        return;
+      }
+      dropToHold(message);
     } finally {
       window.clearTimeout(timeout);
       startingRef.current = false;
@@ -452,7 +532,9 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
   async function sendRecording(blob: Blob, mime: string) {
     if (sendingRef.current) return;
     if (blob.size < 1200) {
-      push("assistant", "I didn't catch that. Tap to talk again.");
+      const message = "I didn't catch that. Tap to talk again.";
+      toast.error(message);
+      push("assistant", message);
       setPhase("idle");
       return;
     }
@@ -461,10 +543,25 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
     try {
       const audio = await blobToBase64(blob);
       const res = await voiceTurn({ data: { audio, mime } });
-      if ("transcript" in res && res.transcript) {
+      const reason = voiceReason(res);
+      const transcript = "transcript" in res && typeof res.transcript === "string" ? res.transcript : "";
+      if (transcript) {
         userLiveId.current = null;
-        upsert(userLiveId, "user", res.transcript);
+        upsert(userLiveId, "user", transcript);
         userLiveId.current = null;
+      }
+      if (!res.ok && !transcript) {
+        if (reason === "not_configured") {
+          markVoiceOff();
+          return;
+        }
+        const message = reason ? voiceUnavailableMessage(reason) : ("error" in res && res.error) || voiceUnavailableMessage();
+        toast.error(message);
+        if (reason) {
+          push("assistant", message);
+          setPhase("idle");
+          return;
+        }
       }
       await speakTurn(res, true);
     } finally {
@@ -473,6 +570,11 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
   }
 
   async function beginListen() {
+    if (voiceOff || voiceOffRef.current) {
+      toast.error(voiceUnavailableMessage("not_configured"));
+      focusComposer();
+      return;
+    }
     if (locked || sessionRef.current) return;
     recGen.current += 1;
     const myGen = recGen.current;
@@ -506,8 +608,16 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
         setPhase("listening");
         vadRef.current = attachVad(streamRef.current, () => finishListen());
         return;
-      } catch {
+      } catch (err) {
+        streamRef.current?.getTracks().forEach((t) => t.stop());
         streamRef.current = null;
+        if (!Speech) {
+          const message = micErrorMessage(err);
+          toast.error(message);
+          push("assistant", message);
+          setPhase("idle");
+          return;
+        }
       }
     }
     if (Speech) {
@@ -531,7 +641,12 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
       rec.start();
       return;
     }
-    push("assistant", "Microphone is blocked here. Type instead.");
+    const message =
+      typeof navigator.mediaDevices?.getUserMedia === "function"
+        ? "Microphone is blocked here. Type instead."
+        : VOICE_UNSUPPORTED;
+    toast.error(message);
+    push("assistant", message);
     setPhase("idle");
   }
 
@@ -552,6 +667,11 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
 
   function onTalkTap() {
     if (locked || phase === "thinking") return;
+    if (voiceOff || voiceOffRef.current) {
+      toast.error(voiceUnavailableMessage("not_configured"));
+      focusComposer();
+      return;
+    }
     if (callActive) {
       hangupLive();
       return;
