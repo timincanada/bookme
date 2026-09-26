@@ -6,6 +6,7 @@ import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { createBooking, getPublicCoach, recordVisit } from "@/lib/bookme/api";
 import { PublicVenueWeather } from "@/components/bookme/weather-chip";
+import { LessonScan, lessonInstantParts } from "@/components/bookme/lesson-scan";
 import { formatWhen } from "@/lib/bookme/time";
 import { priceForDuration } from "@/lib/bookme/duration-prices";
 import { formatMoney } from "@/lib/utils";
@@ -92,33 +93,64 @@ function BookPage() {
         <Logo />
       </header>
       <form onSubmit={submit} className="mx-auto max-w-xl px-5 pb-16 sm:px-8">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">Review</p>
-        <h1 className="mt-3 font-display text-4xl font-medium">Review & confirm</h1>
+        <p className="type-label text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">Review</p>
+        <h1 className="type-page mt-3 font-display text-4xl font-medium">Review & confirm</h1>
         <p className="mt-2 text-ink-soft">
           {coach?.name ?? "Coach"} · {lesson?.name ?? "Private"} · {search.duration ?? lesson?.duration ?? 60} min
         </p>
         <div className="mt-6 rounded-2xl bg-card p-5 ring-1 ring-line">
-          <p className="type-primary flex items-center gap-2 text-sm">
-            <CalendarDays className="size-4 text-forest" />
-            {coach ? formatWhen(new Date(search.start), coach.timezone) : ""}
-          </p>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-            <MapPin className="size-4 text-forest" />
-            <span>{location?.name ?? "Location"}</span>
-            {search.start ? (
-              <PublicVenueWeather
-                slug={slug}
-                locationId={location?.id ?? search.location}
-                start={search.start}
-                durationMin={search.duration ?? lesson?.duration}
-              />
+          <div className="max-md:hidden">
+            <p className="type-primary flex items-center gap-2 text-sm">
+              <CalendarDays className="size-4 text-forest" />
+              {coach ? formatWhen(new Date(search.start), coach.timezone) : ""}
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+              <MapPin className="size-4 text-forest" />
+              <span>{location?.name ?? "Location"}</span>
+              {search.start ? (
+                <PublicVenueWeather
+                  slug={slug}
+                  locationId={location?.id ?? search.location}
+                  start={search.start}
+                  durationMin={search.duration ?? lesson?.duration}
+                />
+              ) : null}
+            </div>
+            {lesson ? (
+              <p className="mt-4 border-t border-line pt-4 text-sm font-semibold">
+                {formatMoney(priceForDuration(lesson, search.duration ?? lesson.duration ?? 60))} ·{" "}
+                {method === "card" ? "pay by card · 15-minute hold" : "pay in person"}
+              </p>
             ) : null}
           </div>
-          {lesson ? (
-            <p className="mt-4 border-t border-line pt-4 text-sm font-semibold">
-              {formatMoney(priceForDuration(lesson, search.duration ?? lesson.duration ?? 60))} ·{" "}
-              {method === "card" ? "pay by card · 15-minute hold" : "pay in person"}
-            </p>
+          {coach && search.start ? (
+            <LessonScan
+              label="Your lesson"
+              time={lessonInstantParts(search.start, coach.timezone).time}
+              name={coach.name}
+              date={lessonInstantParts(search.start, coach.timezone).date}
+              location={location?.name ?? "Location"}
+              extra={
+                <>
+                  {search.start ? (
+                    <div className="mt-2">
+                      <PublicVenueWeather
+                        slug={slug}
+                        locationId={location?.id ?? search.location}
+                        start={search.start}
+                        durationMin={search.duration ?? lesson?.duration}
+                      />
+                    </div>
+                  ) : null}
+                  {lesson ? (
+                    <p className="type-key mt-3 border-t border-line pt-3">
+                      {formatMoney(priceForDuration(lesson, search.duration ?? lesson.duration ?? 60))} ·{" "}
+                      {method === "card" ? "pay by card · 15-minute hold" : "pay in person"}
+                    </p>
+                  ) : null}
+                </>
+              }
+            />
           ) : null}
         </div>
         {methods.length > 1 ? (

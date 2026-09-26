@@ -23,17 +23,17 @@ function PaymentsPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
-      <Link to="/app/more" className="text-sm font-semibold text-forest">
+      <Link to="/app/more" className="type-action text-sm font-semibold text-forest">
         More
       </Link>
-      <h1 className="mt-3 font-display text-3xl font-medium">Payments</h1>
+      <h1 className="type-page mt-3 font-display text-3xl font-medium">Payments</h1>
       <p className="mt-2 text-muted">Students can pay cash in person. Card needs Stripe Connect.</p>
 
       <div className="mt-6 space-y-3 rounded-2xl bg-card p-5 ring-1 ring-line">
         <label className="flex items-center justify-between gap-3">
           <span>
-            <span className="block font-semibold">Cash</span>
-            <span className="text-sm text-muted">Confirm now, collect later</span>
+            <span className="type-key block font-semibold">Cash</span>
+            <span className="type-secondary text-sm text-muted">Confirm now, collect later</span>
           </span>
           <input
             type="checkbox"
@@ -43,8 +43,8 @@ function PaymentsPage() {
         </label>
         <label className="flex items-center justify-between gap-3">
           <span>
-            <span className="block font-semibold">Card</span>
-            <span className="text-sm text-muted">
+            <span className="type-key block font-semibold">Card</span>
+            <span className="type-secondary text-sm text-muted">
               {coach.stripeConnected ? "Stripe connected" : "Connect Stripe first"}
             </span>
           </span>

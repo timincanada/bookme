@@ -33,12 +33,12 @@ function HoursPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
-      <Link to="/app/more" className="text-sm font-semibold text-forest">
+      <Link to="/app/more" className="type-action text-sm font-semibold text-forest">
         More
       </Link>
-      <h1 className="mt-3 font-display text-3xl font-medium">Hours & booking window</h1>
+      <h1 className="type-page mt-3 font-display text-3xl font-medium">Hours & booking window</h1>
       <p className="mt-2 text-muted">Repeating weekly hours, and how far ahead students can pick a time.</p>
-      <h2 className="mt-6 font-display text-2xl font-medium">Booking window</h2>
+      <h2 className="type-section mt-6 font-display text-2xl font-medium">Booking window</h2>
       <p className="mt-1 text-muted">
         How far ahead students can book. You can still place or move a lesson further out yourself.
       </p>
@@ -50,7 +50,7 @@ function HoursPage() {
         Save
       </Button>
       {msg ? <p className="mt-3 text-sm text-ink-soft">{msg}</p> : null}
-      <h2 className="mt-8 font-display text-2xl font-medium">Weekly hours</h2>
+      <h2 className="type-section mt-8 font-display text-2xl font-medium">Weekly hours</h2>
       <p className="mt-1 text-muted">Students only see open slots inside these hours.</p>
       <div className="mt-5">
         <WeeklyHoursEditor hours={hours} onChange={setHours} />

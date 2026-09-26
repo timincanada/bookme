@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Repeat } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { LessonScan, lessonInstantParts } from "@/components/bookme/lesson-scan";
 import { PayChip, StatusChip } from "@/components/bookme/pay-chip";
 import { Button } from "@/components/ui/button";
 import { notifyLessonsChanged, useLessonsRefresh } from "@/lib/bookme/lessons-sync";
@@ -71,10 +72,10 @@ function SeriesPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
-      <Link to="/app/clients/$id" params={{ id: s.clientId }} className="text-sm font-semibold text-forest">
+      <Link to="/app/clients/$id" params={{ id: s.clientId }} className="type-action text-sm font-semibold text-forest">
         {s.clientName}
       </Link>
-      <h1 className="mt-3 flex flex-wrap items-center gap-2 font-display text-3xl font-medium">
+      <h1 className="type-page mt-3 flex flex-wrap items-center gap-2 font-display text-3xl font-medium">
         <Repeat className="size-6 shrink-0 text-forest" strokeWidth={1.5} />
         <span className="min-w-0 break-words">Recurring schedule</span>
       </h1>
@@ -140,8 +141,8 @@ function SeriesPage() {
         {payMsg ? <p className="mt-2 text-sm text-forest">{payMsg}</p> : null}
       </section>
 
-      <LessonList title={`Upcoming (${upcoming.length})`} lessons={upcoming} />
-      <LessonList title={`Past (${past.length})`} lessons={past} />
+      <LessonList title={`Upcoming (${upcoming.length})`} lessons={upcoming} timeZone={s.timezone} clientName={s.clientName} locationName={s.locationName} />
+      <LessonList title={`Past (${past.length})`} lessons={past} timeZone={s.timezone} clientName={s.clientName} locationName={s.locationName} />
 
       {active ? (
         <section className="mt-6 rounded-2xl bg-card p-5 ring-1 ring-line">
@@ -204,27 +205,57 @@ function SeriesPage() {
   );
 }
 
-function LessonList({ title, lessons }: { title: string; lessons: Data["lessons"] }) {
+function LessonList({
+  title,
+  lessons,
+  timeZone,
+  clientName,
+  locationName,
+}: {
+  title: string;
+  lessons: Data["lessons"];
+  timeZone: string;
+  clientName: string;
+  locationName: string;
+}) {
   if (!lessons.length) return null;
   return (
     <section className="mt-6">
-      <h2 className="font-display text-2xl">{title}</h2>
+      <h2 className="type-section font-display text-2xl">{title}</h2>
       <ul className="mt-3 space-y-2">
-        {lessons.map((l) => (
-          <li key={l.id}>
-            <Link
-              to="/app/lessons/$id"
-              params={{ id: l.id }}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-card p-3 text-sm ring-1 ring-line"
-            >
-              <span className="type-primary min-w-0 break-words tabular-nums">{l.when}</span>
-              <span className="flex min-w-0 flex-wrap items-center gap-2">
-                <StatusChip>{l.statusLabel}</StatusChip>
-                <PayChip kind={l.pay.kind} text={l.pay.text} />
-              </span>
-            </Link>
-          </li>
-        ))}
+        {lessons.map((l) => {
+          const parts = lessonInstantParts(l.start, timeZone);
+          return (
+            <li key={l.id}>
+              <Link
+                to="/app/lessons/$id"
+                params={{ id: l.id }}
+                className="block rounded-xl bg-card p-3 text-sm ring-1 ring-line"
+              >
+                <span className="flex flex-wrap items-center justify-between gap-2 max-md:hidden">
+                  <span className="type-primary min-w-0 break-words tabular-nums">{l.when}</span>
+                  <span className="flex min-w-0 flex-wrap items-center gap-2">
+                    <StatusChip>{l.statusLabel}</StatusChip>
+                    <PayChip kind={l.pay.kind} text={l.pay.text} />
+                  </span>
+                </span>
+                <LessonScan
+                  label={l.statusLabel}
+                  time={parts.time}
+                  name={clientName}
+                  date={parts.date}
+                  location={locationName}
+                  extra={
+                    <span className="mt-2 flex min-w-0 flex-wrap items-center gap-2">
+                      <StatusChip>{l.statusLabel}</StatusChip>
+                      <PayChip kind={l.pay.kind} text={l.pay.text} />
+                    </span>
+                  }
+                />
+              </Link>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

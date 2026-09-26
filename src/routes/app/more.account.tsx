@@ -34,17 +34,17 @@ function CoachAccount() {
   if (!coach) return null;
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
-      <Link to="/app/more" className="text-sm font-semibold text-forest">
+      <Link to="/app/more" className="type-action text-sm font-semibold text-forest">
         More
       </Link>
-      <h1 className="mt-3 font-display text-3xl font-medium">Account</h1>
+      <h1 className="type-page mt-3 font-display text-3xl font-medium">Account</h1>
       <p className="mt-1 text-muted">{coach.email}</p>
       <Button variant="outline" size="field" className="mt-5" onClick={() => void signOut()}>
         Sign out
       </Button>
 
       <section className="mt-10 rounded-2xl bg-card p-5 ring-1 ring-line">
-        <h2 className="font-display text-2xl">Delete account</h2>
+        <h2 className="type-section font-display text-2xl">Delete account</h2>
         <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-ink-soft">
           <li>Your booking page goes offline and you are signed out on every device.</li>
           <li>Your plan is cancelled and your Stripe payouts connection is removed.</li>

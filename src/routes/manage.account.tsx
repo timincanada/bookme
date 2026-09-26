@@ -28,7 +28,7 @@ function StudentAccount() {
   if (done) return <p className="mt-6 rounded-2xl bg-sage-3 p-4 text-forest">Your account was deleted.</p>;
   return (
     <section className="mt-6 rounded-2xl bg-card p-5 ring-1 ring-line">
-      <h2 className="font-display text-2xl">Delete account</h2>
+      <h2 className="type-section font-display text-2xl">Delete account</h2>
       <p className="mt-1 text-sm text-muted">{email}</p>
       <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-ink-soft">
         <li>Your sign-in, messages and devices are deleted.</li>

@@ -362,10 +362,10 @@ function ImportForm({ ctx, initialClient, onDone }: { ctx: Ctx; initialClient?: 
 function Header() {
   return (
     <>
-      <Link to="/app" className="text-sm font-semibold text-forest">
+      <Link to="/app" className="type-action text-sm font-semibold text-forest">
         Schedule
       </Link>
-      <h1 className="mt-3 font-display text-3xl font-medium">Import recurring schedule</h1>
+      <h1 className="type-page mt-3 font-display text-3xl font-medium">Import recurring schedule</h1>
       <p className="mt-1 text-muted">Add an existing student's regular lessons. Nothing is saved until you confirm.</p>
     </>
   );

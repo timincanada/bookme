@@ -63,8 +63,8 @@ export function AccountMenu({ name, email, showName = false }: AccountMenuProps)
           className="absolute right-0 z-30 mt-2 w-56 overflow-hidden rounded-2xl bg-card text-ink shadow-card ring-1 ring-line"
         >
           <div className="border-b border-line px-4 py-3">
-            <p className="truncate text-sm font-semibold">{displayName}</p>
-            {displayEmail ? <p className="truncate text-xs text-muted">{displayEmail}</p> : null}
+            <p className="type-key truncate text-sm font-semibold">{displayName}</p>
+            {displayEmail ? <p className="type-secondary truncate text-xs text-muted">{displayEmail}</p> : null}
           </div>
           {items.map((i) => (
             <Link
@@ -72,7 +72,7 @@ export function AccountMenu({ name, email, showName = false }: AccountMenuProps)
               to={i.to}
               role="menuitem"
               onClick={() => setOpen(false)}
-              className="block px-4 py-3 text-sm hover:bg-paper-2"
+              className="type-primary block px-4 py-3 text-sm hover:bg-paper-2"
             >
               {i.label}
             </Link>

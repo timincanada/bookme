@@ -29,7 +29,7 @@ function More() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
-      <h1 className="font-display text-3xl font-medium">More</h1>
+      <h1 className="type-page font-display text-3xl font-medium">More</h1>
       <ul className="mt-5 divide-y divide-line rounded-2xl bg-card ring-1 ring-line">
         {[
           ["/app/assistant", "Assistant"],
@@ -43,21 +43,21 @@ function More() {
           ["/app/more/account", "Account"],
         ].map(([to, label]) => (
           <li key={to}>
-            <Link to={to} className="block px-4 py-3 font-medium hover:bg-paper">
+            <Link to={to} className="type-primary block px-4 py-3 font-medium hover:bg-paper">
               {label}
             </Link>
           </li>
         ))}
       </ul>
       <div className="mt-6">
-        <h2 className="font-display text-2xl">Your booking link</h2>
-        <p className="mt-1 text-sm text-muted">Students use this to book a new lesson.</p>
+        <h2 className="type-section font-display text-2xl">Your booking link</h2>
+        <p className="type-secondary mt-1 text-sm text-muted">Students use this to book a new lesson.</p>
         <div className="mt-4">
           <BookingShare slug={coach.slug} name={coach.name} canShare={coach.open} walletEnabled={coach.walletEnabled} />
         </div>
       </div>
       <div className="mt-6 rounded-2xl bg-card p-5 ring-1 ring-line">
-        <h2 className="font-display text-2xl">Student desk</h2>
+        <h2 className="type-section font-display text-2xl">Student desk</h2>
         <p className="mt-1 text-sm text-muted">
           For students who already booked — move a lesson or message you. Not for new bookings.
         </p>
@@ -70,7 +70,7 @@ function More() {
           )}
           {copied ? "Copied" : "Copy desk link"}
         </Button>
-        <p className="mt-3 text-xs text-muted">
+        <p className="type-meta mt-3 text-xs text-muted">
           Confirmation emails already include {brandedManageUrl().replace("https://", "")}.
         </p>
       </div>

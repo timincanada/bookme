@@ -887,6 +887,13 @@ export const studentListRequests = createServerFn({ method: "GET" })
           when: view.yourWhen,
           otherWhen: view.otherWhen,
           nextWhen: r.proposed_start ? formatWhen(asDate(r.proposed_start)!, tz) : null,
+          start: (view.isPrimary ? asDate(r.start_at)! : asDate(r.other_start) || asDate(r.start_at)!).toISOString(),
+          otherStart:
+            view.otherWhen && (view.isPrimary ? r.other_start : r.start_at)
+              ? (view.isPrimary ? asDate(r.other_start)! : asDate(r.start_at)!).toISOString()
+              : null,
+          nextStart: r.proposed_start ? asDate(r.proposed_start)!.toISOString() : null,
+          timezone: tz,
           note: r.note,
           coachName: r.coach_name,
           otherLabel: view.otherLabel,
@@ -925,8 +932,11 @@ export const getRequestByToken = createServerFn({ method: "GET" })
         coachName: mine.coach_name,
         yourName: firstName(mine.client_name),
         yourWhen: formatWhen(asDate(mine.start_at)!, tzOf(mine.timezone)),
+        yourStart: asDate(mine.start_at)!.toISOString(),
+        timezone: tzOf(mine.timezone),
         otherLabel: other ? ANOTHER_STUDENT : null,
         otherWhen: other ? formatWhen(asDate(other.start_at)!, tzOf(mine.timezone)) : null,
+        otherStart: other ? asDate(other.start_at)!.toISOString() : null,
         note: row.note,
         decision,
         pending: isOpenRequest(row.status) && decision === "pending",
@@ -1068,9 +1078,12 @@ export const listCoachRequests = createServerFn({ method: "GET" })
         createdBy: r.created_by,
         studentName: r.client_name,
         studentWhen: formatWhen(asDate(r.start_at)!, tzOf(coach.timezone)),
+        studentStart: asDate(r.start_at)!.toISOString(),
         otherName: r.other_name,
         otherWhen: r.other_start ? formatWhen(asDate(r.other_start)!, tzOf(coach.timezone)) : null,
+        otherStart: r.other_start ? asDate(r.other_start)!.toISOString() : null,
         nextWhen: r.proposed_start ? formatWhen(asDate(r.proposed_start)!, tzOf(coach.timezone)) : null,
+        nextStart: r.proposed_start ? asDate(r.proposed_start)!.toISOString() : null,
         studentDecision: r.student_decision,
         otherDecision: r.other_decision,
       })),
@@ -2581,7 +2594,12 @@ export type AssistantPreview = {
   confirmLabel?: string;
   cancelLabel?: string;
   fields?: { label: string; value: string }[];
-  groups?: { dateKey: string; label: string; lines: string[] }[];
+  groups?: {
+    dateKey: string;
+    label: string;
+    lines: string[];
+    items?: { time: string; name: string; location: string }[];
+  }[];
   importPlan?: RecurringPreview;
   href?: string;
 };
@@ -2869,14 +2887,21 @@ async function processAssistantTurn(userId: string, data: AssistantInput): Promi
     if (action.type === "list_lessons") {
       const upcoming = upcomingLessons(ctx.lessons);
       if (!upcoming.length) return { ok: true as const, message: "No upcoming lessons." };
-      const groups: { dateKey: string; label: string; lines: string[] }[] = [];
+      const groups: NonNullable<AssistantPreview["groups"]> = [];
       for (const lesson of upcoming) {
         const dateKey = slotDateKey(lesson.startAt, tz);
         const label = formatDateKey(dateKey);
-        const line = formatTime(new Date(lesson.startAt), tz) + " · " + lesson.clientName + (lesson.location ? " · " + lesson.location : "");
+        const item = {
+          time: formatTime(new Date(lesson.startAt), tz),
+          name: lesson.clientName,
+          location: lesson.location || "",
+        };
+        const line = item.time + " · " + item.name + (item.location ? " · " + item.location : "");
         const last = groups[groups.length - 1];
-        if (last && last.dateKey === dateKey) last.lines.push(line);
-        else groups.push({ dateKey, label, lines: [line] });
+        if (last && last.dateKey === dateKey) {
+          last.lines.push(line);
+          last.items?.push(item);
+        } else groups.push({ dateKey, label, lines: [line], items: [item] });
       }
       const message = groups.map((g) => g.label + ": " + g.lines.join(", ")).join(" / ");
       return {

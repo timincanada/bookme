@@ -3,7 +3,10 @@ import { Repeat } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { MessageLink } from "@/components/bookme/message-link";
 import { Button } from "@/components/ui/button";
+import { LessonScan, lessonInstantParts } from "@/components/bookme/lesson-scan";
 import { getMyClient, saveClientNote } from "@/lib/bookme/api";
+import { useCoach } from "@/lib/bookme/coach-context";
+import { DEFAULT_TIMEZONE } from "@/lib/bookme/timezone";
 import { useLessonsRefresh } from "@/lib/bookme/lessons-sync";
 import { PAYMENT_STATUS_LABEL, PAYMENT_STATUSES } from "@/lib/bookme/recurring";
 import { listClientSeries, saveClientPayment } from "@/lib/bookme/recurring-api";
@@ -12,6 +15,8 @@ export const Route = createFileRoute("/app/clients/$id")({ component: ClientDeta
 
 function ClientDetail() {
   const { id } = Route.useParams();
+  const { coach } = useCoach();
+  const tz = coach?.timezone || DEFAULT_TIMEZONE;
   const [data, setData] = useState<Extract<Awaited<ReturnType<typeof getMyClient>>, { ok: true }> | null>(null);
   const [note, setNote] = useState("");
   const [saved, setSaved] = useState("");
@@ -60,11 +65,11 @@ function ClientDetail() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
-      <Link to="/app/clients" className="text-sm font-semibold text-forest">
+      <Link to="/app/clients" className="type-action text-sm font-semibold text-forest">
         Clients
       </Link>
-      <h1 className="mt-3 break-words font-display text-3xl font-medium">{data.client.name}</h1>
-      <p className="break-words text-muted">{data.client.email || "No email — this student can't use the portal or messages."}</p>
+      <h1 className="type-page mt-3 break-words font-display text-3xl font-medium">{data.client.name}</h1>
+      <p className="type-secondary mt-2 break-words text-muted">{data.client.email || "No email — this student can't use the portal or messages."}</p>
       <MessageLink clientId={id} />
       <Button variant="outline" size="field" className="mt-4" asChild>
         <Link to="/app/import" search={{ client: id }}>
@@ -86,7 +91,7 @@ function ClientDetail() {
         Save note
       </Button>
       {saved ? <p className="mt-2 text-sm text-forest">{saved}</p> : null}
-      <h2 className="mt-10 font-display text-2xl">Payment note</h2>
+      <h2 className="type-section mt-10 font-display text-2xl">Payment note</h2>
       <p className="mt-1 text-sm text-muted">
         For your records only — no charges. New recurring schedules start from this; existing schedules keep their own note.
       </p>
@@ -114,15 +119,15 @@ function ClientDetail() {
       {paySaved ? <p className="mt-2 text-sm text-forest">{paySaved}</p> : null}
       {series.length ? (
         <>
-          <h2 className="mt-10 font-display text-2xl">Recurring schedules</h2>
+          <h2 className="type-section mt-10 font-display text-2xl">Recurring schedules</h2>
           <ul className="mt-3 space-y-2">
             {series.map((sr) => (
               <li key={sr.id}>
                 <Link to="/app/series/$id" params={{ id: sr.id }} className="block rounded-xl bg-card p-3 text-sm ring-1 ring-line">
-                  <p className="break-words font-semibold">
+                  <p className="type-key break-words font-semibold">
                     {sr.repeat} · {sr.slots.join(", ")}
                   </p>
-                  <p className="break-words text-muted">
+                  <p className="type-secondary break-words text-muted">
                     {sr.dates} · {sr.status === "active" ? "Active" : "Ended"} · {sr.paymentLabel}
                   </p>
                 </Link>
@@ -131,14 +136,27 @@ function ClientDetail() {
           </ul>
         </>
       ) : null}
-      <h2 className="mt-10 font-display text-2xl">Lesson history</h2>
+      <h2 className="type-section mt-10 font-display text-2xl">Lesson history</h2>
       <ul className="mt-3 space-y-2">
-        {data.lessons.map((l) => (
-          <li key={l.id} className="type-primary break-words rounded-xl bg-card p-3 text-sm ring-1 ring-line">
-            {l.when} · {l.locationName} · {l.statusLabel}
-            {l.recurring ? " · Recurring" : ""}
-          </li>
-        ))}
+        {data.lessons.map((l) => {
+          const parts = lessonInstantParts(l.start, tz);
+          return (
+            <li key={l.id} className="break-words rounded-xl bg-card p-3 text-sm ring-1 ring-line">
+              <p className="type-primary max-md:hidden text-sm">
+                {l.when} · {l.locationName} · {l.statusLabel}
+                {l.recurring ? " · Recurring" : ""}
+              </p>
+              <LessonScan
+                label={l.statusLabel}
+                time={parts.time}
+                name={data.client.name}
+                date={parts.date}
+                location={l.locationName}
+                extra={l.recurring ? <p className="type-meta mt-1 text-forest">Recurring</p> : null}
+              />
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

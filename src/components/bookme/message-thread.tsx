@@ -173,7 +173,7 @@ export function MessageThread({
         <div className="flex shrink-0 items-center gap-1 border-b border-line bg-paper px-1 py-1">
           {leading}
           <p
-            className="type-page min-w-0 flex-1 truncate text-base font-semibold text-ink"
+            className="type-page-dense min-w-0 flex-1 truncate text-base font-semibold text-ink"
             title={thread?.otherName || undefined}
           >
             {thread?.otherName ?? ""}
@@ -214,7 +214,7 @@ export function MessageThread({
                     >
                       {m.body}
                     </p>
-                    <span className="type-secondary mt-1 px-1 text-[11px] text-muted">
+                    <span className="type-meta mt-1 px-1 text-[11px] text-muted">
                       {mine ? "You" : thread.otherName} · {stamp(m.createdAt)}
                     </span>
                   </li>
@@ -230,7 +230,7 @@ export function MessageThread({
                 }}
               >
                 {nearLimit ? (
-                  <p className="mb-1 text-right text-[11px] text-muted">
+                  <p className="type-meta mb-1 text-right text-[11px] text-muted">
                     {draft.length}/{MESSAGE_MAX_LENGTH}
                   </p>
                 ) : null}
@@ -275,7 +275,7 @@ export function MessageThread({
     <div className="mt-4 flex flex-col rounded-2xl bg-card ring-1 ring-line">
       {thread ? (
         <div className="border-b border-line px-4 py-3">
-          <p className="type-page font-semibold">{thread.otherName}</p>
+          <p className="type-page-dense font-semibold">{thread.otherName}</p>
         </div>
       ) : null}
       {banner}
@@ -299,7 +299,7 @@ export function MessageThread({
                   >
                     {m.body}
                   </p>
-                  <span className="type-secondary mt-1 px-1 text-[11px] text-muted">
+                  <span className="type-meta mt-1 px-1 text-[11px] text-muted">
                     {mine ? "You" : thread.otherName} · {stamp(m.createdAt)}
                   </span>
                 </li>

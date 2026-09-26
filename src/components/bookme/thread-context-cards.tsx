@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { LessonScan } from "@/components/bookme/lesson-scan";
 import { WeatherChipView } from "@/components/bookme/weather-chip";
 import { useLessonsRefresh } from "@/lib/bookme/lessons-sync";
 import { coachThreadCards, studentThreadCards } from "@/lib/bookme/messages-api";
@@ -97,12 +98,12 @@ export function ThreadContextCards(props: Props) {
     <div className="space-y-2 border-b border-line px-3 py-3" aria-label="Lesson context">
       {pending ? (
         <div className="rounded-xl border-l-[3px] border-l-amber-500 bg-amber-50 px-3 py-2.5">
-          <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+          <span className="type-meta inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
             {pending.kind === "coach_swap" ? "Swap pending" : "Move pending"}
           </span>
-          <p className="type-primary mt-1.5 text-sm leading-snug text-ink">{pending.lines[0]}</p>
+          <p className="type-key mt-1.5 text-sm leading-snug text-ink">{pending.lines[0]}</p>
           {pending.lines[1] ? (
-            <p className="type-primary text-sm leading-snug text-ink">{pending.lines[1]}</p>
+            <p className="type-secondary text-sm leading-snug text-ink">{pending.lines[1]}</p>
           ) : null}
           {props.audience === "coach" ? (
             <Link
@@ -125,12 +126,7 @@ export function ThreadContextCards(props: Props) {
       ) : null}
       {booking ? (
         <div className="rounded-xl border border-line border-l-[3px] border-l-[#10B981] bg-card px-3 py-2.5">
-          <span className="inline-flex rounded-full bg-sage-3 px-2 py-0.5 text-[11px] font-semibold text-forest">
-            Next booking
-          </span>
-          <p className="type-primary mt-1.5 text-sm leading-snug text-ink">
-            {booking.dateLabel} · {booking.timeLabel} · {booking.place}
-          </p>
+          <NextBookingScan booking={booking} />
           {weather ? (
             <div className="mt-2">
               <WeatherChipView
@@ -175,6 +171,22 @@ export function ThreadContextCards(props: Props) {
 function tempToken(summary: string | null | undefined) {
   if (!summary) return "";
   return summary.match(/-?\d+°/)?.[0] ?? "";
+}
+
+function NextBookingScan({ booking }: { booking: ThreadBookingCard }) {
+  return (
+    <>
+      <div className="max-md:hidden">
+        <span className="inline-flex rounded-full bg-sage-3 px-2 py-0.5 text-[11px] font-semibold text-forest">
+          Next booking
+        </span>
+        <p className="type-primary mt-1.5 text-sm leading-snug text-ink">
+          {booking.dateLabel} · {booking.timeLabel} · {booking.place}
+        </p>
+      </div>
+      <LessonScan label="Next booking" time={booking.timeLabel} date={booking.dateLabel} location={booking.place} />
+    </>
+  );
 }
 
 function nextLine(booking: ThreadBookingCard, weather: WeatherSnippet | null) {
@@ -240,10 +252,13 @@ function CompactThreadContext({
                 )}
                 aria-hidden
               />
-              <span className="shrink-0 text-[11px] font-semibold text-amber-700">
+              <span className="type-meta shrink-0 text-[11px] font-semibold text-amber-700">
                 {pending.kind === "coach_swap" ? "Swap pending" : "Move pending"}
               </span>
-              <span className="type-primary min-w-0 flex-1 truncate text-sm text-ink" title={pending.lines[0]}>
+              <span className="type-primary min-w-0 flex-1 truncate text-sm text-ink max-md:hidden" title={pending.lines[0]}>
+                {pending.lines[0]}
+              </span>
+              <span className="type-key min-w-0 flex-1 truncate md:hidden" title={pending.lines[0]}>
                 {pending.lines[0]}
               </span>
             </button>
@@ -253,12 +268,12 @@ function CompactThreadContext({
           </div>
           {pendingOpen ? (
             <div className="bg-amber-50 px-3 py-2.5">
-              <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+              <span className="type-meta inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
                 {pending.kind === "coach_swap" ? "Swap pending" : "Move pending"}
               </span>
-              <p className="type-primary mt-1.5 text-sm leading-snug text-ink">{pending.lines[0]}</p>
+              <p className="type-key mt-1.5 text-sm leading-snug text-ink">{pending.lines[0]}</p>
               {pending.lines[1] ? (
-                <p className="type-primary text-sm leading-snug text-ink">{pending.lines[1]}</p>
+                <p className="type-secondary text-sm leading-snug text-ink">{pending.lines[1]}</p>
               ) : null}
               <ReviewLink
                 audience={audience}
@@ -288,12 +303,18 @@ function CompactThreadContext({
                 )}
                 aria-hidden
               />
-              <span className="type-primary min-w-0 flex-1 truncate text-sm text-ink" title={line}>
+              <span className="type-primary min-w-0 flex-1 truncate text-sm text-ink max-md:hidden" title={line}>
                 {line}
+              </span>
+              <span className="flex min-w-0 flex-1 items-baseline gap-1.5 md:hidden" title={line}>
+                <span className="type-clock shrink-0">{booking.timeLabel}</span>
+                <span className="type-secondary truncate text-muted">
+                  {booking.dateLabel} · {booking.place}
+                </span>
               </span>
             </button>
             {weather?.extreme ? (
-              <span className="shrink-0 text-[11px] font-semibold text-amber-700">Alert</span>
+              <span className="type-meta shrink-0 text-[11px] font-semibold text-amber-700">Alert</span>
             ) : null}
             {audience === "coach" ? (
               <Link
@@ -315,12 +336,7 @@ function CompactThreadContext({
           </div>
           {bookingOpen ? (
             <div className="border-t border-line bg-card px-3 py-2.5">
-              <span className="inline-flex rounded-full bg-sage-3 px-2 py-0.5 text-[11px] font-semibold text-forest">
-                Next booking
-              </span>
-              <p className="type-primary mt-1.5 text-sm leading-snug text-ink">
-                {booking.dateLabel} · {booking.timeLabel} · {booking.place}
-              </p>
+              <NextBookingScan booking={booking} />
               {weather ? (
                 <div className="mt-2">
                   <WeatherChipView

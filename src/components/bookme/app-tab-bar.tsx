@@ -57,7 +57,7 @@ export function AppTabBar() {
   const pending = coach?.pendingRequests || 0;
   const unread = coach?.unreadMessages || 0;
   return (
-    <nav className="type-tab fixed inset-x-0 bottom-0 z-20 flex justify-around border-t border-line bg-card pb-[max(10px,env(safe-area-inset-bottom))] pt-2 text-[11px] md:hidden">
+    <nav className="type-tab fixed inset-x-0 bottom-0 z-20 flex justify-around border-t border-line bg-card pb-[max(10px,env(safe-area-inset-bottom))] pt-2 md:hidden">
       {ITEMS.map((item) => {
         const on = item.match(pathname);
         return (
@@ -75,7 +75,7 @@ export function AppTabBar() {
                 <span className="absolute -right-1 -top-0.5 size-2 rounded-full bg-forest" />
               ) : null}
               {item.to === "/app/messages" && unread ? (
-                <span className="absolute -right-2 -top-1.5 min-w-4 rounded-full bg-forest px-1 text-center text-[10px] font-semibold leading-4 text-on-forest">
+                <span className="absolute -right-2.5 -top-2 min-w-5 rounded-full bg-forest px-1 text-center text-[13px] font-semibold leading-4 text-on-forest">
                   {unread > 9 ? "9+" : unread}
                 </span>
               ) : null}

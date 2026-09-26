@@ -23,7 +23,7 @@ import {
   type RecurringRuleInput,
 } from "./recurring";
 import { buildImportPlan, confirmImport, endSeries } from "./recurring-service";
-import { formatWhen, todayKey } from "./time";
+import { formatTime, formatWhen, todayKey } from "./time";
 
 function asDate(v: string | Date | null) {
   return v ? (v instanceof Date ? v : new Date(v)) : null;
@@ -216,6 +216,8 @@ export const getSeries = createServerFn({ method: "GET" })
         return {
           id: l.id,
           when: formatWhen(start, s.timezone),
+          start: start.toISOString(),
+          time: formatTime(start, s.timezone),
           upcoming: start.getTime() >= now,
           status: l.status,
           statusLabel: lessonStatusLabel(l.status),

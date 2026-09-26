@@ -127,7 +127,7 @@ function Portal() {
         {me === undefined ? <p className="text-muted">Loading…</p> : null}
         {me === null ? (
           <>
-            <h1 className="font-display text-4xl font-medium">Your bookings</h1>
+            <h1 className="type-page font-display text-4xl font-medium">Your bookings</h1>
             {step === "request" ? (
               <>
                 <p className="mt-2 text-ink-soft">Use the email from your booking. We send a one-time code — no password.</p>
@@ -206,7 +206,7 @@ function PortalTab({ to, on, children }: { to: "/manage" | "/manage/messages" | 
     <Link
       to={to}
       search={to === "/manage" ? { email: undefined, token: undefined } : undefined}
-      className={cn("rounded-full px-4 py-2 text-sm", on ? "bg-forest text-on-forest" : "ring-1 ring-line")}
+      className={cn("type-action rounded-full px-4 py-2 text-sm max-md:min-h-11", on ? "bg-forest text-on-forest" : "ring-1 ring-line")}
     >
       {children}
     </Link>
