@@ -14,7 +14,10 @@ import {
 import { VoiceModePanel, type VoicePanelState } from "@/components/bookme/voice-mode-panel";
 import { Button } from "@/components/ui/button";
 import {
+  appendAssistantMessages,
+  clearAssistantMessages,
   getUpcomingLesson,
+  listAssistantMessages,
   mintVoiceSession,
   runAssistant,
   speakAssistant,
@@ -24,6 +27,7 @@ import {
   type UpcomingLesson,
 } from "@/lib/bookme/api";
 import type { AssistantAction } from "@/lib/bookme/assistant";
+import { assistantVoiceContext, trimAssistantText } from "@/lib/bookme/assistant-history";
 import { compactVoiceToolResult, parseToolText } from "@/lib/bookme/realtime";
 import { isConfirmImportText } from "@/lib/bookme/recurring";
 import { assistantTurnMutated, notifyLessonsChanged, useLessonsRefresh } from "@/lib/bookme/lessons-sync";
@@ -34,10 +38,30 @@ import { spokenFromTurn } from "@/lib/bookme/voice";
 
 type Phase = "idle" | "connecting" | "live" | "listening" | "thinking" | "speaking" | "confirm";
 
-type ChatMsg = { id: string; role: "user" | "assistant"; text: string; at: number; card?: AssistantPreview | null };
+type ChatMsg = {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+  at: number;
+  card?: AssistantPreview | null;
+  source?: "text" | "voice";
+};
+
+type Snap = {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+  card: AssistantPreview | null;
+  source: "text" | "voice";
+};
 
 const HOLD_GREETING = "Hold to talk. I can list openings, email a student, or swap two lesson times.";
+const GREETING_ID = "greeting";
 const VOICE_UNSUPPORTED = "Voice isn't supported in this browser — try typing.";
+
+function greetingMessage(): ChatMsg {
+  return { id: GREETING_ID, role: "assistant", text: HOLD_GREETING, at: Date.now() };
+}
 
 function focusComposer() {
   const tryFocus = () => {
@@ -93,9 +117,16 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
   const startingRef = useRef(false);
   const voiceOffRef = useRef(false);
   const liveGen = useRef(0);
-  const msgN = useRef(1);
   const userLiveId = useRef<string | null>(null);
   const asstLiveId = useRef<string | null>(null);
+  const userSnap = useRef<Snap | null>(null);
+  const asstSnap = useRef<Snap | null>(null);
+  const persistedSig = useRef(new Map<string, string>());
+  const epochRef = useRef(0);
+  const gateRef = useRef<Promise<void>>(Promise.resolve());
+  const inflightRef = useRef<Promise<void>>(Promise.resolve());
+  const messagesRef = useRef<ChatMsg[]>([]);
+  const flushRef = useRef<() => void>(() => {});
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const stickRef = useRef(true);
@@ -103,6 +134,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
   const toolBusyRef = useRef(false);
 
   phaseRef.current = phase;
+  messagesRef.current = messages;
   const locked = coach.capabilities.length === 0 && !dismissed;
   const listening = phase === "listening";
   const callActive = inCall || phase === "connecting" || phase === "live";
@@ -121,7 +153,49 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
   }, []);
 
   useEffect(() => {
+    const token = epochRef.current;
+    let cancel = false;
+    void (async () => {
+      try {
+        const res = await listAssistantMessages();
+        if (cancel || epochRef.current !== token) return;
+        if (res.ok && res.messages.length) {
+          const mapped: ChatMsg[] = res.messages.map((row) => ({
+            id: row.id,
+            role: row.role,
+            text: row.text,
+            at: Date.parse(row.createdAt) || Date.now(),
+            card: (row.card as AssistantPreview | null) ?? null,
+            source: row.source ?? undefined,
+          }));
+          for (const row of mapped) {
+            persistedSig.current.set(row.id, snapSig(toSnap(row)));
+          }
+          setMessages((current) => {
+            const ids = new Set(mapped.map((row) => row.id));
+            const local = current.filter((row) => row.id !== GREETING_ID && !ids.has(row.id));
+            return [...mapped, ...local];
+          });
+          return;
+        }
+        if (!res.ok) console.warn("assistant history", res.error);
+      } catch (err) {
+        console.warn("assistant history", err);
+      }
+      if (cancel || epochRef.current !== token) return;
+      setMessages((current) => {
+        const real = current.filter((row) => row.id !== GREETING_ID);
+        return real.length ? current : [greetingMessage()];
+      });
+    })();
     return () => {
+      cancel = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      flushRef.current();
       liveRef.current = false;
       recGen.current += 1;
       stopPlayback();
@@ -149,25 +223,169 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
     return () => window.clearTimeout(t);
   }, [messages, phase, preview, upcoming]);
 
-  function nextId() {
-    msgN.current += 1;
-    return `m${msgN.current}`;
+  function toSnap(row: ChatMsg, source?: "text" | "voice"): Snap {
+    return {
+      id: row.id,
+      role: row.role,
+      text: row.text,
+      card: row.card ?? null,
+      source: source || row.source || "text",
+    };
   }
 
-  function push(role: ChatMsg["role"], text: string, card?: AssistantPreview | null) {
-    const id = nextId();
-    setMessages((rows) => [...rows, { id, role, text, at: Date.now(), card: card ?? null }]);
+  function snapSig(snap: Snap) {
+    return snap.role + "\n" + snap.source + "\n" + snap.text + "\n" + JSON.stringify(snap.card ?? null);
+  }
+
+  function saveSnap(snap: Snap | null) {
+    if (!snap || snap.id === GREETING_ID) return;
+    try {
+      const text = trimAssistantText(snap.text);
+      if (!text && !snap.card) return;
+      const frozen: Snap = { ...snap, text };
+      const sig = snapSig(frozen);
+      if (persistedSig.current.get(frozen.id) === sig) return;
+      persistedSig.current.set(frozen.id, sig);
+      const token = epochRef.current;
+      const job = gateRef.current.then(async () => {
+        if (epochRef.current !== token) return;
+        const send = (withCard: boolean) =>
+          appendAssistantMessages({
+            data: {
+              items: [
+                {
+                  clientId: frozen.id,
+                  role: frozen.role,
+                  text: frozen.text,
+                  source: frozen.source,
+                  card: withCard ? frozen.card : null,
+                },
+              ],
+            },
+          });
+        try {
+          let res = await send(true);
+          if (!res.ok && frozen.card) res = await send(false);
+          if (!res.ok) {
+            if (epochRef.current === token) persistedSig.current.delete(frozen.id);
+            console.warn("assistant history", res.error);
+          }
+        } catch (err) {
+          if (frozen.card) {
+            try {
+              const res = await send(false);
+              if (!res.ok) {
+                if (epochRef.current === token) persistedSig.current.delete(frozen.id);
+                console.warn("assistant history", res.error);
+              }
+              return;
+            } catch (err2) {
+              err = err2;
+            }
+          }
+          if (epochRef.current === token) persistedSig.current.delete(frozen.id);
+          console.warn("assistant history", err);
+        }
+      });
+      inflightRef.current = Promise.all([inflightRef.current, job])
+        .then(() => undefined)
+        .catch(() => undefined);
+    } catch (err) {
+      console.warn("assistant history", err);
+    }
+  }
+
+  function snapRefFor(ref: { current: string | null }) {
+    return ref === userLiveId ? userSnap : asstSnap;
+  }
+
+  function releaseLive(ref: { current: string | null }) {
+    const snapRef = snapRefFor(ref);
+    const snap = snapRef.current;
+    ref.current = null;
+    snapRef.current = null;
+    if (snap) saveSnap(snap);
+  }
+
+  function persistLive(ref: { current: string | null }) {
+    const snap = snapRefFor(ref).current;
+    if (snap) saveSnap(snap);
+  }
+
+  flushRef.current = () => {
+    saveSnap(userSnap.current);
+    saveSnap(asstSnap.current);
+  };
+
+  function push(role: ChatMsg["role"], text: string, card?: AssistantPreview | null, source?: "text" | "voice") {
+    const id = crypto.randomUUID();
+    setMessages((rows) => [...rows, { id, role, text, at: Date.now(), card: card ?? null, source }]);
     return id;
   }
 
-  function upsert(ref: { current: string | null }, role: ChatMsg["role"], text: string, card?: AssistantPreview | null) {
+  function pushFinal(role: ChatMsg["role"], text: string, card?: AssistantPreview | null, source?: "text" | "voice") {
+    const src = source ?? (sessionRef.current ? "voice" : "text");
+    const id = push(role, text, card, src);
+    saveSnap({ id, role, text, card: card ?? null, source: src });
+    return id;
+  }
+
+  function upsert(
+    ref: { current: string | null },
+    role: ChatMsg["role"],
+    text: string,
+    card?: AssistantPreview | null,
+    source?: "text" | "voice",
+  ) {
     if (!text && !card) return;
+    const src = source ?? (sessionRef.current ? "voice" : "text");
+    const snapRef = snapRefFor(ref);
     if (ref.current) {
       const id = ref.current;
-      setMessages((rows) => rows.map((m) => (m.id === id ? { ...m, text: text || m.text, card: card ?? m.card } : m)));
+      setMessages((rows) =>
+        rows.map((m) => (m.id === id ? { ...m, text: text || m.text, card: card ?? m.card, source: m.source ?? src } : m)),
+      );
+      const prev = snapRef.current;
+      snapRef.current = {
+        id,
+        role,
+        text: text || prev?.text || "",
+        card: card ?? prev?.card ?? null,
+        source: src,
+      };
       return;
     }
-    ref.current = push(role, text, card);
+    const id = push(role, text, card, src);
+    ref.current = id;
+    snapRef.current = { id, role, text, card: card ?? null, source: src };
+  }
+
+  async function startNewChat() {
+    const pending = inflightRef.current;
+    epochRef.current += 1;
+    let releaseGate: () => void = () => undefined;
+    gateRef.current = new Promise<void>((resolve) => {
+      releaseGate = resolve;
+    });
+    userLiveId.current = null;
+    asstLiveId.current = null;
+    userSnap.current = null;
+    asstSnap.current = null;
+    persistedSig.current.clear();
+    setPreview(null);
+    setAction(undefined);
+    setMessages([greetingMessage()]);
+    if (phaseRef.current === "confirm") setPhase(sessionRef.current ? "live" : "idle");
+    toast.success("Started a new chat");
+    try {
+      await pending;
+      const res = await clearAssistantMessages();
+      if (!res.ok) console.warn("assistant history", res.error);
+    } catch (err) {
+      console.warn("assistant history", err);
+    } finally {
+      releaseGate();
+    }
   }
 
   function stopPlayback() {
@@ -214,6 +432,8 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
     startingRef.current = false;
     setHoldFallback(true);
     setInCall(false);
+    releaseLive(userLiveId);
+    releaseLive(asstLiveId);
     clearVoiceChrome();
     notifyVoiceError(message);
     setPhase("idle");
@@ -233,6 +453,8 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
     stopRecorder(false);
     setPreview(null);
     setAction(undefined);
+    releaseLive(userLiveId);
+    releaseLive(asstLiveId);
     setInCall(false);
     clearVoiceChrome();
     notifyVoiceError(message);
@@ -250,8 +472,8 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
     setInCall(false);
     clearVoiceChrome();
     setPhase("idle");
-    userLiveId.current = null;
-    asstLiveId.current = null;
+    releaseLive(userLiveId);
+    releaseLive(asstLiveId);
   }
 
   async function handleVoiceTool(callId: string, name: string, args: string) {
@@ -262,28 +484,36 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
       session.sendFunctionOutput(callId, JSON.stringify({ ok: false, status: "error", error: "I need a request." }));
       return;
     }
-    upsert(userLiveId, "user", text);
+    upsert(userLiveId, "user", text, null, "voice");
+    persistLive(userLiveId);
     toolBusyRef.current = true;
     setToolBusy(true);
     setAwaitingReply(true);
     setPhase("thinking");
+    const token = epochRef.current;
     try {
       const res = await runAssistant({ data: { text } });
+      if (epochRef.current !== token) {
+        session.sendFunctionOutput(callId, JSON.stringify(compactVoiceToolResult(res)));
+        return;
+      }
       if (!res.ok && "upgrade" in res && res.upgrade) setUpgrade(true);
       if (assistantTurnMutated(res)) notifyLessonsChanged("voice-tool");
       if (res.ok && res.needsConfirm && res.action) {
         setPreview(res.preview || null);
         setAction(res.action);
-        asstLiveId.current = null;
-        upsert(asstLiveId, "assistant", res.summary || "I have a change ready. Confirm below.");
+        releaseLive(asstLiveId);
+        upsert(asstLiveId, "assistant", res.summary || "I have a change ready. Confirm below.", null, "voice");
+        persistLive(asstLiveId);
         setPhase("confirm");
         session.pauseCapture();
         session.sendFunctionOutput(callId, JSON.stringify(compactVoiceToolResult(res)));
         return;
       }
       if (res.ok && res.preview && !res.needsConfirm) {
-        asstLiveId.current = null;
-        upsert(asstLiveId, "assistant", spokenFromTurn(res), res.preview);
+        releaseLive(asstLiveId);
+        upsert(asstLiveId, "assistant", spokenFromTurn(res), res.preview, "voice");
+        persistLive(asstLiveId);
         setPreview(null);
       } else if (!res.ok) setPreview(null);
       session.sendFunctionOutput(callId, JSON.stringify(compactVoiceToolResult(res)));
@@ -313,8 +543,8 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
     stopRecorder(false);
     setPreview(null);
     setAction(undefined);
-    userLiveId.current = null;
-    asstLiveId.current = null;
+    releaseLive(userLiveId);
+    releaseLive(asstLiveId);
     clearVoiceChrome();
     if (typeof navigator.mediaDevices?.getUserMedia !== "function") {
       notifyVoiceError(VOICE_UNSUPPORTED);
@@ -361,13 +591,18 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
         url: minted.url,
         coachName: minted.coachName || coach.name,
         assistantName: minted.assistantName || coach.assistantName,
+        recent: assistantVoiceContext(
+          messagesRef.current
+            .filter((row) => row.id !== GREETING_ID && row.text.trim())
+            .map((row) => ({ role: row.role, text: row.text })),
+        ),
         handlers: {
           onReady: () => {
             if (sessionRef.current !== session) return;
             setPhase("live");
-            asstLiveId.current = null;
-            upsert(asstLiveId, "assistant", "I'm here. Just talk.");
-            asstLiveId.current = null;
+            releaseLive(asstLiveId);
+            upsert(asstLiveId, "assistant", "I'm here. Just talk.", null, "voice");
+            releaseLive(asstLiveId);
           },
           onSpeaking: (on) => {
             if (sessionRef.current !== session) return;
@@ -379,8 +614,8 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
             if (sessionRef.current !== session) return;
             if (phaseRef.current === "confirm") return;
             if (on) {
-              userLiveId.current = null;
-              asstLiveId.current = null;
+              releaseLive(userLiveId);
+              releaseLive(asstLiveId);
               setAwaitingReply(false);
               setUserCaption("");
               setAsstCaption("");
@@ -390,19 +625,21 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
             }
             setPhase(on ? "listening" : phaseRef.current === "speaking" ? "speaking" : "live");
           },
-          onCaption: (text) => {
+          onCaption: (text, final) => {
             if (sessionRef.current !== session) return;
             if (text) {
               setAwaitingReply(false);
               setAsstCaption(text);
-              upsert(asstLiveId, "assistant", text);
+              upsert(asstLiveId, "assistant", text, null, "voice");
+              if (final) persistLive(asstLiveId);
             }
           },
-          onHeard: (text) => {
+          onHeard: (text, final) => {
             if (sessionRef.current !== session) return;
             if (text) {
               setUserCaption(text);
-              upsert(userLiveId, "user", text);
+              upsert(userLiveId, "user", text, null, "voice");
+              if (final) persistLive(userLiveId);
             }
           },
           onTool: (callId, name, args) => {
@@ -415,6 +652,8 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
           },
           onClose: () => {
             if (sessionRef.current !== session) return;
+            releaseLive(userLiveId);
+            releaseLive(asstLiveId);
             sessionRef.current = null;
             startingRef.current = false;
             setInCall(false);
@@ -496,19 +735,31 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
       fallbackAudio?: boolean;
     },
     preloaded?: boolean,
+    source: "text" | "voice" = "text",
   ) {
+    const token = epochRef.current;
     if (!res.ok && "upgrade" in res && res.upgrade) setUpgrade(true);
     if (assistantTurnMutated(res)) notifyLessonsChanged("assistant");
     const text = spokenFromTurn(res);
-    asstLiveId.current = null;
+    releaseLive(asstLiveId);
     const card = pendingCardRef.current || (res.ok && res.preview && !res.needsConfirm ? res.preview : null);
     pendingCardRef.current = null;
-    upsert(asstLiveId, "assistant", text, card);
-    asstLiveId.current = null;
+    upsert(asstLiveId, "assistant", text, card, source);
+    if (!res.ok) {
+      // Keep the line on screen for this visit. Do not store errors.
+      asstLiveId.current = null;
+      asstSnap.current = null;
+    } else {
+      releaseLive(asstLiveId);
+    }
+    if (epochRef.current !== token) return;
     if (!res.ok) {
       setPreview(null);
       setAction(undefined);
-      const backIdle = () => setPhase(sessionRef.current ? "live" : "idle");
+      const backIdle = () => {
+        if (epochRef.current !== token) return;
+        setPhase(sessionRef.current ? "live" : "idle");
+      };
       if (preloaded && (res.audio || res.fallbackAudio)) {
         setPhase("speaking");
         playAudio(res.audio, res.mime, !!res.fallbackAudio, text, backIdle);
@@ -526,6 +777,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
     }
     setPhase("speaking");
     const next = () => {
+      if (epochRef.current !== token) return;
       if (res.ok && res.needsConfirm && res.action) {
         setPhase("confirm");
         return;
@@ -542,6 +794,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
     }
     try {
       const speech = await speakAssistant({ data: { text } });
+      if (epochRef.current !== token) return;
       playAudio(
         speech && "audio" in speech ? speech.audio : undefined,
         speech && "mime" in speech ? speech.mime : undefined,
@@ -557,12 +810,13 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
   async function sendText(payload: { text?: string; confirm?: boolean; action?: AssistantAction }) {
     if (sendingRef.current) return;
     sendingRef.current = true;
+    const token = epochRef.current;
     stopPlayback();
     stopRecorder(true);
     if (payload.text) {
-      userLiveId.current = null;
-      upsert(userLiveId, "user", payload.text);
-      userLiveId.current = null;
+      releaseLive(userLiveId);
+      upsert(userLiveId, "user", payload.text, null, "text");
+      releaseLive(userLiveId);
     }
     setPhase("thinking");
     try {
@@ -573,7 +827,8 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
         return;
       }
       const res = await runAssistant({ data: payload });
-      await speakTurn(res);
+      if (epochRef.current !== token) return;
+      await speakTurn(res, false, "text");
     } finally {
       sendingRef.current = false;
     }
@@ -588,16 +843,18 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
       return;
     }
     sendingRef.current = true;
+    const token = epochRef.current;
     setPhase("thinking");
     try {
       const audio = await blobToBase64(blob);
       const res = await voiceTurn({ data: { audio, mime } });
+      if (epochRef.current !== token) return;
       const reason = voiceReason(res);
       const transcript = "transcript" in res && typeof res.transcript === "string" ? res.transcript : "";
       if (transcript) {
-        userLiveId.current = null;
-        upsert(userLiveId, "user", transcript);
-        userLiveId.current = null;
+        releaseLive(userLiveId);
+        upsert(userLiveId, "user", transcript, null, "voice");
+        releaseLive(userLiveId);
       }
       if (!res.ok && !transcript) {
         if (reason === "not_configured") {
@@ -611,7 +868,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
           return;
         }
       }
-      await speakTurn(res, true);
+      await speakTurn(res, true, "voice");
     } finally {
       sendingRef.current = false;
     }
@@ -629,8 +886,8 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
     stopPlayback();
     setPreview(null);
     setAction(undefined);
-    userLiveId.current = null;
-    asstLiveId.current = null;
+    releaseLive(userLiveId);
+    releaseLive(asstLiveId);
     const Speech = webSpeech();
     const mime = pickRecorderMime();
     if (mime && navigator.mediaDevices?.getUserMedia) {
@@ -740,16 +997,21 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
     setAction(undefined);
     setPreview(null);
     const session = sessionRef.current;
+    const token = epochRef.current;
     if (session) {
       setPhase("thinking");
       try {
         const res = await runAssistant({ data: { confirm: true, action: next } });
+        if (epochRef.current !== token) {
+          session.resumeCapture();
+          return;
+        }
         const spoken = spokenFromTurn(res);
         if (res.ok && res.needsConfirm && res.action) {
           // The calendar changed since the preview: show the updated card again.
-          asstLiveId.current = null;
-          upsert(asstLiveId, "assistant", spoken, null);
-          asstLiveId.current = null;
+          releaseLive(asstLiveId);
+          upsert(asstLiveId, "assistant", spoken, null, "voice");
+          releaseLive(asstLiveId);
           setPreview(res.preview || null);
           setAction(res.action);
           setPhase("confirm");
@@ -762,9 +1024,9 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
             : res.ok && res.preview && !res.needsConfirm
               ? res.preview
               : null;
-        asstLiveId.current = null;
-        upsert(asstLiveId, "assistant", spoken, card);
-        asstLiveId.current = null;
+        releaseLive(asstLiveId);
+        upsert(asstLiveId, "assistant", spoken, card, "voice");
+        releaseLive(asstLiveId);
         session.injectUserText("The coach confirmed. " + spoken);
         session.resumeCapture();
         setPhase("live");
@@ -788,11 +1050,11 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
     if (session) {
       session.injectUserText("The coach skipped. Do not apply that change.");
       session.resumeCapture();
-      push("assistant", "Okay, nothing changed.");
+      pushFinal("assistant", "Okay, nothing changed.", null, "voice");
       setPhase("live");
       return;
     }
-    push("assistant", "Okay, nothing changed.");
+    pushFinal("assistant", "Okay, nothing changed.");
     setPhase("idle");
   }
 
@@ -838,7 +1100,13 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
 
   return (
     <div className="relative mx-auto flex min-h-0 w-full max-w-lg flex-1 flex-col bg-cream">
-      <AssistantHeader coachName={coach.name} assistantName={coach.assistantName} status={headerStatus} live={callActive || listening} />
+      <AssistantHeader
+        coachName={coach.name}
+        assistantName={coach.assistantName}
+        status={headerStatus}
+        live={callActive || listening}
+        onNewChat={() => void startNewChat()}
+      />
 
       <div
         ref={listRef}
@@ -899,7 +1167,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
           setTyped("");
           // Typing "确认导入" / "confirm import" confirms the import card on screen.
           if (phase === "confirm" && action?.type === "draft_import" && isConfirmImportText(value)) {
-            push("user", value);
+            pushFinal("user", value, null, "text");
             void confirmAction();
             return;
           }

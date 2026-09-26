@@ -14,8 +14,8 @@ import {
 export type VoiceHandlers = {
   onSpeaking: (on: boolean) => void;
   onListening: (on: boolean) => void;
-  onCaption: (text: string) => void;
-  onHeard: (text: string) => void;
+  onCaption: (text: string, final?: boolean) => void;
+  onHeard: (text: string, final?: boolean) => void;
   onTool: (callId: string, name: string, args: string) => void;
   onError: (message: string) => void;
   onReady: () => void;
@@ -219,7 +219,14 @@ export class GrokVoiceSession {
     }
   }
 
-  async connect(opts: { token: string; url?: string; coachName: string; assistantName?: string; handlers: VoiceHandlers }) {
+  async connect(opts: {
+    token: string;
+    url?: string;
+    coachName: string;
+    assistantName?: string;
+    recent?: string;
+    handlers: VoiceHandlers;
+  }) {
     if (this.closed) throw new Error("Session closed");
     if (!this.ctx || !this.stream) await this.prepare();
     this.handlers = opts.handlers;
@@ -244,7 +251,7 @@ export class GrokVoiceSession {
     const protocols = websocketProtocols(opts.token);
     this.ws = new WebSocket(url, protocols);
     this.ws.addEventListener("open", () => {
-      this.send(voiceSessionUpdate(opts.coachName, opts.assistantName));
+      this.send(voiceSessionUpdate(opts.coachName, opts.assistantName, opts.recent));
       this.handlers?.onReady();
     });
     this.ws.addEventListener("message", (ev) => {
@@ -272,7 +279,14 @@ export class GrokVoiceSession {
     };
   }
 
-  async start(opts: { token: string; url?: string; coachName: string; assistantName?: string; handlers: VoiceHandlers }) {
+  async start(opts: {
+    token: string;
+    url?: string;
+    coachName: string;
+    assistantName?: string;
+    recent?: string;
+    handlers: VoiceHandlers;
+  }) {
     await this.prepare();
     await this.connect(opts);
   }
@@ -391,7 +405,7 @@ export class GrokVoiceSession {
     }
     if (kind === "out_done") {
       const done = String(ev.transcript || ev.text || this.outText);
-      if (done) this.handlers?.onCaption(done);
+      if (done) this.handlers?.onCaption(done, true);
       return;
     }
     if (kind === "in_update") {
@@ -408,7 +422,7 @@ export class GrokVoiceSession {
     }
     if (kind === "in_done") {
       const heard = String(ev.transcript || ev.text || this.inText);
-      if (heard) this.handlers?.onHeard(heard);
+      if (heard) this.handlers?.onHeard(heard, true);
       this.inText = "";
       return;
     }

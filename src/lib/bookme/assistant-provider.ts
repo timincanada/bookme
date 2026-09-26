@@ -7,6 +7,7 @@ import {
 } from "./assistant";
 import { DEFAULT_ASSISTANT_NAME, normalizeAssistantName } from "./assistant-name";
 import { isLessonDuration, isPaymentStatus, parseClock, type RecurringRuleInput } from "./recurring";
+import { buildModelMessages } from "./assistant-history";
 import { formatWhen } from "./time";
 
 export type AssistantChatContext = {
@@ -22,6 +23,8 @@ export type AssistantChatInput = {
   capabilities: Capability[];
   assistantName?: string;
   context: AssistantChatContext;
+  /** Prior turns for the model call. Omitted or empty keeps [system, user]. */
+  history?: { role: "user" | "assistant"; content: string }[];
 };
 
 export type AssistantChatResult =
@@ -279,6 +282,10 @@ function buildSystemPrompt(input: AssistantChatInput): string {
   ].join("\n");
 }
 
+function modelMessages(input: AssistantChatInput) {
+  return buildModelMessages(buildSystemPrompt(input), input.history, input.message);
+}
+
 function extractJsonObject(raw: string): ModelPayload | null {
   const text = String(raw || "").trim();
   if (!text) return null;
@@ -333,10 +340,7 @@ export function createDeepSeekProvider(opts?: {
             model: deepseekModel(),
             temperature: 0.2,
             response_format: { type: "json_object" },
-            messages: [
-              { role: "system", content: buildSystemPrompt(input) },
-              { role: "user", content: input.message },
-            ],
+            messages: modelMessages(input),
           }),
           signal: controller.signal,
         });
@@ -420,10 +424,7 @@ export function createGrokProvider(opts?: {
             model: grokModel(),
             temperature: 0.2,
             max_tokens: 800,
-            messages: [
-              { role: "system", content: buildSystemPrompt(input) },
-              { role: "user", content: input.message },
-            ],
+            messages: modelMessages(input),
           }),
           signal: controller.signal,
         });

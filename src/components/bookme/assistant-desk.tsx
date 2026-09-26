@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
 import {
   CalendarDays,
   Check,
@@ -87,12 +88,33 @@ export function AssistantHeader({
   assistantName,
   status,
   live,
+  onNewChat,
 }: {
   coachName: string;
   assistantName?: string | null;
   status: string;
   live: boolean;
+  onNewChat?: () => void;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onDoc(event: MouseEvent) {
+      if (!menuRef.current?.contains(event.target as Node)) setMenuOpen(false);
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setMenuOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
+
   return (
     <header className="flex items-center gap-1 border-b border-line bg-cream px-2 py-2">
       <Link
@@ -110,13 +132,44 @@ export function AssistantHeader({
           {status}
         </p>
       </div>
-      <Link
-        to="/app/more/assistant"
-        className="grid size-10 shrink-0 place-items-center rounded-full bg-sage-3 text-ink"
-        aria-label="Assistant settings"
-      >
-        <MoreHorizontal className="size-5" strokeWidth={1.75} />
-      </Link>
+      <div ref={menuRef} className="relative">
+        <button
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          aria-label="Assistant menu"
+          onClick={() => setMenuOpen((open) => !open)}
+          className="grid size-10 shrink-0 place-items-center rounded-full bg-sage-3 text-ink"
+        >
+          <MoreHorizontal className="size-5" strokeWidth={1.75} />
+        </button>
+        {menuOpen ? (
+          <div
+            role="menu"
+            className="absolute right-0 z-30 mt-1 w-48 overflow-hidden rounded-2xl bg-card text-ink shadow-card ring-1 ring-line"
+          >
+            <button
+              type="button"
+              role="menuitem"
+              className="block w-full px-4 py-3 text-left text-sm hover:bg-paper-2"
+              onClick={() => {
+                setMenuOpen(false);
+                onNewChat?.();
+              }}
+            >
+              New chat
+            </button>
+            <Link
+              to="/app/more/assistant"
+              role="menuitem"
+              onClick={() => setMenuOpen(false)}
+              className="block px-4 py-3 text-sm hover:bg-paper-2"
+            >
+              Assistant settings
+            </Link>
+          </div>
+        ) : null}
+      </div>
     </header>
   );
 }
