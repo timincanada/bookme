@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   CalendarDays,
   Check,
@@ -83,6 +83,120 @@ export function StudentMark({ name, size = "sm" }: { name: string; size?: "sm" |
   );
 }
 
+/** Matches the mobile type-scale breakpoint (`md` is 768px). */
+const MOBILE_TITLE_MQ = "(max-width: 767.98px)";
+
+/**
+ * Mobile title steps. Step 0 is `.type-page` (20px / 1.25, 2 lines).
+ * 19px stays on 2 lines. 17px may use 3. 14px is only when 17px/3 still
+ * clips (a 24-character nickname at 320px). The last clamp is a safety net.
+ */
+const TITLE_FIT_STEPS = [
+  { fontSize: "20px", clamp: "2" },
+  { fontSize: "19px", clamp: "2" },
+  { fontSize: "17px", clamp: "3" },
+  { fontSize: "14px", clamp: "3" },
+] as const;
+
+function titleClipped(el: HTMLElement) {
+  return el.scrollHeight - el.clientHeight > 1;
+}
+
+/** Try each step in order. Inline styles override `.type-page` for the read, then come off. */
+function pickTitleStep(el: HTMLElement) {
+  const props = [
+    "font-size",
+    "line-height",
+    "display",
+    "overflow",
+    "white-space",
+    "-webkit-box-orient",
+    "-webkit-line-clamp",
+    "line-clamp",
+  ];
+  const previous = props.map(
+    (prop) => [prop, el.style.getPropertyValue(prop), el.style.getPropertyPriority(prop)] as const,
+  );
+  let chosen = TITLE_FIT_STEPS.length - 1;
+  try {
+    for (let i = 0; i < TITLE_FIT_STEPS.length; i++) {
+      const spec = TITLE_FIT_STEPS[i];
+      el.style.setProperty("font-size", spec.fontSize, "important");
+      el.style.setProperty("line-height", "1.25", "important");
+      el.style.setProperty("display", "-webkit-box", "important");
+      el.style.setProperty("-webkit-box-orient", "vertical", "important");
+      el.style.setProperty("overflow", "hidden", "important");
+      el.style.setProperty("white-space", "normal", "important");
+      el.style.setProperty("-webkit-line-clamp", spec.clamp, "important");
+      el.style.setProperty("line-clamp", spec.clamp, "important");
+      if (!titleClipped(el)) {
+        chosen = i;
+        break;
+      }
+    }
+  } finally {
+    for (const [prop, value, priority] of previous) {
+      if (value) el.style.setProperty(prop, value, priority);
+      else el.style.removeProperty(prop);
+    }
+  }
+  return chosen;
+}
+
+function useMobileTitleStep(title: string) {
+  const ref = useRef<HTMLParagraphElement>(null);
+  const [step, setStep] = useState(0);
+  const [epoch, setEpoch] = useState(0);
+
+  useLayoutEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+
+    let width = node.clientWidth;
+    const bump = () => setEpoch((n) => n + 1);
+    const ro = new ResizeObserver(() => {
+      const next = node.clientWidth;
+      if (next === width) return;
+      width = next;
+      bump();
+    });
+    ro.observe(node);
+
+    const mq = window.matchMedia(MOBILE_TITLE_MQ);
+    mq.addEventListener("change", bump);
+
+    let cancelled = false;
+    const onFonts = () => {
+      if (!cancelled) bump();
+    };
+    if (document.fonts?.status !== "loaded") {
+      void document.fonts?.ready.then(onFonts);
+      document.fonts?.addEventListener?.("loadingdone", onFonts);
+    }
+
+    return () => {
+      cancelled = true;
+      ro.disconnect();
+      mq.removeEventListener("change", bump);
+      document.fonts?.removeEventListener?.("loadingdone", onFonts);
+    };
+  }, [title]);
+
+  useLayoutEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const mobile = window.matchMedia(MOBILE_TITLE_MQ).matches;
+    if (!mobile || node.clientWidth === 0) {
+      setStep((current) => (current === 0 ? current : 0));
+      return;
+    }
+    const chosen = pickTitleStep(node);
+    setStep((current) => (current === chosen ? current : chosen));
+  }, [title, epoch]);
+
+  return { ref, step };
+}
+
 export function AssistantHeader({
   coachName,
   assistantName,
@@ -96,6 +210,8 @@ export function AssistantHeader({
   live: boolean;
   onNewChat?: () => void;
 }) {
+  const title = assistantTitle(coachName, assistantName);
+  const { ref: titleRef, step } = useMobileTitleStep(title);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -126,7 +242,16 @@ export function AssistantHeader({
       </Link>
       <AssistantAvatar />
       <div className="min-w-0 flex-1 pl-0.5">
-        <p className="type-page truncate font-semibold leading-tight text-ink">{assistantTitle(coachName, assistantName)}</p>
+        <p
+          ref={titleRef}
+          data-title-step={step}
+          className={cn(
+            "type-page max-md:break-words max-md:![overflow-wrap:anywhere] font-semibold leading-tight text-ink md:truncate",
+            step > 1 ? "max-md:line-clamp-3" : "max-md:line-clamp-2",
+          )}
+        >
+          {title}
+        </p>
         <p className="type-secondary mt-0.5 flex items-center gap-1.5 text-xs text-success">
           <span className={cn("size-1.5 rounded-full", live ? "bg-success" : "bg-success/70")} />
           {status}
