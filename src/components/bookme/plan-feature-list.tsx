@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 export function PlanFeatureList({ card, className }: { card: PlanFeatureCard; className?: string }) {
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn("space-y-3", className)}>
       {card.groups.map((group, index) => {
         const excluded = group.lines.every((line) => line.tone === "excluded");
         return (
@@ -12,6 +12,7 @@ export function PlanFeatureList({ card, className }: { card: PlanFeatureCard; cl
             {group.title ? (
               <p
                 className={cn(
+                  "leading-snug",
                   group.kicker
                     ? "text-xs font-semibold uppercase tracking-wide text-muted"
                     : "text-sm font-semibold",
@@ -22,13 +23,16 @@ export function PlanFeatureList({ card, className }: { card: PlanFeatureCard; cl
               </p>
             ) : null}
             <ul
-              className={cn("space-y-2", group.title && "mt-2")}
+              className={cn("space-y-1", group.title && "mt-1.5")}
               aria-label={group.title ? (excluded ? `${group.title}, not included` : group.title) : undefined}
             >
               {group.lines.map((line) => (
                 <li
                   key={line.text}
-                  className={cn("flex items-start gap-2 text-sm", line.tone === "excluded" && "text-muted")}
+                  className={cn(
+                    "flex items-start gap-2 text-sm leading-snug",
+                    line.tone === "excluded" && "text-muted",
+                  )}
                 >
                   {line.tone === "excluded" ? (
                     <X className="mt-0.5 size-4 shrink-0" aria-hidden />
@@ -39,10 +43,11 @@ export function PlanFeatureList({ card, className }: { card: PlanFeatureCard; cl
                 </li>
               ))}
             </ul>
+            {group.note ? <p className="mt-1.5 text-xs leading-snug text-muted">{group.note}</p> : null}
           </div>
         );
       })}
-      {card.upgrade ? <p className="text-sm text-muted">{card.upgrade}</p> : null}
+      {card.upgrade ? <p className="text-sm font-semibold leading-snug text-forest">{card.upgrade}</p> : null}
     </div>
   );
 }

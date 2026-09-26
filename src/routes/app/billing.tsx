@@ -66,14 +66,12 @@ function Billing() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-5 py-8">
-      <div className="max-w-3xl">
-        <h1 className="font-display text-3xl font-medium">Subscription</h1>
-        <p className="mt-2 text-ink-soft">
-          3-day trial on Light, then auto-renew. Tier follows last month’s confirmed lessons. Students book without paying.
-        </p>
-        <PlanStatus status={coach.status} plan={coach.plan} trialEndsAt={coach.trialEndsAt} showTierLine />
-      </div>
+    <div className="mx-auto w-full max-w-6xl px-5 py-8 lg:max-w-5xl">
+      <h1 className="font-display text-3xl font-medium">Subscription</h1>
+      <p className="mt-2 text-ink-soft">
+        3-day trial on Light, then auto-renew. Tier follows last month’s confirmed lessons. Students book without paying.
+      </p>
+      <PlanStatus status={coach.status} plan={coach.plan} trialEndsAt={coach.trialEndsAt} showTierLine />
       <div
         role="radiogroup"
         aria-label="Subscription plans"
@@ -105,29 +103,31 @@ function Billing() {
               tabIndex={tab}
               onClick={() => setDraft(p.id)}
               className={cn(
-                "h-full min-w-0 rounded-2xl bg-card p-5 text-left ring-1 ring-line",
+                "flex h-full w-full min-w-0 flex-col items-stretch justify-start rounded-2xl bg-card p-5 text-left ring-1 ring-line",
                 selected && "ring-2 ring-forest",
               )}
             >
-              <p className="flex items-center gap-1 font-semibold text-forest">
-                {p.name}
-                {selected ? <Check className="size-4" aria-hidden /> : null}
-              </p>
-              <p className="mt-2 font-display text-3xl">CA${p.cad}</p>
-              <p className="mt-1 text-sm text-muted">{planLessonRange(p.id)}</p>
-              {coach.plan === p.id && coach.status !== "none" ? (
-                <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-forest">Your tier this month</p>
-              ) : null}
-              {coach.preferredPlan === p.id ? (
-                <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-forest">Your choice</p>
-              ) : null}
-              <PlanFeatureList card={planFeatureCard(p.id)} className="mt-4" />
+              <div className="flex w-full flex-col items-stretch self-start">
+                <p className="flex items-center gap-1 font-semibold text-forest">
+                  {p.name}
+                  {selected ? <Check className="size-4" aria-hidden /> : null}
+                </p>
+                <p className="mt-2 font-display text-3xl">CA${p.cad}</p>
+                <p className="mt-1 text-sm text-muted">{planLessonRange(p.id)}</p>
+                {coach.plan === p.id && coach.status !== "none" ? (
+                  <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-forest">Your tier this month</p>
+                ) : null}
+                {coach.preferredPlan === p.id ? (
+                  <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-forest">Your choice</p>
+                ) : null}
+                <PlanFeatureList card={planFeatureCard(p.id)} className="mt-4" />
+              </div>
             </button>
           );
         })}
       </div>
       {draft ? (
-        <div className="mt-4 max-w-3xl rounded-2xl bg-card p-5 ring-1 ring-line">
+        <div className="mt-4 rounded-2xl bg-card p-5 ring-1 ring-line">
           <p className="font-semibold text-forest">{PLANS[draft].name}</p>
           <p className="mt-2 font-display text-3xl">CA${PLANS[draft].cad}/month</p>
           <p className="mt-1 text-sm text-muted">{planLessonRange(draft)}</p>
@@ -154,7 +154,7 @@ function Billing() {
         </div>
       ) : null}
       {coach.status === "none" || coach.status === "canceled" ? (
-        <Button className="mt-6 max-w-3xl" size="field" onClick={async () => {
+        <Button className="mt-6" size="field" onClick={async () => {
           const res = await startCoachTrial();
           if (!res.ok) return toast.error("Could not start trial");
           if ("checkoutUrl" in res && res.checkoutUrl) {
@@ -167,7 +167,7 @@ function Billing() {
           Start 3-day Light trial
         </Button>
       ) : (
-        <Button variant="outline" className="mt-6 max-w-3xl" size="field" onClick={async () => {
+        <Button variant="outline" className="mt-6" size="field" onClick={async () => {
           await cancelCoachPlan();
           toast.success("Plan cancelled");
           reload();
