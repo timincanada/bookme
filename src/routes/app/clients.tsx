@@ -27,8 +27,8 @@ function Clients() {
         {clients.map((c) => (
           <li key={c.id}>
             <Link to="/app/clients/$id" params={{ id: c.id }} className="block rounded-2xl bg-card p-4 ring-1 ring-line">
-              <p className="type-primary font-semibold">{c.name}</p>
-              <p className="type-follow text-sm text-muted">{c.email}</p>
+              <p className="type-primary break-words font-semibold">{c.name}</p>
+              <p className="type-follow break-words text-sm text-muted">{c.email}</p>
             </Link>
           </li>
         ))}

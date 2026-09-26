@@ -74,28 +74,30 @@ export function WeeklyHoursEditor({
             {checked ? (
               <div className="mt-2 space-y-2">
                 {daySegs.map((seg, index) => (
-                  <div key={`${weekday}-${index}`} className="flex items-center gap-2">
+                  <div key={`${weekday}-${index}`} className="flex flex-col gap-2 md:flex-row md:items-center">
                     <input
                       type="time"
                       value={clock(seg.startMin)}
                       onChange={(e) => updateSegment(weekday, index, "startMin", parseClock(e.target.value))}
-                      className="field min-w-0 py-1"
+                      className="field min-w-0 max-w-full py-1 md:flex-1"
                     />
-                    <span className="text-muted">–</span>
-                    <input
-                      type="time"
-                      value={clock(seg.endMin)}
-                      onChange={(e) => updateSegment(weekday, index, "endMin", parseClock(e.target.value))}
-                      className="field min-w-0 py-1"
-                    />
-                    <button
-                      type="button"
-                      aria-label="Remove hours"
-                      onClick={() => removeSegment(weekday, index)}
-                      className="px-1 text-sm text-muted"
-                    >
-                      ×
-                    </button>
+                    <div className="flex min-w-0 items-center gap-2 md:contents">
+                      <span className="shrink-0 text-muted">–</span>
+                      <input
+                        type="time"
+                        value={clock(seg.endMin)}
+                        onChange={(e) => updateSegment(weekday, index, "endMin", parseClock(e.target.value))}
+                        className="field min-w-0 max-w-full flex-1 py-1"
+                      />
+                      <button
+                        type="button"
+                        aria-label="Remove hours"
+                        onClick={() => removeSegment(weekday, index)}
+                        className="shrink-0 px-1 text-sm text-muted"
+                      >
+                        ×
+                      </button>
+                    </div>
                   </div>
                 ))}
                 {daySegs.length < MAX_SEGMENTS_PER_DAY ? (

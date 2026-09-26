@@ -45,9 +45,9 @@ export function BookAheadPicker({ value, onChange }: { value: number; onChange: 
         </button>
       </div>
       {showCustom ? (
-        <label className="mt-3 flex items-center gap-2 text-sm">
+        <label className="mt-3 flex flex-wrap items-center gap-2 text-sm">
           <input
-            className="field h-11 w-24"
+            className="field h-11 w-24 shrink-0 max-w-full"
             type="number"
             inputMode="numeric"
             min={MIN_BOOK_AHEAD_DAYS}

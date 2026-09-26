@@ -74,18 +74,18 @@ function SeriesPage() {
       <Link to="/app/clients/$id" params={{ id: s.clientId }} className="text-sm font-semibold text-forest">
         {s.clientName}
       </Link>
-      <h1 className="mt-3 flex items-center gap-2 font-display text-3xl font-medium">
-        <Repeat className="size-6 text-forest" strokeWidth={1.5} />
-        Recurring schedule
+      <h1 className="mt-3 flex flex-wrap items-center gap-2 font-display text-3xl font-medium">
+        <Repeat className="size-6 shrink-0 text-forest" strokeWidth={1.5} />
+        <span className="min-w-0 break-words">Recurring schedule</span>
       </h1>
       <div className="mt-4 rounded-2xl bg-card p-5 ring-1 ring-line">
-        <p className="font-semibold">
+        <p className="break-words font-semibold">
           {s.clientName} <span className="font-normal text-muted">· {s.clientEmail || "no email"}</span>
         </p>
         <p className="mt-1 text-sm">
           <StatusChip>{active ? "Active" : `Ended from ${s.endedFrom}`}</StatusChip>
         </p>
-        <dl className="mt-4 grid grid-cols-[7rem_1fr] gap-x-3 gap-y-1.5 text-sm">
+        <dl className="mt-4 grid grid-cols-[7rem_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-sm [&_dd]:min-w-0 [&_dd]:break-words">
           <dt className="text-muted">Times</dt>
           <dd>
             {s.slots.map((t) => (
@@ -114,8 +114,8 @@ function SeriesPage() {
       <section className="mt-4 rounded-2xl bg-card p-5 ring-1 ring-line">
         <h2 className="font-semibold">Payment note for this schedule</h2>
         <p className="mt-1 text-sm text-muted">For your records only. The client's own note is separate.</p>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <select className="field" value={payStatus} onChange={(e) => setPayStatus(e.target.value)} aria-label="Status">
+        <div className="mt-3 grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <select className="field min-w-0 max-w-full" value={payStatus} onChange={(e) => setPayStatus(e.target.value)} aria-label="Status">
             <option value="">No status</option>
             {PAYMENT_STATUSES.map((p) => (
               <option key={p} value={p}>
@@ -123,7 +123,7 @@ function SeriesPage() {
               </option>
             ))}
           </select>
-          <input className="field" value={paySplit} onChange={(e) => setPaySplit(e.target.value)} placeholder="Split (optional)" aria-label="Split" />
+          <input className="field min-w-0 max-w-full" value={paySplit} onChange={(e) => setPaySplit(e.target.value)} placeholder="Split (optional)" aria-label="Split" />
         </div>
         <input className="field mt-3" value={payNote} onChange={(e) => setPayNote(e.target.value)} placeholder="Note" aria-label="Note" />
         <Button
@@ -165,13 +165,13 @@ function SeriesPage() {
           </label>
           {confirmEnd ? (
             <div className="mt-3 rounded-xl bg-paper-2 p-3 text-sm">
-              <p>
+              <p className="break-words">
                 Cancel {upcoming.filter((l) => l.status === "confirmed").length ? "the remaining" : "any"} confirmed lessons from {endFrom}?
               </p>
-              <div className="mt-3 flex gap-2">
+              <div className="mt-3 flex flex-wrap gap-2">
                 <Button
                   size="field"
-                  className="bg-coral hover:bg-coral/90"
+                  className="w-auto min-w-0 max-w-full flex-[1_1_12rem] bg-coral hover:bg-coral/90"
                   disabled={busy || !endFrom}
                   onClick={async () => {
                     setBusy(true);
@@ -187,7 +187,7 @@ function SeriesPage() {
                 >
                   End schedule
                 </Button>
-                <Button variant="outline" size="field" disabled={busy} onClick={() => setConfirmEnd(false)}>
+                <Button variant="outline" size="field" className="w-auto min-w-0 max-w-full flex-[1_1_12rem]" disabled={busy} onClick={() => setConfirmEnd(false)}>
                   Keep it
                 </Button>
               </div>
@@ -217,8 +217,8 @@ function LessonList({ title, lessons }: { title: string; lessons: Data["lessons"
               params={{ id: l.id }}
               className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-card p-3 text-sm ring-1 ring-line"
             >
-              <span className="type-primary tabular-nums">{l.when}</span>
-              <span className="flex items-center gap-2">
+              <span className="type-primary min-w-0 break-words tabular-nums">{l.when}</span>
+              <span className="flex min-w-0 flex-wrap items-center gap-2">
                 <StatusChip>{l.statusLabel}</StatusChip>
                 <PayChip kind={l.pay.kind} text={l.pay.text} />
               </span>

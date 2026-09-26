@@ -15,9 +15,9 @@ export function MessageLink({ clientId }: { clientId: string }) {
   if (!status) return null;
   if (status.mode === "none") {
     return (
-      <p className="mt-3 flex items-center gap-1.5 text-sm text-muted">
-        <MessageCircle className="size-4" strokeWidth={1.75} />
-        {status.note}
+      <p className="mt-3 flex min-w-0 items-center gap-1.5 text-sm text-muted">
+        <MessageCircle className="size-4 shrink-0" strokeWidth={1.75} />
+        <span className="min-w-0 break-words">{status.note}</span>
       </p>
     );
   }
