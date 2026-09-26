@@ -57,7 +57,7 @@ export function AppTabBar() {
   const pending = coach?.pendingRequests || 0;
   const unread = coach?.unreadMessages || 0;
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-20 flex justify-around border-t border-line bg-card pb-[max(10px,env(safe-area-inset-bottom))] pt-2 text-[11px] md:hidden">
+    <nav className="type-tab fixed inset-x-0 bottom-0 z-20 flex justify-around border-t border-line bg-card pb-[max(10px,env(safe-area-inset-bottom))] pt-2 text-[11px] md:hidden">
       {ITEMS.map((item) => {
         const on = item.match(pathname);
         return (
@@ -65,7 +65,7 @@ export function AppTabBar() {
             key={item.to}
             to={item.to}
             className={cn(
-              "relative flex min-w-0 flex-1 flex-col items-center gap-0.5 py-1",
+              "relative flex min-w-0 flex-1 flex-col items-center gap-0.5 whitespace-nowrap py-1",
               on ? "font-semibold text-forest" : "text-muted",
             )}
           >

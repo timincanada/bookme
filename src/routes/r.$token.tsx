@@ -44,9 +44,9 @@ function RequestDecide() {
         {data ? (
           <div className="mt-5 rounded-2xl bg-card p-5 ring-1 ring-line">
             <p className="text-sm text-muted">{data.coachName}</p>
-            <p className="mt-2 font-semibold">Your lesson · {data.yourWhen}</p>
+            <p className="type-primary mt-2 font-semibold">Your lesson · {data.yourWhen}</p>
             {data.otherWhen ? (
-              <p className="mt-1 text-sm">
+              <p className="type-primary mt-1 text-sm">
                 Swap with {data.otherLabel ?? "another student"} at {data.otherWhen}
               </p>
             ) : null}

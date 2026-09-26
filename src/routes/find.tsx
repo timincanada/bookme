@@ -59,7 +59,7 @@ function Find() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search by name or city"
-            className="h-12 flex-1 rounded-xl border border-line bg-card px-4 text-sm outline-none ring-forest/30 focus:ring-2"
+            className="type-input h-12 flex-1 rounded-xl border border-line bg-card px-4 text-sm outline-none ring-forest/30 focus:ring-2"
           />
         </div>
         <div className="mt-4 flex flex-wrap gap-2">

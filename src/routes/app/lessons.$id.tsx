@@ -89,8 +89,8 @@ function LessonDetail() {
       </Link>
       <h1 className="mt-3 font-display text-3xl font-medium">Lesson</h1>
       <div className="mt-4 rounded-2xl bg-card p-5 ring-1 ring-line">
-        <p className="font-semibold">{l.when}</p>
-        <p>Private · {l.clientName}</p>
+        <p className="type-primary font-semibold">{l.when}</p>
+        <p className="type-primary">Private · {l.clientName}</p>
         <p className="text-sm text-muted">{l.clientEmail || "No email on file"}</p>
         <div className="mt-1 flex flex-wrap items-center gap-2">
           <p className="text-sm text-muted">{l.locationName}</p>
@@ -144,7 +144,7 @@ function LessonDetail() {
       ) : null}
       {movable ? (
         <div className="mt-6 rounded-2xl bg-card p-5 ring-1 ring-line">
-          <h2 className="font-semibold">Reschedule</h2>
+          <h2 className="type-section font-semibold">Reschedule</h2>
           <p className="mt-1 text-sm text-muted">
             {l.recurring
               ? "Pick an open time, or any other time — including outside your public hours."
