@@ -316,18 +316,18 @@ export function DayAgenda({
 
   return (
     <div className="mt-5 md:hidden">
-      <p className="text-sm font-semibold text-ink-soft">{dateKey === today ? "Today" : label}</p>
+      <p className="type-section text-sm font-semibold text-ink-soft">{dateKey === today ? "Today" : label}</p>
       {lessons.length === 0 ? (
         <p className="mt-3 text-sm text-muted">No lessons this day.</p>
       ) : (
         <ol className="mt-3 space-y-2">
           {lessons.map((lesson) => (
             <li key={lesson.id} className="rounded-2xl bg-card p-3 ring-1 ring-line">
-              <Link to="/app/lessons/$id" params={{ id: lesson.id }} className="flex gap-3">
-                <div className="w-16 shrink-0 pt-0.5 text-sm font-semibold tabular-nums">{lesson.time}</div>
+              <Link to="/app/lessons/$id" params={{ id: lesson.id }} className="type-card-gap flex gap-3">
+                <div className="type-time w-16 shrink-0 pt-0.5 text-sm font-semibold tabular-nums">{lesson.time}</div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold">{lesson.clientName}</p>
-                  <p className="text-sm text-muted">
+                  <p className="type-primary font-semibold">{lesson.clientName}</p>
+                  <p className="type-follow text-sm text-muted">
                     {lesson.duration} min · {lesson.locationName}
                     {lesson.recurring ? " · Recurring" : ""}
                   </p>
@@ -465,7 +465,7 @@ export function MonthCalendar({
         </div>
       </div>
       <div className="mt-5">
-        <p className="text-sm font-semibold text-ink-soft">
+        <p className="type-section text-sm font-semibold text-ink-soft">
           {selected === today ? "Today" : formatDateKey(selected, { weekday: "long", month: "long", day: "numeric" })}
         </p>
         {selectedLessons.length === 0 ? (
@@ -475,10 +475,10 @@ export function MonthCalendar({
             {selectedLessons.map((lesson) => (
               <li key={lesson.id} className="rounded-2xl bg-card p-4 ring-1 ring-line">
                 <Link to="/app/lessons/$id" params={{ id: lesson.id }} className="block">
-                  <p className="font-semibold">
+                  <p className="type-primary font-semibold">
                     {lesson.time} · {lesson.clientName}
                   </p>
-                  <p className="text-sm text-muted">
+                  <p className="type-follow text-sm text-muted">
                     {lesson.locationName} · {lesson.statusLabel} · {lesson.pay?.text}
                     {lesson.recurring ? " · Recurring" : ""}
                   </p>

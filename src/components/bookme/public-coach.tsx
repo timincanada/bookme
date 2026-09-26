@@ -164,7 +164,7 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
                     )}
                   >
                     <span>
-                      <span className="block text-sm font-semibold">{l.name}</span>
+                      <span className="type-section block text-sm font-semibold">{l.name}</span>
                       <span className="text-xs text-muted">
                         {(() => {
                           const ds = Array.isArray((l as { durations?: number[] }).durations) && (l as { durations?: number[] }).durations!.length
@@ -174,7 +174,7 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
                         })()}
                       </span>
                     </span>
-                    <span className="font-semibold">
+                    <span className="type-primary font-semibold">
                       {(() => {
                         const label = formatMoney(listedFromPrice([l])).replace(".00", "");
                         return servicePricesDiffer(l) ? `from ${label}` : label;
@@ -186,7 +186,7 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
 
               {lessonDurations.length > 1 ? (
                 <>
-                  <h3 className="mt-6 text-sm font-semibold">Duration</h3>
+                  <h3 className="type-section mt-6 text-sm font-semibold">Duration</h3>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {lessonDurations.map((d) => (
                       <button
@@ -210,13 +210,13 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
 
               {coach.locations.length > 1 ? (
                 <>
-                  <h3 className="mt-6 text-sm font-semibold">Select location</h3>
+                  <h3 className="type-section mt-6 text-sm font-semibold">Select location</h3>
                   <div className="relative mt-2">
                     <MapPin className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
                     <select
                       value={locationId}
                       onChange={(e) => setLocationId(e.target.value)}
-                      className="h-12 w-full appearance-none rounded-xl border border-line bg-card pl-10 pr-4 text-sm outline-none ring-forest/30 focus:ring-2"
+                      className="type-input h-12 w-full appearance-none rounded-xl border border-line bg-card pl-10 pr-4 text-sm outline-none ring-forest/30 focus:ring-2"
                     >
                       <option value="">Choose a location</option>
                       {coach.locations.map((loc) => (
@@ -231,7 +231,7 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
                 <p className="mt-4 text-sm text-muted">{coach.locations[0]?.name}</p>
               )}
 
-              <h3 className="mt-6 text-sm font-semibold">Choose a date</h3>
+              <h3 className="type-section mt-6 text-sm font-semibold">Choose a date</h3>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 {datePair.map((d) => {
                   const meta = labelForDate(d);
@@ -285,7 +285,7 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
                 .
               </p>
 
-              <h3 className="mt-6 text-sm font-semibold">Available times</h3>
+              <h3 className="type-section mt-6 text-sm font-semibold">Available times</h3>
               <div className="mt-2 flex flex-wrap gap-2">
                 {slots.map((s) => (
                   <button
@@ -354,8 +354,8 @@ function Fact({ icon, title, body }: { icon: ReactNode; title: string; body: str
   return (
     <div className="rounded-2xl bg-card p-4 ring-1 ring-line">
       <span className="inline-flex size-10 items-center justify-center rounded-full bg-sage-3 text-forest">{icon}</span>
-      <p className="mt-3 font-semibold">{title}</p>
-      <p className="text-sm text-muted">{body}</p>
+      <p className="type-section mt-3 font-semibold">{title}</p>
+      <p className="type-follow text-sm text-muted">{body}</p>
     </div>
   );
 }

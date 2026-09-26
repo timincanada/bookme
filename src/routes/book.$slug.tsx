@@ -98,7 +98,7 @@ function BookPage() {
           {coach?.name ?? "Coach"} · {lesson?.name ?? "Private"} · {search.duration ?? lesson?.duration ?? 60} min
         </p>
         <div className="mt-6 rounded-2xl bg-card p-5 ring-1 ring-line">
-          <p className="flex items-center gap-2 text-sm">
+          <p className="type-primary flex items-center gap-2 text-sm">
             <CalendarDays className="size-4 text-forest" />
             {coach ? formatWhen(new Date(search.start), coach.timezone) : ""}
           </p>

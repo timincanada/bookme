@@ -63,7 +63,7 @@ function Confirmed() {
             <p className="font-display text-2xl font-medium">{booking.serviceName}</p>
             <p className="mt-1 text-muted">with {booking.coachName}</p>
             <div className="mt-5 space-y-3 text-sm">
-              <p className="flex items-center gap-2">
+              <p className="type-primary flex items-center gap-2">
                 <CalendarDays className="size-4 text-forest" />
                 {booking.when}
               </p>

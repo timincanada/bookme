@@ -126,8 +126,8 @@ export function AssistantHeader({
       </Link>
       <AssistantAvatar />
       <div className="min-w-0 flex-1 pl-0.5">
-        <p className="truncate font-semibold leading-tight text-ink">{assistantTitle(coachName, assistantName)}</p>
-        <p className="mt-0.5 flex items-center gap-1.5 text-xs text-success">
+        <p className="type-page truncate font-semibold leading-tight text-ink">{assistantTitle(coachName, assistantName)}</p>
+        <p className="type-secondary mt-0.5 flex items-center gap-1.5 text-xs text-success">
           <span className={cn("size-1.5 rounded-full", live ? "bg-success" : "bg-success/70")} />
           {status}
         </p>
@@ -182,14 +182,14 @@ export function UpcomingLessonCard({ lesson, timeZone }: { lesson: UpcomingLesso
       params={{ id: lesson.id }}
       className="block rounded-2xl bg-card p-3.5 shadow-soft ring-1 ring-line"
     >
-      <div className="flex items-start gap-3">
+      <div className="type-card-gap flex items-start gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-sage-3 text-forest">
           <CalendarDays className="size-5" strokeWidth={1.75} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-ink">Upcoming Lesson</p>
-          <p className="mt-0.5 text-sm text-muted">{stamp.line}</p>
-          <p className="mt-2 flex items-center gap-2 text-sm text-ink">
+          <p className="type-section text-sm font-semibold text-ink">Upcoming Lesson</p>
+          <p className="type-primary mt-0.5 text-sm text-muted">{stamp.line}</p>
+          <p className="type-primary mt-2 flex items-center gap-2 text-sm text-ink">
             <StudentMark name={lesson.clientName} />
             {lesson.clientName}
           </p>
@@ -218,10 +218,10 @@ export function ChatBubble({
   if (role === "user") {
     return (
       <div className="flex flex-col items-end gap-1">
-        <div className="max-w-[82%] rounded-2xl rounded-br-md bg-forest px-3.5 py-2.5 text-sm leading-relaxed text-on-forest">
+        <div className="type-bubble type-primary max-w-[82%] rounded-2xl rounded-br-md bg-forest px-3.5 py-2.5 text-sm leading-relaxed text-on-forest">
           {text}
         </div>
-        <p className="flex items-center gap-0.5 pr-1 text-[11px] text-muted">
+        <p className="type-secondary flex items-center gap-0.5 pr-1 text-[11px] text-muted">
           {formatClock(at, timeZone)}
           <CheckCheck className="size-3.5 text-forest" strokeWidth={2} />
         </p>
@@ -231,7 +231,7 @@ export function ChatBubble({
   return (
     <div className="flex items-end gap-2">
       <AssistantAvatar size="sm" />
-      <div className="max-w-[78%] rounded-2xl rounded-bl-md bg-card px-3.5 py-2.5 text-sm leading-relaxed text-ink shadow-soft ring-1 ring-line">
+      <div className="type-bubble type-primary max-w-[78%] rounded-2xl rounded-bl-md bg-card px-3.5 py-2.5 text-sm leading-relaxed text-ink shadow-soft ring-1 ring-line">
         <span className="whitespace-pre-line">{text}</span>
       </div>
     </div>
@@ -276,7 +276,7 @@ export function ResultCard({
   if (preview.kind === "cancel") return null;
   if (!preview.groups?.length) return null;
   return (
-    <button type="button" onClick={onOpenings} className="w-full rounded-2xl bg-sage-3 px-4 py-3 text-left text-sm text-ink">
+    <button type="button" onClick={onOpenings} className="type-primary w-full rounded-2xl bg-sage-3 px-4 py-3 text-left text-sm text-ink">
       {preview.groups.map((g) => (
         <p key={g.dateKey}>
           <span className="font-semibold">{g.label}</span>
@@ -295,7 +295,7 @@ function LinkCard({ preview }: { preview: AssistantPreview }) {
           {preview.kind === "import_done" ? <Check className="size-4" strokeWidth={2.4} /> : <Repeat className="size-4" strokeWidth={2} />}
         </span>
         <div className="min-w-0">
-          <p className="font-semibold text-ink">{preview.heading}</p>
+          <p className="type-section font-semibold text-ink">{preview.heading}</p>
           {preview.fields?.map((f) => (
             <p key={f.label} className="text-sm text-muted">
               {f.value}
@@ -324,9 +324,9 @@ function CancelledCard({ preview }: { preview: AssistantPreview }) {
           <Check className="size-4" strokeWidth={2.4} />
         </span>
         <div className="min-w-0">
-          <p className="font-semibold text-ink">Lesson Cancelled</p>
-          <p className="mt-0.5 text-sm text-muted">{when}</p>
-          <p className="text-sm text-muted">{who}</p>
+          <p className="type-section font-semibold text-ink">Lesson Cancelled</p>
+          <p className="type-primary mt-0.5 text-sm text-muted">{when}</p>
+          <p className="type-primary text-sm text-muted">{who}</p>
         </div>
       </div>
       <Link
@@ -343,10 +343,10 @@ function CancelledCard({ preview }: { preview: AssistantPreview }) {
 function ScheduleCard({ preview }: { preview: AssistantPreview }) {
   return (
     <div className="rounded-2xl bg-card p-4 shadow-soft ring-1 ring-line">
-      <p className="text-sm font-semibold text-ink">{preview.heading || "Upcoming lessons"}</p>
+      <p className="type-section text-sm font-semibold text-ink">{preview.heading || "Upcoming lessons"}</p>
       <ul className="mt-2 space-y-2">
         {preview.groups!.map((g) => (
-          <li key={g.dateKey} className="text-sm">
+          <li key={g.dateKey} className="type-primary text-sm">
             <p className="font-medium text-forest">{g.label}</p>
             {g.lines.map((line) => (
               <p key={line} className="text-muted">
@@ -363,10 +363,10 @@ function ScheduleCard({ preview }: { preview: AssistantPreview }) {
 function OpeningsCard({ preview }: { preview: AssistantPreview }) {
   return (
     <div className="rounded-2xl bg-card p-4 shadow-soft ring-1 ring-line">
-      <p className="text-sm font-semibold text-ink">Open times</p>
+      <p className="type-section text-sm font-semibold text-ink">Open times</p>
       <ul className="mt-2 space-y-2">
         {preview.groups!.map((g) => (
-          <li key={g.dateKey} className="text-sm">
+          <li key={g.dateKey} className="type-primary text-sm">
             <p className="font-medium text-forest">{g.label}</p>
             <p className="text-muted">{g.lines.length ? g.lines.slice(0, 6).join(" · ") : "None"}</p>
           </li>
@@ -402,9 +402,9 @@ export function ConfirmCard({
     return (
       <div className="overflow-hidden rounded-2xl bg-card shadow-soft ring-1 ring-line">
         <div className="px-4 pt-4">
-          <p className="font-semibold text-ink">Cancel this lesson?</p>
-          <p className="mt-1 text-sm text-muted">{when}</p>
-          <p className="text-sm text-muted">{who}</p>
+          <p className="type-section font-semibold text-ink">Cancel this lesson?</p>
+          <p className="type-primary mt-1 text-sm text-muted">{when}</p>
+          <p className="type-primary text-sm text-muted">{who}</p>
           {preview.note ? <p className="mt-2 text-sm text-ink-soft">{preview.note}</p> : null}
         </div>
         <div className="mt-3 space-y-1 px-4 pb-3">
@@ -420,11 +420,11 @@ export function ConfirmCard({
   }
   return (
     <div className="rounded-2xl bg-card p-4 shadow-card ring-1 ring-line">
-      {preview.heading ? <p className="font-semibold text-forest">{preview.heading}</p> : null}
+      {preview.heading ? <p className="type-section font-semibold text-forest">{preview.heading}</p> : null}
       {preview.fields?.map((f, i) => (
         <div key={i} className="mt-2">
           {f.label ? <p className="text-xs text-muted">{f.label}</p> : null}
-          <p className="whitespace-pre-wrap text-sm">{f.value}</p>
+          <p className="type-primary whitespace-pre-wrap text-sm">{f.value}</p>
         </div>
       ))}
       {preview.note ? <p className="mt-2 text-sm">{preview.note}</p> : null}
@@ -460,7 +460,7 @@ export function QuickChips({
           key={c.label}
           type="button"
           onClick={c.onClick}
-          className="flex shrink-0 items-center gap-1.5 rounded-full bg-card px-3.5 py-2 text-sm font-medium text-forest shadow-soft ring-1 ring-line"
+          className="type-action flex shrink-0 items-center gap-1.5 rounded-full bg-card px-3.5 py-2 text-sm font-medium text-forest shadow-soft ring-1 ring-line"
         >
           <c.icon className="size-4" strokeWidth={1.75} />
           {c.label}
@@ -497,7 +497,7 @@ export function Composer({
     >
       <input
         id="assistant-input"
-        className="h-11 min-w-0 flex-1 rounded-full border-0 bg-card px-4 text-sm text-ink shadow-soft ring-1 ring-line outline-none placeholder:text-muted"
+        className="type-input h-11 min-w-0 flex-1 rounded-full border-0 bg-card px-4 text-sm text-ink shadow-soft ring-1 ring-line outline-none placeholder:text-muted"
         placeholder="Message your assistant…"
         value={value}
         onChange={(e) => onChange(e.target.value)}

@@ -217,7 +217,7 @@ function LessonList({ title, lessons }: { title: string; lessons: Data["lessons"
               params={{ id: l.id }}
               className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-card p-3 text-sm ring-1 ring-line"
             >
-              <span className="tabular-nums">{l.when}</span>
+              <span className="type-primary tabular-nums">{l.when}</span>
               <span className="flex items-center gap-2">
                 <StatusChip>{l.statusLabel}</StatusChip>
                 <PayChip kind={l.pay.kind} text={l.pay.text} />

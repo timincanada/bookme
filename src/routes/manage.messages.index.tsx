@@ -36,7 +36,7 @@ function StudentInbox() {
               className="flex items-center justify-between gap-3 rounded-2xl bg-card p-4 ring-1 ring-line"
             >
               <span>
-                <span className={cn("block", t.unread ? "font-semibold" : "font-medium")}>
+                <span className={cn("type-primary block", t.unread ? "font-semibold" : "font-medium")}>
                   {t.coachName}
                 </span>
                 {t.lastPreview ? (

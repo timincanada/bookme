@@ -134,7 +134,7 @@ function ClientDetail() {
       <h2 className="mt-10 font-display text-2xl">Lesson history</h2>
       <ul className="mt-3 space-y-2">
         {data.lessons.map((l) => (
-          <li key={l.id} className="rounded-xl bg-card p-3 text-sm ring-1 ring-line">
+          <li key={l.id} className="type-primary rounded-xl bg-card p-3 text-sm ring-1 ring-line">
             {l.when} · {l.locationName} · {l.statusLabel}
             {l.recurring ? " · Recurring" : ""}
           </li>

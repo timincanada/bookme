@@ -106,8 +106,8 @@ function StudentLessons() {
               <p className="text-xs font-semibold uppercase tracking-wide text-forest">
                 {r.kind === "coach_swap" ? "Coach asked to swap" : "Waiting on your coach"}
               </p>
-              <p className="mt-1 font-semibold">{r.coachName}</p>
-              <p className="text-sm">
+              <p className="type-primary mt-1 font-semibold">{r.coachName}</p>
+              <p className="type-primary type-follow text-sm">
                 {r.kind === "coach_swap"
                   ? `Your lesson ${r.when} ⇄ ${r.otherLabel ?? "Another student"} · ${r.otherWhen}`
                   : `Move ${r.when} to ${r.nextWhen}`}
@@ -137,7 +137,7 @@ function StudentLessons() {
         {lessons.map((l) => (
           <li key={l.id} className="rounded-2xl bg-card p-4 ring-1 ring-line">
             <div className="flex items-start justify-between gap-3">
-              <p className="font-semibold">{l.coachName}</p>
+              <p className="type-primary font-semibold">{l.coachName}</p>
               {l.coachSlug ? (
                 <Link
                   to="/$slug"
@@ -148,8 +148,8 @@ function StudentLessons() {
                 </Link>
               ) : null}
             </div>
-            <p className="text-sm">{l.when}</p>
-            <p className="text-sm text-muted">{l.locationName}</p>
+            <p className="type-primary type-follow text-sm">{l.when}</p>
+            <p className="type-follow text-sm text-muted">{l.locationName}</p>
             <p className="text-sm text-muted">
               {l.status} · {l.payText}
             </p>

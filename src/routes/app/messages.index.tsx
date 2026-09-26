@@ -50,10 +50,10 @@ function CoachInbox() {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-baseline justify-between gap-3">
-                    <span className={cn("truncate", t.unread ? "font-semibold" : "font-medium")}>
+                    <span className={cn("type-primary truncate", t.unread ? "font-semibold" : "font-medium")}>
                       {t.clientName}
                     </span>
-                    <span className="shrink-0 text-xs text-muted">{rowTime(t.lastMessageAt)}</span>
+                    <span className="type-secondary shrink-0 text-xs text-muted">{rowTime(t.lastMessageAt)}</span>
                   </span>
                   <span className="mt-0.5 block truncate text-sm text-muted">
                     {t.lastPreview || "No messages yet"}

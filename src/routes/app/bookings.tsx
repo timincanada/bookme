@@ -144,8 +144,8 @@ function Bookings() {
               <p className="text-xs font-semibold uppercase tracking-wide text-muted">
                 {r.kind === "coach_swap" ? "Swap" : "Move request"} · {r.status}
               </p>
-              <p className="mt-1 font-semibold">{r.studentName}</p>
-              <p className="text-sm">
+              <p className="type-primary mt-1 font-semibold">{r.studentName}</p>
+              <p className="type-primary type-follow text-sm">
                 {r.kind === "coach_swap"
                   ? `${r.studentWhen} ⇄ ${r.otherName} · ${r.otherWhen}`
                   : r.status === "accepted" && r.studentWhen === r.nextWhen

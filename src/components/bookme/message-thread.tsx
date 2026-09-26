@@ -173,7 +173,7 @@ export function MessageThread({
         <div className="flex shrink-0 items-center gap-1 border-b border-line bg-paper px-1 py-1">
           {leading}
           <p
-            className="min-w-0 flex-1 truncate text-base font-semibold text-ink"
+            className="type-page min-w-0 flex-1 truncate text-base font-semibold text-ink"
             title={thread?.otherName || undefined}
           >
             {thread?.otherName ?? ""}
@@ -206,7 +206,7 @@ export function MessageThread({
                   >
                     <p
                       className={cn(
-                        "w-fit min-w-0 max-w-[80%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ![overflow-wrap:anywhere]",
+                        "type-bubble type-primary w-fit min-w-0 max-w-[80%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ![overflow-wrap:anywhere]",
                         mine
                           ? "rounded-br-md bg-forest text-on-forest"
                           : "rounded-bl-md bg-paper-2 text-ink",
@@ -214,7 +214,7 @@ export function MessageThread({
                     >
                       {m.body}
                     </p>
-                    <span className="mt-1 px-1 text-[11px] text-muted">
+                    <span className="type-secondary mt-1 px-1 text-[11px] text-muted">
                       {mine ? "You" : thread.otherName} · {stamp(m.createdAt)}
                     </span>
                   </li>
@@ -238,7 +238,7 @@ export function MessageThread({
                   <textarea
                     ref={composerRef}
                     rows={1}
-                    className="max-h-40 min-h-10 w-full flex-1 resize-none rounded-3xl border border-line bg-card px-4 py-2 text-[16px] leading-6 text-ink outline-none placeholder:text-muted focus:border-forest"
+                    className="type-input max-h-40 min-h-10 w-full flex-1 resize-none rounded-3xl border border-line bg-card px-4 py-2 text-[16px] leading-6 text-ink outline-none placeholder:text-muted focus:border-forest"
                     value={draft}
                     maxLength={MESSAGE_MAX_LENGTH}
                     onChange={(e) => {
@@ -275,7 +275,7 @@ export function MessageThread({
     <div className="mt-4 flex flex-col rounded-2xl bg-card ring-1 ring-line">
       {thread ? (
         <div className="border-b border-line px-4 py-3">
-          <p className="font-semibold">{thread.otherName}</p>
+          <p className="type-page font-semibold">{thread.otherName}</p>
         </div>
       ) : null}
       {banner}
@@ -291,7 +291,7 @@ export function MessageThread({
                 <li key={m.id} className={cn("flex flex-col", mine ? "items-end" : "items-start")}>
                   <p
                     className={cn(
-                      "max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed",
+                      "type-bubble type-primary max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed",
                       mine
                         ? "rounded-br-md bg-forest text-on-forest"
                         : "rounded-bl-md bg-paper-2 text-ink",
@@ -299,7 +299,7 @@ export function MessageThread({
                   >
                     {m.body}
                   </p>
-                  <span className="mt-1 px-1 text-[11px] text-muted">
+                  <span className="type-secondary mt-1 px-1 text-[11px] text-muted">
                     {mine ? "You" : thread.otherName} · {stamp(m.createdAt)}
                   </span>
                 </li>

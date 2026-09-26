@@ -100,9 +100,9 @@ export function ThreadContextCards(props: Props) {
           <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
             {pending.kind === "coach_swap" ? "Swap pending" : "Move pending"}
           </span>
-          <p className="mt-1.5 text-sm leading-snug text-ink">{pending.lines[0]}</p>
+          <p className="type-primary mt-1.5 text-sm leading-snug text-ink">{pending.lines[0]}</p>
           {pending.lines[1] ? (
-            <p className="text-sm leading-snug text-ink">{pending.lines[1]}</p>
+            <p className="type-primary text-sm leading-snug text-ink">{pending.lines[1]}</p>
           ) : null}
           {props.audience === "coach" ? (
             <Link
@@ -128,7 +128,7 @@ export function ThreadContextCards(props: Props) {
           <span className="inline-flex rounded-full bg-sage-3 px-2 py-0.5 text-[11px] font-semibold text-forest">
             Next booking
           </span>
-          <p className="mt-1.5 text-sm leading-snug text-ink">
+          <p className="type-primary mt-1.5 text-sm leading-snug text-ink">
             {booking.dateLabel} · {booking.timeLabel} · {booking.place}
           </p>
           {weather ? (
@@ -243,7 +243,7 @@ function CompactThreadContext({
               <span className="shrink-0 text-[11px] font-semibold text-amber-700">
                 {pending.kind === "coach_swap" ? "Swap pending" : "Move pending"}
               </span>
-              <span className="min-w-0 flex-1 truncate text-sm text-ink" title={pending.lines[0]}>
+              <span className="type-primary min-w-0 flex-1 truncate text-sm text-ink" title={pending.lines[0]}>
                 {pending.lines[0]}
               </span>
             </button>
@@ -256,9 +256,9 @@ function CompactThreadContext({
               <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
                 {pending.kind === "coach_swap" ? "Swap pending" : "Move pending"}
               </span>
-              <p className="mt-1.5 text-sm leading-snug text-ink">{pending.lines[0]}</p>
+              <p className="type-primary mt-1.5 text-sm leading-snug text-ink">{pending.lines[0]}</p>
               {pending.lines[1] ? (
-                <p className="text-sm leading-snug text-ink">{pending.lines[1]}</p>
+                <p className="type-primary text-sm leading-snug text-ink">{pending.lines[1]}</p>
               ) : null}
               <ReviewLink
                 audience={audience}
@@ -288,7 +288,7 @@ function CompactThreadContext({
                 )}
                 aria-hidden
               />
-              <span className="min-w-0 flex-1 truncate text-sm text-ink" title={line}>
+              <span className="type-primary min-w-0 flex-1 truncate text-sm text-ink" title={line}>
                 {line}
               </span>
             </button>
@@ -318,7 +318,7 @@ function CompactThreadContext({
               <span className="inline-flex rounded-full bg-sage-3 px-2 py-0.5 text-[11px] font-semibold text-forest">
                 Next booking
               </span>
-              <p className="mt-1.5 text-sm leading-snug text-ink">
+              <p className="type-primary mt-1.5 text-sm leading-snug text-ink">
                 {booking.dateLabel} · {booking.timeLabel} · {booking.place}
               </p>
               {weather ? (
