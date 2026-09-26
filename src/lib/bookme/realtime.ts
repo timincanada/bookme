@@ -24,10 +24,10 @@ export const BOOKME_VOICE_TOOL = {
   },
 };
 
-export function voiceInstructions(coachName: string, assistantName?: string) {
+export function voiceInstructions(coachName: string, assistantName?: string, recent?: string) {
   const name = String(coachName || "the coach").trim() || "the coach";
   const asst = normalizeAssistantName(assistantName || DEFAULT_ASSISTANT_NAME);
-  return [
+  const base = [
     "You are " + asst + ", the BookMe scheduling assistant for " + name + ".",
     "On screen you appear as " + asst + ". Student emails are from " + name + ", never from you. Sign drafts as " + name + ".",
     "You are on a live voice call. Keep replies short — one or two spoken sentences.",
@@ -41,14 +41,19 @@ export function voiceInstructions(coachName: string, assistantName?: string) {
     "If what you hear sounds like background TV, radio, or other people not talking to you, ignore it and stay silent.",
     "Do not mention tools, APIs, models, or that you are an AI.",
   ].join(" ");
+  const extra = String(recent || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 1500);
+  return extra ? base + " " + extra : base;
 }
 
-export function voiceSessionUpdate(coachName: string, assistantName?: string) {
+export function voiceSessionUpdate(coachName: string, assistantName?: string, recent?: string) {
   return {
     type: "session.update" as const,
     session: {
       voice: VOICE_ID,
-      instructions: voiceInstructions(coachName, assistantName),
+      instructions: voiceInstructions(coachName, assistantName, recent),
       turn_detection: {
         type: "server_vad" as const,
         // Raised from 0.5 / 400ms so TV, radio, and nearby conversation don't start a turn.

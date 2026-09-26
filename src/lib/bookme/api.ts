@@ -3,6 +3,13 @@ import { guardInput } from "./input-guard";
 import { getSql, lockCoachSchedule, withTransaction, type Sql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { looksLikeImportRequest, nextWeekdayKey, parseAssistant, shiftDateKey, signEmailAsCoach, upcomingLessons, type AssistantAction, type Capability } from "./assistant";
+import {
+  appendAssistantMessagesForCoach,
+  clearAssistantMessagesForCoach,
+  flattenAssistantAppend,
+  listAssistantMessagesForCoach,
+  loadAssistantModelHistory,
+} from "./assistant-history";
 import { logAssistantFailure, resolveAssistantProvider } from "./assistant-provider";
 import { normalizeAssistantName } from "./assistant-name";
 import { bookingBucket, lessonStatusLabel, payLabel } from "./bookings";
@@ -2765,12 +2772,19 @@ async function processAssistantTurn(userId: string, data: AssistantInput): Promi
       : await (async () => {
           const provider = resolveAssistantProvider(providerName);
           if (provider.name !== "local") {
+            let history: { role: "user" | "assistant"; content: string }[] = [];
+            try {
+              history = await loadAssistantModelHistory(sql, coach.id, data.text || "");
+            } catch (err) {
+              console.warn("assistant history", err);
+            }
             const result = await provider.chat({
               coachId: coach.id,
               message: data.text || "",
               capabilities,
               assistantName: normalizeAssistantName(coach.assistant_name),
               context: ctx,
+              history,
             });
             if (!result.ok) {
               logAssistantFailure({ coachId: coach.id, provider: provider.name, error: result.error });
@@ -3037,6 +3051,66 @@ export async function sendImportNotice(coach: CoachRow, done: ImportDone) {
     { template: "recurring_added" },
   );
 }
+
+export const listAssistantMessages = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const empty: {
+      id: string;
+      role: "user" | "assistant";
+      text: string;
+      card: AssistantPreview | null;
+      source: "text" | "voice" | null;
+      createdAt: string;
+    }[] = [];
+    const sql = await getSql();
+    const coach = await coachForUser(sql, context.userId);
+    if (!coach) return { ok: false as const, error: "Sign in required", messages: empty };
+    try {
+      const messages = (await listAssistantMessagesForCoach(sql, coach.id)).map((row) => ({
+        id: row.id,
+        role: row.role,
+        text: row.text,
+        card: (row.card as AssistantPreview | null) ?? null,
+        source: row.source,
+        createdAt: row.createdAt,
+      }));
+      return { ok: true as const, messages };
+    } catch (err) {
+      console.warn("assistant history", err);
+      return { ok: false as const, error: "Could not load chat.", messages: empty };
+    }
+  });
+
+export const appendAssistantMessages = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((input: { items?: unknown }) => guardInput(flattenAssistantAppend(input)))
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    const coach = await coachForUser(sql, context.userId);
+    if (!coach) return { ok: false as const, error: "Sign in required" };
+    try {
+      return await appendAssistantMessagesForCoach(sql, coach.id, data.items);
+    } catch (err) {
+      console.warn("assistant history", err);
+      return { ok: false as const, error: "Could not save chat." };
+    }
+  });
+
+export const clearAssistantMessages = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    const coach = await coachForUser(sql, context.userId);
+    if (!coach) return { ok: false as const, error: "Sign in required" };
+    try {
+      await clearAssistantMessagesForCoach(sql, coach.id);
+      return { ok: true as const };
+    } catch (err) {
+      console.warn("assistant history", err);
+      return { ok: false as const, error: "Could not clear chat." };
+    }
+  });
 
 export const runAssistant = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
