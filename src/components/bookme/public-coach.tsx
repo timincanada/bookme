@@ -113,8 +113,8 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
 
   return (
     <PageShell>
-      <section className="mx-auto grid max-w-6xl gap-10 px-5 pb-8 pt-8 sm:px-8 lg:grid-cols-[1.15fr_0.95fr] lg:items-start lg:pt-10">
-        <div className="relative overflow-hidden rounded-3xl bg-sage-3">
+      <section className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] gap-10 px-5 pb-8 pt-8 sm:px-8 lg:grid-cols-[1.15fr_0.95fr] lg:items-start lg:pt-10">
+        <div className="relative max-lg:min-w-0 overflow-hidden rounded-3xl bg-sage-3">
           {coach.photoUrl ? (
             <img
               src={coach.photoUrl}
@@ -135,7 +135,7 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
             </span>
           </div>
         </div>
-        <div className="lg:hidden">
+        <div className="max-lg:min-w-0 lg:hidden">
           <h1 className="font-display text-4xl font-medium">{coach.name}</h1>
           <span className="mt-3 inline-flex items-center gap-2 rounded-full bg-sage-3 px-3 py-1.5 text-sm font-medium text-forest">
             <SportIcon sport={sport} />
@@ -143,7 +143,7 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
           </span>
         </div>
 
-        <aside className="rounded-2xl bg-card p-5 shadow-soft ring-1 ring-line sm:p-6">
+        <aside className="max-lg:min-w-0 rounded-2xl bg-card p-5 shadow-soft ring-1 ring-line sm:p-6">
           <h2 className="font-display text-2xl font-medium">Choose a lesson</h2>
           {!coach.open ? (
             <p className="mt-4 text-sm text-muted">This coach is not taking new bookings right now.</p>
@@ -255,7 +255,7 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
                   );
                 })}
               </div>
-              <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+              <div className="mt-2 flex min-w-0 gap-2 overflow-x-auto pb-1">
                 {dates.slice(2).map((d) => {
                   const active = d === date;
                   const dt = parseISODate(d);
