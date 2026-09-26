@@ -89,15 +89,13 @@
 
   /*
    * iOS WebKit gives date/time controls an intrinsic min-width and ignores
-   * width:100% until appearance is cleared. Selects get the same box but keep
-   * the native chevron. The calendar/clock indicator stays so desktop Chrome
-   * can still open the picker.
+   * width:100% until appearance is cleared. Flex (not block) centres the
+   * value in the 3rem box; display:block pins it to the top. Selects keep
+   * display:block and the native chevron. Flex also pulls Chrome's picker
+   * glyph up against the value, so the indicator is pinned to the trailing
+   * edge and desktop Chrome can still open the picker.
    */
-  select.field,
-  .field[type="date"],
-  .field[type="time"],
-  .field[type="datetime-local"],
-  .field[type="month"] {
+  select.field {
     display: block;
   }
 
@@ -105,9 +103,22 @@
   .field[type="time"],
   .field[type="datetime-local"],
   .field[type="month"] {
+    display: flex;
+    align-items: center;
+    position: relative;
     -webkit-appearance: none;
     appearance: none;
     text-align: left;
+  }
+
+  .field[type="date"]::-webkit-calendar-picker-indicator,
+  .field[type="time"]::-webkit-calendar-picker-indicator,
+  .field[type="datetime-local"]::-webkit-calendar-picker-indicator,
+  .field[type="month"]::-webkit-calendar-picker-indicator {
+    position: absolute;
+    right: 0.9rem;
+    top: 50%;
+    transform: translateY(-50%);
   }
 
   .field[type="date"]::-webkit-date-and-time-value,
@@ -130,15 +141,6 @@
     padding: 0;
     margin: 0;
     min-width: 0;
-  }
-
-  .field[type="date"]::-webkit-datetime-edit,
-  .field[type="time"]::-webkit-datetime-edit,
-  .field[type="datetime-local"]::-webkit-datetime-edit,
-  .field[type="month"]::-webkit-datetime-edit {
-    display: inline-flex;
-    align-items: center;
-    height: 100%;
   }
 
   .field:focus {
