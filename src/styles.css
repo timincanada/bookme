@@ -349,6 +349,22 @@
     line-height: 1.25;
   }
 
+  /* Steeper steps for a long assistant title. Step 0 stays on .type-page. */
+  .type-page[data-title-step="1"] {
+    font-size: 19px;
+    line-height: 1.25;
+  }
+
+  .type-page[data-title-step="2"] {
+    font-size: 17px;
+    line-height: 1.25;
+  }
+
+  .type-page[data-title-step="3"] {
+    font-size: 14px;
+    line-height: 1.25;
+  }
+
   .type-section {
     font-size: 1.0625rem;
     line-height: 1.3;
