@@ -26,6 +26,7 @@ import {
 import type { AssistantAction } from "@/lib/bookme/assistant";
 import { compactVoiceToolResult, parseToolText } from "@/lib/bookme/realtime";
 import { isConfirmImportText } from "@/lib/bookme/recurring";
+import { assistantTurnMutated, notifyLessonsChanged, useLessonsRefresh } from "@/lib/bookme/lessons-sync";
 import { isMicPermissionError, micErrorMessage, voiceUnavailableMessage } from "@/lib/bookme/voice-errors";
 import { usePurchasePolicy } from "@/lib/native/purchases";
 import { GrokVoiceSession } from "@/lib/bookme/realtime-session";
@@ -106,10 +107,17 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
   const listening = phase === "listening";
   const callActive = inCall || phase === "connecting" || phase === "live";
 
-  useEffect(() => {
+  function reloadUpcoming() {
     void getUpcomingLesson().then((res) => {
+      if (!liveRef.current) return;
       if (res.ok) setUpcoming(res.lesson);
     });
+  }
+
+  useLessonsRefresh(reloadUpcoming);
+
+  useEffect(() => {
+    reloadUpcoming();
   }, []);
 
   useEffect(() => {
@@ -262,6 +270,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
     try {
       const res = await runAssistant({ data: { text } });
       if (!res.ok && "upgrade" in res && res.upgrade) setUpgrade(true);
+      if (assistantTurnMutated(res)) notifyLessonsChanged("voice-tool");
       if (res.ok && res.needsConfirm && res.action) {
         setPreview(res.preview || null);
         setAction(res.action);
@@ -489,6 +498,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
     preloaded?: boolean,
   ) {
     if (!res.ok && "upgrade" in res && res.upgrade) setUpgrade(true);
+    if (assistantTurnMutated(res)) notifyLessonsChanged("assistant");
     const text = spokenFromTurn(res);
     asstLiveId.current = null;
     const card = pendingCardRef.current || (res.ok && res.preview && !res.needsConfirm ? res.preview : null);
@@ -745,6 +755,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
           setPhase("confirm");
           return;
         }
+        if (assistantTurnMutated(res)) notifyLessonsChanged("confirm");
         const card =
           next.type === "cancel_lesson" && snapshot
             ? { ...snapshot, confirmLabel: undefined, heading: "Lesson Cancelled" }
@@ -757,11 +768,6 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
         session.injectUserText("The coach confirmed. " + spoken);
         session.resumeCapture();
         setPhase("live");
-        if (next.type === "cancel_lesson") {
-          void getUpcomingLesson().then((r) => {
-            if (r.ok) setUpcoming(r.lesson);
-          });
-        }
       } catch {
         session.resumeCapture();
         setPhase("live");
@@ -773,11 +779,6 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
       pendingCardRef.current = { ...snapshot, confirmLabel: undefined, heading: "Lesson Cancelled" };
     }
     await sendText({ confirm: true, action: next });
-    if (next.type === "cancel_lesson") {
-      void getUpcomingLesson().then((r) => {
-        if (r.ok) setUpcoming(r.lesson);
-      });
-    }
   }
 
   function skipAction() {

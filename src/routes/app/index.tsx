@@ -2,12 +2,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { MessageCircle, Repeat } from "lucide-react";
 import { useCoach } from "@/lib/bookme/coach-context";
 import { listMyLessons } from "@/lib/bookme/api";
+import { notifyLessonsChanged, useLessonsRefresh } from "@/lib/bookme/lessons-sync";
 import { WeekCalendar, nextLessonDay, type CalLesson } from "@/components/bookme/lesson-calendar";
 import { useCoachWeather } from "@/components/bookme/use-lesson-weather";
 import { DEFAULT_TIMEZONE } from "@/lib/bookme/timezone";
 import { todayKey } from "@/lib/bookme/time";
 import { usePurchasePolicy } from "@/lib/native/purchases";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export const Route = createFileRoute("/app/")({ component: Schedule });
 
@@ -18,15 +19,21 @@ function Schedule() {
   const policy = usePurchasePolicy();
   const tz = coach?.timezone || DEFAULT_TIMEZONE;
   const [day, setDay] = useState(() => todayKey(tz));
+  const snapped = useRef(false);
 
   function reloadLessons() {
     listMyLessons().then((r) => {
       if (!r.ok) return;
       const upcoming = r.lessons.filter((l) => l.bucket === "upcoming");
       setLessons(upcoming);
-      setDay(nextLessonDay(upcoming, r.timezone));
+      if (!snapped.current) {
+        snapped.current = true;
+        setDay(nextLessonDay(upcoming, r.timezone));
+      }
     });
   }
+
+  useLessonsRefresh(reloadLessons);
 
   useEffect(() => {
     reloadLessons();
@@ -113,7 +120,10 @@ function Schedule() {
           weatherByLesson={weatherByLesson}
           onWeatherResolved={(decision) => {
             void reloadWeather();
-            if (decision === "cancel") reloadLessons();
+            if (decision === "cancel") {
+              notifyLessonsChanged("weather-cancel");
+              reloadLessons();
+            }
           }}
         />
       </div>

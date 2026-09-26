@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronDown } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { WeatherChipView } from "@/components/bookme/weather-chip";
+import { useLessonsRefresh } from "@/lib/bookme/lessons-sync";
 import { coachThreadCards, studentThreadCards } from "@/lib/bookme/messages-api";
 import type {
   ThreadBookingCard,
@@ -32,20 +33,32 @@ export function ThreadContextCards(props: Props) {
   const [cards, setCards] = useState<ThreadCardModel | null>(null);
   const [weather, setWeather] = useState<WeatherSnippet | null>(null);
   const bookingId = cards?.booking?.id ?? "";
+  const gen = useRef(0);
 
-  useEffect(() => {
-    let alive = true;
+  function reloadCards() {
+    const my = ++gen.current;
     const req =
       audience === "coach"
         ? coachThreadCards({ data: { clientId } })
         : studentThreadCards({ data: { coachId } });
-    req.then((res) => {
-      if (!alive) return;
-      setCards(res.ok ? { pending: res.pending, booking: res.booking } : EMPTY);
+    void req.then((res) => {
+      if (my !== gen.current) return;
+      setCards((current) => {
+        if (!res.ok) return current ?? EMPTY;
+        return { pending: res.pending, booking: res.booking };
+      });
     });
+  }
+
+  useLessonsRefresh(reloadCards);
+
+  useEffect(() => {
+    reloadCards();
     return () => {
-      alive = false;
+      gen.current += 1;
     };
+    // reloadCards closes over the latest ids; the deps are those ids.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audience, clientId, coachId]);
 
   useEffect(() => {

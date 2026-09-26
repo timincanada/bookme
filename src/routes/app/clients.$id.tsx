@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Repeat } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MessageLink } from "@/components/bookme/message-link";
 import { Button } from "@/components/ui/button";
 import { getMyClient, saveClientNote } from "@/lib/bookme/api";
+import { useLessonsRefresh } from "@/lib/bookme/lessons-sync";
 import { PAYMENT_STATUS_LABEL, PAYMENT_STATUSES } from "@/lib/bookme/recurring";
 import { listClientSeries, saveClientPayment } from "@/lib/bookme/recurring-api";
 
@@ -19,21 +20,40 @@ function ClientDetail() {
   const [payNote, setPayNote] = useState("");
   const [paySplit, setPaySplit] = useState("");
   const [paySaved, setPaySaved] = useState("");
+  const gen = useRef(0);
+  const noteReady = useRef(false);
+  const payReady = useRef(false);
 
-  useEffect(() => {
-    getMyClient({ data: { id } }).then((r) => {
-      if (r.ok) {
-        setData(r);
-        setNote(r.client.note);
-      }
+  function reload() {
+    const my = ++gen.current;
+    const clientId = id;
+    const fillNote = !noteReady.current;
+    const fillPay = !payReady.current;
+    getMyClient({ data: { id: clientId } }).then((r) => {
+      if (my !== gen.current || !r.ok) return;
+      setData(r);
+      if (!fillNote) return;
+      noteReady.current = true;
+      setNote(r.client.note);
     });
-    listClientSeries({ data: { clientId: id } }).then((r) => {
-      if (!r.ok) return;
+    listClientSeries({ data: { clientId } }).then((r) => {
+      if (my !== gen.current || !r.ok) return;
       setSeries(r.series);
+      if (!fillPay) return;
+      payReady.current = true;
       setPayStatus(r.payment.status ?? "");
       setPayNote(r.payment.note);
       setPaySplit(r.payment.split);
     });
+  }
+
+  useLessonsRefresh(reload);
+
+  useEffect(() => {
+    noteReady.current = false;
+    payReady.current = false;
+    reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   if (!data) return <div className="p-8 text-muted">Loading…</div>;

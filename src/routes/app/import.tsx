@@ -15,6 +15,7 @@ import {
   type RecurringPreview,
   type RecurringRuleInput,
 } from "@/lib/bookme/recurring";
+import { notifyLessonsChanged } from "@/lib/bookme/lessons-sync";
 import { confirmRecurringImport, getImportContext, previewRecurringImport } from "@/lib/bookme/recurring-api";
 import { weekdayOf } from "@/lib/bookme/time";
 
@@ -119,7 +120,10 @@ function ImportForm({ ctx, initialClient, onDone }: { ctx: Ctx; initialClient?: 
     setError("");
     const res = await confirmRecurringImport({ data: { rule, fingerprint: plan.fingerprint } });
     setBusy(false);
-    if (res.ok) return onDone(res.seriesId);
+    if (res.ok) {
+      notifyLessonsChanged("import");
+      return onDone(res.seriesId);
+    }
     if (res.preview) {
       setPlan(res.preview);
       setNotice(res.error);

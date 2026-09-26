@@ -19,6 +19,7 @@ import {
   listCoachRequests,
   listMyLessons,
 } from "@/lib/bookme/api";
+import { notifyLessonsChanged, useLessonsRefresh } from "@/lib/bookme/lessons-sync";
 import { firstName } from "@/lib/bookme/requests";
 import { todayKey } from "@/lib/bookme/time";
 import { DEFAULT_TIMEZONE } from "@/lib/bookme/timezone";
@@ -69,6 +70,8 @@ function Bookings() {
     reloadCoach();
   }
 
+  useLessonsRefresh(reload);
+
   useEffect(() => {
     reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -100,6 +103,7 @@ function Bookings() {
       setSwapSentOpen(true);
       setNote("");
       setBId("");
+      notifyLessonsChanged("swap");
       reload();
       return;
     }
@@ -165,6 +169,7 @@ function Bookings() {
                       const res = await coachDecideMoveRequest({ data: { requestId: r.id, decision: "accepted" } });
                       setBusy(false);
                       setMsg(res.ok ? res.message : res.error);
+                      if (res.ok) notifyLessonsChanged("request");
                       reload();
                     }}
                   >
@@ -179,6 +184,7 @@ function Bookings() {
                       const res = await coachDecideMoveRequest({ data: { requestId: r.id, decision: "declined" } });
                       setBusy(false);
                       setMsg(res.ok ? res.message : res.error);
+                      if (res.ok) notifyLessonsChanged("request");
                       reload();
                     }}
                   >
@@ -197,6 +203,7 @@ function Bookings() {
                     const res = await coachWithdrawRequest({ data: { requestId: r.id } });
                     setBusy(false);
                     setMsg(res.ok ? res.message : res.error);
+                    if (res.ok) notifyLessonsChanged("request");
                     reload();
                   }}
                 >
@@ -254,9 +261,10 @@ function Bookings() {
             onSelect={setDay}
             timezone={tz}
             weatherByLesson={weatherByLesson}
-            onWeatherResolved={() => {
+            onWeatherResolved={(decision) => {
               reload();
               void reloadWeather();
+              if (decision === "cancel") notifyLessonsChanged("weather-cancel");
             }}
           />
         </div>
