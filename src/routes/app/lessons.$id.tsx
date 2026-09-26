@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AlertTriangle, Repeat } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CollectButton } from "@/components/bookme/collect-button";
 import { MessageLink } from "@/components/bookme/message-link";
 import { PayChip, StatusChip } from "@/components/bookme/pay-chip";
@@ -8,6 +8,7 @@ import { useCoachWeather } from "@/components/bookme/use-lesson-weather";
 import { WeatherChip } from "@/components/bookme/weather-chip";
 import { Button } from "@/components/ui/button";
 import { coachCancelLesson, coachMoveLesson, coachNextWeek, getCoachOpenSlots, getMyLesson } from "@/lib/bookme/api";
+import { notifyLessonsChanged, useLessonsRefresh } from "@/lib/bookme/lessons-sync";
 import { parseClock } from "@/lib/bookme/recurring";
 import { formatTime, zonedInstantExact } from "@/lib/bookme/time";
 
@@ -24,19 +25,25 @@ function LessonDetail() {
   const [pendingOutside, setPendingOutside] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const idRef = useRef(id);
+  idRef.current = id;
 
   function reload() {
-    return getMyLesson({ data: { id } }).then((r) => {
-      if (r.ok) setData(r);
+    const lessonId = id;
+    return getMyLesson({ data: { id: lessonId } }).then((r) => {
+      if (idRef.current !== lessonId || !r.ok) return;
+      setData(r);
     });
   }
 
+  useLessonsRefresh(reload);
+
   useEffect(() => {
-    getMyLesson({ data: { id } }).then((r) => {
-      if (r.ok) {
-        setData(r);
-        setDay(r.today);
-      }
+    const lessonId = id;
+    getMyLesson({ data: { id: lessonId } }).then((r) => {
+      if (idRef.current !== lessonId || !r.ok) return;
+      setData(r);
+      setDay(r.today);
     });
   }, [id]);
 
@@ -64,6 +71,7 @@ function LessonDetail() {
     setMsg(res.ok ? "Lesson updated." : res.error);
     if (res.ok) {
       setOtherTime("");
+      notifyLessonsChanged("reschedule");
       void reload();
     }
   }
@@ -90,8 +98,10 @@ function LessonDetail() {
             view={weatherByLesson[id]}
             audience="coach"
             onResolved={(decision) => {
-              if (decision === "cancel") void navigate({ to: "/app" });
-              else void reloadWeather();
+              if (decision === "cancel") {
+                notifyLessonsChanged("weather-cancel");
+                void navigate({ to: "/app" });
+              } else void reloadWeather();
             }}
           />
         </div>
@@ -122,7 +132,13 @@ function LessonDetail() {
       </div>
       {canCollect ? (
         <div className="mt-4">
-          <CollectButton lessonId={id} onCollected={() => void reload()} />
+          <CollectButton
+            lessonId={id}
+            onCollected={() => {
+              notifyLessonsChanged("collect");
+              void reload();
+            }}
+          />
           {l.recurring ? <p className="mt-2 text-xs text-muted">Only this lesson is marked. The schedule's payment note stays as is.</p> : null}
         </div>
       ) : null}
@@ -193,6 +209,7 @@ function LessonDetail() {
               onClick={async () => {
                 const res = await coachNextWeek({ data: { lessonId: id } });
                 setMsg(res.ok ? "Booked same time next week." : res.error);
+                if (res.ok) notifyLessonsChanged("book");
               }}
             >
               Book same time next week
@@ -211,8 +228,10 @@ function LessonDetail() {
             size="field"
             onClick={async () => {
               const res = await coachCancelLesson({ data: { lessonId: id } });
-              if (res.ok) void navigate({ to: "/app" });
-              else setMsg(res.error);
+              if (res.ok) {
+                notifyLessonsChanged("cancel");
+                void navigate({ to: "/app" });
+              } else setMsg(res.error);
             }}
           >
             {l.recurring ? "Cancel this lesson only" : "Cancel lesson"}

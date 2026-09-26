@@ -15,6 +15,7 @@ import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { getMyCoach, type MyCoach } from "@/lib/bookme/api";
 import { CoachContext } from "@/lib/bookme/coach-context";
+import { useLessonsRefresh } from "@/lib/bookme/lessons-sync";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/app")({ component: AppLayout });
@@ -53,6 +54,29 @@ function AppLayout() {
       })
       .finally(() => setLoaded(true));
   }
+
+  // Background refetch only. A non-ok or thrown getMyCoach must not blank the shell.
+  function refreshCoach() {
+    return getMyCoach()
+      .then((res) => {
+        if (!res.ok) {
+          if ("banned" in res && res.banned) setClosed(true);
+          return;
+        }
+        setCoach(res.coach);
+      })
+      .catch(() => {
+        /* transient failure */
+      });
+  }
+
+  useLessonsRefresh(
+    () => {
+      if (!user) return;
+      void refreshCoach();
+    },
+    { pathname },
+  );
 
   useEffect(() => {
     if (!user) return;

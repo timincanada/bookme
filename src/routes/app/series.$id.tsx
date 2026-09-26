@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Repeat } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PayChip, StatusChip } from "@/components/bookme/pay-chip";
 import { Button } from "@/components/ui/button";
+import { notifyLessonsChanged, useLessonsRefresh } from "@/lib/bookme/lessons-sync";
 import { PAYMENT_STATUS_LABEL, PAYMENT_STATUSES } from "@/lib/bookme/recurring";
 import { endRecurringSeries, getSeries, updateSeriesPayment } from "@/lib/bookme/recurring-api";
 
@@ -23,20 +24,41 @@ function SeriesPage() {
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const gen = useRef(0);
+  const formsReady = useRef(false);
+  const seen = useRef(false);
 
-  function load() {
+  function load(forms = false) {
+    const my = ++gen.current;
+    const fill = forms || !formsReady.current;
     return getSeries({ data: { id } }).then((r) => {
-      if (!r.ok) return setError(r.error);
+      if (my !== gen.current) return;
+      if (!r.ok) {
+        if (!seen.current) setError(r.error);
+        return;
+      }
+      seen.current = true;
+      setError("");
       setData(r);
-      setPayStatus(r.series.paymentStatus ?? "");
-      setPayNote(r.series.paymentNote);
-      setPaySplit(r.series.splitRatio);
+      if (fill) {
+        formsReady.current = true;
+        setPayStatus(r.series.paymentStatus ?? "");
+        setPayNote(r.series.paymentNote);
+        setPaySplit(r.series.splitRatio);
+      }
       setEndFrom((v) => v || r.series.today);
     });
   }
 
+  useLessonsRefresh(() => {
+    void load(false);
+  });
+
   useEffect(() => {
-    void load();
+    formsReady.current = false;
+    seen.current = false;
+    setError("");
+    void load(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -110,7 +132,7 @@ function SeriesPage() {
           onClick={async () => {
             const res = await updateSeriesPayment({ data: { id, status: payStatus || null, note: payNote, split: paySplit } });
             setPayMsg(res.ok ? "Saved" : res.error);
-            if (res.ok) void load();
+            if (res.ok) void load(true);
           }}
         >
           Save payment note
@@ -157,7 +179,10 @@ function SeriesPage() {
                     setBusy(false);
                     setConfirmEnd(false);
                     setMsg(res.ok ? `Schedule ended. ${res.cancelled} lesson${res.cancelled === 1 ? "" : "s"} cancelled.` : res.error);
-                    if (res.ok) void load();
+                    if (res.ok) {
+                      notifyLessonsChanged("series");
+                      void load(true);
+                    }
                   }}
                 >
                   End schedule
