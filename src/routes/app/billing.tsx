@@ -2,8 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Check } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { PlanFeatureList } from "@/components/bookme/plan-feature-list";
 import { Button } from "@/components/ui/button";
 import { cancelCoachPlan, setPreferredPlan, startCoachTrial } from "@/lib/bookme/api";
+import { planFeatureCard } from "@/lib/bookme/plan-features";
 import { PLANS, planLessonRange, planTierLabel, subscriptionStatusLabel, type PlanId } from "@/lib/bookme/subscription";
 import { cn } from "@/lib/utils";
 import { useCoach } from "@/lib/bookme/coach-context";
@@ -17,11 +19,14 @@ function PlanStatus({
   plan,
   trialEndsAt,
   showTierLine = true,
+  showMonthTier = false,
 }: {
   status: string | null | undefined;
   plan: string | null | undefined;
   trialEndsAt?: string | null;
   showTierLine?: boolean;
+  /** iOS plan view has no tier cards, so the month line lives here. */
+  showMonthTier?: boolean;
 }) {
   return (
     <div className="mt-4 rounded-2xl bg-card p-4 text-sm ring-1 ring-line">
@@ -30,7 +35,7 @@ function PlanStatus({
       <p className="mt-2 text-muted">
         You don't pick a tier: it follows last month's confirmed lessons and changes automatically.
       </p>
-      {plan && plan !== "none" && status && status !== "none" ? (
+      {showMonthTier && plan && plan !== "none" && status && status !== "none" ? (
         <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-forest">Your tier this month</p>
       ) : null}
     </div>
@@ -50,7 +55,7 @@ function Billing() {
     return (
       <div className="mx-auto max-w-3xl px-5 py-8">
         <h1 className="font-display text-3xl font-medium">Plan</h1>
-        <PlanStatus status={coach.status} plan={coach.plan} trialEndsAt={coach.trialEndsAt} />
+        <PlanStatus status={coach.status} plan={coach.plan} trialEndsAt={coach.trialEndsAt} showMonthTier />
         {policy.showExternalAccountLink ? (
           <Button variant="outline" className="mt-6" size="field" onClick={() => void openInSystemBrowser(`${publicSiteUrl()}/app/billing`)}>
             Manage account on bookme.training
@@ -61,16 +66,18 @@ function Billing() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-5 py-8">
-      <h1 className="font-display text-3xl font-medium">Subscription</h1>
-      <p className="mt-2 text-ink-soft">
-        3-day trial on Light, then auto-renew. Tier follows last month’s confirmed lessons. Students book without paying.
-      </p>
-      <PlanStatus status={coach.status} plan={coach.plan} trialEndsAt={coach.trialEndsAt} showTierLine />
+    <div className="mx-auto max-w-6xl px-5 py-8">
+      <div className="max-w-3xl">
+        <h1 className="font-display text-3xl font-medium">Subscription</h1>
+        <p className="mt-2 text-ink-soft">
+          3-day trial on Light, then auto-renew. Tier follows last month’s confirmed lessons. Students book without paying.
+        </p>
+        <PlanStatus status={coach.status} plan={coach.plan} trialEndsAt={coach.trialEndsAt} showTierLine />
+      </div>
       <div
         role="radiogroup"
         aria-label="Subscription plans"
-        className="mt-6 grid gap-4 sm:grid-cols-3"
+        className="mt-6 grid gap-4 lg:grid-cols-3"
         onKeyDown={(e) => {
           const order = plans.map((p) => p.id);
           const current = draft ?? (order.includes(coach.preferredPlan as PlanId) ? (coach.preferredPlan as PlanId) : order[0]);
@@ -97,7 +104,10 @@ function Billing() {
               aria-checked={selected}
               tabIndex={tab}
               onClick={() => setDraft(p.id)}
-              className={cn("rounded-2xl bg-card p-5 text-left ring-1 ring-line", selected && "ring-2 ring-forest")}
+              className={cn(
+                "h-full min-w-0 rounded-2xl bg-card p-5 text-left ring-1 ring-line",
+                selected && "ring-2 ring-forest",
+              )}
             >
               <p className="flex items-center gap-1 font-semibold text-forest">
                 {p.name}
@@ -111,23 +121,17 @@ function Billing() {
               {coach.preferredPlan === p.id ? (
                 <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-forest">Your choice</p>
               ) : null}
-              {p.capabilities.length ? (
-                <p className="mt-3 flex items-center gap-1 text-sm">
-                  <Check className="size-4 text-forest" /> Assistant
-                </p>
-              ) : (
-                <p className="mt-3 text-sm text-muted">Assistant on Coach & Busy</p>
-              )}
+              <PlanFeatureList card={planFeatureCard(p.id)} className="mt-4" />
             </button>
           );
         })}
       </div>
       {draft ? (
-        <div className="mt-4 rounded-2xl bg-card p-5 ring-1 ring-line">
+        <div className="mt-4 max-w-3xl rounded-2xl bg-card p-5 ring-1 ring-line">
           <p className="font-semibold text-forest">{PLANS[draft].name}</p>
           <p className="mt-2 font-display text-3xl">CA${PLANS[draft].cad}/month</p>
           <p className="mt-1 text-sm text-muted">{planLessonRange(draft)}</p>
-          <p className="mt-2 text-sm">{PLANS[draft].capabilities.length ? "Assistant included" : "Assistant not included"}</p>
+          <p className="mt-2 text-sm">{planFeatureCard(draft).summary}</p>
           <p className="mt-3 text-sm text-ink-soft">
             Billing is paused during early access — you won't be charged. Your tier still follows last month's confirmed lessons.
           </p>
@@ -150,7 +154,7 @@ function Billing() {
         </div>
       ) : null}
       {coach.status === "none" || coach.status === "canceled" ? (
-        <Button className="mt-6" size="field" onClick={async () => {
+        <Button className="mt-6 max-w-3xl" size="field" onClick={async () => {
           const res = await startCoachTrial();
           if (!res.ok) return toast.error("Could not start trial");
           if ("checkoutUrl" in res && res.checkoutUrl) {
@@ -163,7 +167,7 @@ function Billing() {
           Start 3-day Light trial
         </Button>
       ) : (
-        <Button variant="outline" className="mt-6" size="field" onClick={async () => {
+        <Button variant="outline" className="mt-6 max-w-3xl" size="field" onClick={async () => {
           await cancelCoachPlan();
           toast.success("Plan cancelled");
           reload();
