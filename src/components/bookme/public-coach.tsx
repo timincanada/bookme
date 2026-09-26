@@ -136,7 +136,7 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
           </div>
         </div>
         <div className="max-lg:min-w-0 lg:hidden">
-          <h1 className="type-page font-display text-4xl font-medium">{coach.name}</h1>
+          <h1 className="font-display text-4xl font-medium">{coach.name}</h1>
           <span className="mt-3 inline-flex items-center gap-2 rounded-full bg-sage-3 px-3 py-1.5 text-sm font-medium text-forest">
             <SportIcon sport={sport} />
             {SPORT_LABEL[sport]}

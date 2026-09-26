@@ -119,8 +119,8 @@ function Bookings() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-      <h1 className="type-page font-display text-3xl font-medium">Bookings</h1>
-      <p className="type-secondary mt-2 text-muted">Calendar of lessons, student requests, and time swaps.</p>
+      <h1 className="font-display text-3xl font-medium">Bookings</h1>
+      <p className="type-secondary mt-1 max-md:mt-2 text-muted">Calendar of lessons, student requests, and time swaps.</p>
       <div className="mt-4 flex flex-wrap gap-2">
         {(["upcoming", "requests", "completed", "cancelled"] as const).map((t) => (
           <Link
@@ -142,7 +142,7 @@ function Bookings() {
         <div className="mt-6 space-y-4">
           {(inbox?.requests || []).map((r) => (
             <div key={r.id} className="rounded-2xl bg-card p-4 ring-1 ring-line">
-              <div className="max-md:hidden">
+              <div className="contents max-md:hidden">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted">
                   {r.kind === "coach_swap" ? "Swap" : "Move request"} · {r.status}
                 </p>

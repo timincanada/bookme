@@ -253,7 +253,7 @@ export function AssistantHeader({
         >
           {title}
         </p>
-        <p className="type-meta mt-1 flex items-center gap-1.5 text-xs text-success">
+        <p className="type-meta mt-0.5 max-md:mt-1 flex items-center gap-1.5 text-xs text-success">
           <span className={cn("size-1.5 rounded-full", live ? "bg-success" : "bg-success/70")} />
           {status}
         </p>
@@ -463,7 +463,7 @@ function CancelledCard({ preview }: { preview: AssistantPreview }) {
         </span>
         <div className="min-w-0">
           <p className="type-section font-semibold text-ink">Lesson Cancelled</p>
-          <p className="type-secondary mt-1 text-sm text-muted">{when}</p>
+          <p className="type-secondary mt-0.5 max-md:mt-1 text-sm text-muted">{when}</p>
           <p className="type-key text-sm text-muted max-md:text-ink">{who}</p>
         </div>
       </div>
@@ -482,10 +482,10 @@ function ScheduleCard({ preview }: { preview: AssistantPreview }) {
   return (
     <div className="rounded-2xl bg-card p-4 shadow-soft ring-1 ring-line">
       <p className="type-section text-sm font-semibold text-ink">{preview.heading || "Upcoming lessons"}</p>
-      <ul className="mt-3 space-y-3">
+      <ul className="mt-2 space-y-2 max-md:mt-3 max-md:space-y-3">
         {preview.groups!.map((g) => (
-          <li key={g.dateKey}>
-            <div className="type-primary text-sm max-md:hidden">
+          <li key={g.dateKey} className="type-primary text-sm">
+            <div className="contents max-md:hidden">
               <p className="font-medium text-forest">{g.label}</p>
               {g.lines.map((line) => (
                 <p key={line} className="text-muted">
@@ -520,8 +520,8 @@ function OpeningsCard({ preview }: { preview: AssistantPreview }) {
       <p className="type-section text-sm font-semibold text-ink">Open times</p>
       <ul className="mt-2 space-y-2">
         {preview.groups!.map((g) => (
-          <li key={g.dateKey}>
-            <div className="type-primary text-sm max-md:hidden">
+          <li key={g.dateKey} className="type-primary text-sm">
+            <div className="contents max-md:hidden">
               <p className="font-medium text-forest">{g.label}</p>
               <p className="text-muted">{g.lines.length ? g.lines.slice(0, 6).join(" · ") : "None"}</p>
             </div>

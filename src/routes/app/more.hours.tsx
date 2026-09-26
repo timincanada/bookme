@@ -36,7 +36,7 @@ function HoursPage() {
       <Link to="/app/more" className="type-action text-sm font-semibold text-forest">
         More
       </Link>
-      <h1 className="type-page mt-3 font-display text-3xl font-medium">Hours & booking window</h1>
+      <h1 className="mt-3 font-display text-3xl font-medium">Hours & booking window</h1>
       <p className="mt-2 text-muted">Repeating weekly hours, and how far ahead students can pick a time.</p>
       <h2 className="type-section mt-6 font-display text-2xl font-medium">Booking window</h2>
       <p className="mt-1 text-muted">

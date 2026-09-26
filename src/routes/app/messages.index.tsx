@@ -31,7 +31,7 @@ function CoachInbox() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
-      <h1 className="type-page font-display text-3xl font-medium">Messages</h1>
+      <h1 className="font-display text-3xl font-medium">Messages</h1>
       {!threads ? <p className="mt-6 text-muted">Loading…</p> : null}
       {threads && threads.length === 0 ? (
         <p className="mt-6 text-muted">No conversations yet. Start one from a client's page.</p>
@@ -55,7 +55,7 @@ function CoachInbox() {
                     </span>
                     <span className="type-meta shrink-0 text-xs text-muted">{rowTime(t.lastMessageAt)}</span>
                   </span>
-                  <span className="type-secondary mt-1 block truncate text-sm text-muted">
+                  <span className="type-secondary mt-0.5 max-md:mt-1 block truncate text-sm text-muted">
                     {t.lastPreview || "No messages yet"}
                     {t.mode === "read" ? " · Read-only" : ""}
                   </span>

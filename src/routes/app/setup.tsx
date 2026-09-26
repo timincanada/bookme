@@ -79,7 +79,7 @@ function Setup() {
       </div>
       {step === 0 ? (
         <>
-          <h1 className="mt-6 type-page font-display text-3xl font-medium">Basics</h1>
+          <h1 className="mt-6 font-display text-3xl font-medium">Basics</h1>
           <p className="mt-1 text-muted">Students book from these defaults.</p>
           <label className="mt-5 block">
             <span className="mb-1.5 block text-sm font-medium">Name</span>
@@ -172,7 +172,7 @@ function Setup() {
       ) : null}
       {step === 1 ? (
         <>
-          <h1 className="mt-6 type-page font-display text-3xl font-medium">Locations</h1>
+          <h1 className="mt-6 font-display text-3xl font-medium">Locations</h1>
           <p className="mt-1 text-muted">Add at least one location to publish.</p>
           {locations.map((loc, i) => (
             <div key={i} className="mt-4 space-y-2 rounded-2xl bg-card p-4 ring-1 ring-line">
@@ -233,7 +233,7 @@ function Setup() {
       ) : null}
       {step === 2 ? (
         <>
-          <h1 className="mt-6 type-page font-display text-3xl font-medium">Hours</h1>
+          <h1 className="mt-6 font-display text-3xl font-medium">Hours</h1>
           <p className="mt-1 text-muted">Repeating weekly hours. Students only see open slots.</p>
           <div className="mt-5">
             <WeeklyHoursEditor hours={hours} onChange={setHours} />
@@ -262,7 +262,7 @@ function Setup() {
       ) : null}
       {step === 3 ? (
         <>
-          <h1 className="mt-6 type-page font-display text-3xl font-medium">Your booking link</h1>
+          <h1 className="mt-6 font-display text-3xl font-medium">Your booking link</h1>
           <p className="mt-1 text-muted">Students use this to book a new lesson.</p>
           <div className="mt-5">
             <BookingShare slug={coach.slug} name={coach.name} canShare={coach.open} walletEnabled={coach.walletEnabled} />

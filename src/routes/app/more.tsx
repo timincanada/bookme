@@ -29,7 +29,7 @@ function More() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
-      <h1 className="type-page font-display text-3xl font-medium">More</h1>
+      <h1 className="font-display text-3xl font-medium">More</h1>
       <ul className="mt-5 divide-y divide-line rounded-2xl bg-card ring-1 ring-line">
         {[
           ["/app/assistant", "Assistant"],

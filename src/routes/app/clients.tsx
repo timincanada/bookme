@@ -21,8 +21,8 @@ function Clients() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
-      <h1 className="type-page font-display text-3xl font-medium">Clients</h1>
-      <p className="type-secondary mt-2 text-muted">{clients.length} people who booked with you</p>
+      <h1 className="font-display text-3xl font-medium">Clients</h1>
+      <p className="type-secondary mt-1 max-md:mt-2 text-muted">{clients.length} people who booked with you</p>
       <ul className="mt-5 space-y-3">
         {clients.map((c) => (
           <li key={c.id}>

@@ -138,7 +138,7 @@ function AppLayout() {
   if (closed) {
     return (
       <main className="grid min-h-screen place-items-center bg-paper px-6 text-center">
-        <p className="type-page font-display text-3xl">This account is closed</p>
+        <p className="font-display text-3xl">This account is closed</p>
       </main>
     );
   }

@@ -57,7 +57,7 @@ function LocationsPage() {
       <Link to="/app/more" className="type-action text-sm font-semibold text-forest">
         More
       </Link>
-      <h1 className="type-page mt-3 font-display text-3xl font-medium">Locations</h1>
+      <h1 className="mt-3 font-display text-3xl font-medium">Locations</h1>
       <p className="mt-2 text-muted">Add or disable. Keep at least one on.</p>
       <ul className="mt-5 space-y-2">
         {coach.locations.map((loc) => (

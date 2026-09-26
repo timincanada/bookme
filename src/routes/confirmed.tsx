@@ -57,11 +57,11 @@ function Confirmed() {
         <span className="inline-flex size-14 items-center justify-center rounded-full bg-sage-3 text-forest">
           <Check className="size-7" strokeWidth={2.2} />
         </span>
-        <h1 className="type-page mt-5 font-display text-4xl font-medium">{heading}</h1>
+        <h1 className="mt-5 font-display text-4xl font-medium">{heading}</h1>
         <p className="mt-3 text-ink-soft">{sub}</p>
         {booking ? (
           <div className="mt-8 rounded-2xl bg-card p-6 ring-1 ring-line">
-            <div className="max-md:hidden">
+            <div className="contents max-md:hidden">
               <p className="font-display text-2xl font-medium">{booking.serviceName}</p>
               <p className="mt-1 text-muted">with {booking.coachName}</p>
               <div className="mt-5 space-y-3 text-sm">

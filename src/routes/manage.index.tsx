@@ -104,7 +104,7 @@ function StudentLessons() {
         <ul className="mt-5 space-y-3">
           {pending.map((r) => (
             <li key={r.id} className="rounded-2xl bg-sage-3 p-4">
-              <div className="max-md:hidden">
+              <div className="contents max-md:hidden">
                 <p className="text-xs font-semibold uppercase tracking-wide text-forest">
                   {r.kind === "coach_swap" ? "Coach asked to swap" : "Waiting on your coach"}
                 </p>
@@ -152,7 +152,7 @@ function StudentLessons() {
       <ul className="mt-5 space-y-3">
         {lessons.map((l) => (
           <li key={l.id} className="rounded-2xl bg-card p-4 ring-1 ring-line">
-            <div className="max-md:hidden">
+            <div className="contents max-md:hidden">
               <div className="flex items-start justify-between gap-3">
                 <p className="type-primary font-semibold">{l.coachName}</p>
                 {l.coachSlug ? (

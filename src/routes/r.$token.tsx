@@ -40,11 +40,11 @@ function RequestDecide() {
       </header>
       <div className="mx-auto max-w-xl px-5 pb-16 sm:px-8">
         <p className="type-label text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">From your coach</p>
-        <h1 className="type-page mt-2 font-display text-4xl font-medium">Time swap</h1>
+        <h1 className="mt-2 font-display text-4xl font-medium">Time swap</h1>
         {error ? <p className="mt-4 text-coral">{error}</p> : null}
         {data ? (
           <div className="mt-5 rounded-2xl bg-card p-5 ring-1 ring-line">
-            <div className="max-md:hidden">
+            <div className="contents max-md:hidden">
               <p className="text-sm text-muted">{data.coachName}</p>
               <p className="type-primary mt-2 font-semibold">Your lesson · {data.yourWhen}</p>
               {data.otherWhen ? (

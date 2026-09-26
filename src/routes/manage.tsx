@@ -127,7 +127,7 @@ function Portal() {
         {me === undefined ? <p className="text-muted">Loading…</p> : null}
         {me === null ? (
           <>
-            <h1 className="type-page font-display text-4xl font-medium">Your bookings</h1>
+            <h1 className="font-display text-4xl font-medium">Your bookings</h1>
             {step === "request" ? (
               <>
                 <p className="mt-2 text-ink-soft">Use the email from your booking. We send a one-time code — no password.</p>

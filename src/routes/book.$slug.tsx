@@ -94,12 +94,12 @@ function BookPage() {
       </header>
       <form onSubmit={submit} className="mx-auto max-w-xl px-5 pb-16 sm:px-8">
         <p className="type-label text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">Review</p>
-        <h1 className="type-page mt-3 font-display text-4xl font-medium">Review & confirm</h1>
+        <h1 className="mt-3 font-display text-4xl font-medium">Review & confirm</h1>
         <p className="mt-2 text-ink-soft">
           {coach?.name ?? "Coach"} · {lesson?.name ?? "Private"} · {search.duration ?? lesson?.duration ?? 60} min
         </p>
         <div className="mt-6 rounded-2xl bg-card p-5 ring-1 ring-line">
-          <div className="max-md:hidden">
+          <div className="contents max-md:hidden">
             <p className="type-primary flex items-center gap-2 text-sm">
               <CalendarDays className="size-4 text-forest" />
               {coach ? formatWhen(new Date(search.start), coach.timezone) : ""}

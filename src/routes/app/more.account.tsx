@@ -37,7 +37,7 @@ function CoachAccount() {
       <Link to="/app/more" className="type-action text-sm font-semibold text-forest">
         More
       </Link>
-      <h1 className="type-page mt-3 font-display text-3xl font-medium">Account</h1>
+      <h1 className="mt-3 font-display text-3xl font-medium">Account</h1>
       <p className="mt-1 text-muted">{coach.email}</p>
       <Button variant="outline" size="field" className="mt-5" onClick={() => void signOut()}>
         Sign out

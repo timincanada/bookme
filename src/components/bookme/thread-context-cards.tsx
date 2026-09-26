@@ -176,7 +176,7 @@ function tempToken(summary: string | null | undefined) {
 function NextBookingScan({ booking }: { booking: ThreadBookingCard }) {
   return (
     <>
-      <div className="max-md:hidden">
+      <div className="contents max-md:hidden">
         <span className="inline-flex rounded-full bg-sage-3 px-2 py-0.5 text-[11px] font-semibold text-forest">
           Next booking
         </span>

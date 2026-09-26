@@ -68,8 +68,8 @@ function ClientDetail() {
       <Link to="/app/clients" className="type-action text-sm font-semibold text-forest">
         Clients
       </Link>
-      <h1 className="type-page mt-3 break-words font-display text-3xl font-medium">{data.client.name}</h1>
-      <p className="type-secondary mt-2 break-words text-muted">{data.client.email || "No email — this student can't use the portal or messages."}</p>
+      <h1 className="mt-3 break-words font-display text-3xl font-medium">{data.client.name}</h1>
+      <p className="type-secondary max-md:mt-2 break-words text-muted">{data.client.email || "No email — this student can't use the portal or messages."}</p>
       <MessageLink clientId={id} />
       <Button variant="outline" size="field" className="mt-4" asChild>
         <Link to="/app/import" search={{ client: id }}>
@@ -141,11 +141,11 @@ function ClientDetail() {
         {data.lessons.map((l) => {
           const parts = lessonInstantParts(l.start, tz);
           return (
-            <li key={l.id} className="break-words rounded-xl bg-card p-3 text-sm ring-1 ring-line">
-              <p className="type-primary max-md:hidden text-sm">
+            <li key={l.id} className="type-primary break-words rounded-xl bg-card p-3 text-sm ring-1 ring-line">
+              <span className="contents max-md:hidden">
                 {l.when} · {l.locationName} · {l.statusLabel}
                 {l.recurring ? " · Recurring" : ""}
-              </p>
+              </span>
               <LessonScan
                 label={l.statusLabel}
                 time={parts.time}

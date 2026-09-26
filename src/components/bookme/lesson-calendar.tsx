@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Repeat } from "lucide-react";
 import { useMemo, type CSSProperties } from "react";
-import { LessonScan } from "@/components/bookme/lesson-scan";
+import { LessonRow } from "@/components/bookme/lesson-scan";
 import { WeatherChip } from "@/components/bookme/weather-chip";
 import type { HourSegment } from "@/lib/bookme/hours";
 import type { LessonWeatherView } from "@/lib/bookme/weather-service";
@@ -54,6 +54,24 @@ export function nextLessonDay(lessons: CalLesson[], tz: string, today = todayKey
   if (upcoming) return lessonDateKey(upcoming, tz);
   const last = [...lessons].sort((a, b) => b.start.localeCompare(a.start))[0];
   return last ? lessonDateKey(last, tz) : today;
+}
+
+function agendaDetail(lesson: CalLesson) {
+  return [`${lesson.duration} min`, lesson.locationName, lesson.recurring ? "Recurring" : ""].filter(Boolean).join(" · ");
+}
+
+function agendaStatus(lesson: CalLesson, pending: "short" | "long", pay = false) {
+  const waiting =
+    lesson.pendingKind === "coach_swap"
+      ? pending === "long"
+        ? "Swap waiting on students"
+        : "Swap waiting"
+      : lesson.pendingKind
+        ? pending === "long"
+          ? "Move request waiting"
+          : "Move waiting"
+        : "";
+  return [lesson.statusLabel, pay ? lesson.pay?.text : "", waiting].filter(Boolean).join(" · ");
 }
 
 function toneFor(lesson: CalLesson) {
@@ -322,32 +340,26 @@ export function DayAgenda({
         <p className="mt-3 text-sm text-muted">No lessons this day.</p>
       ) : (
         <ol className="mt-3 space-y-2">
-          {lessons.map((lesson) => (
-            <li key={lesson.id} className="rounded-2xl bg-card p-3 ring-1 ring-line">
-              <Link to="/app/lessons/$id" params={{ id: lesson.id }} className="block">
-                <LessonScan
-                  label={lesson.bucket === "upcoming" ? "Upcoming Lesson" : lesson.statusLabel}
-                  time={lesson.time}
-                  name={lesson.clientName}
-                  date={formatDateKey(dateKey)}
-                  location={lesson.locationName}
-                  extra={
-                    <p className="type-meta mt-1.5 text-forest">
-                      {lesson.duration} min
-                      {lesson.recurring ? " · Recurring" : ""}
-                      {lesson.statusLabel ? ` · ${lesson.statusLabel}` : ""}
-                      {lesson.pendingKind ? (lesson.pendingKind === "coach_swap" ? " · Swap waiting" : " · Move waiting") : ""}
-                    </p>
-                  }
-                />
-              </Link>
-              {weatherByLesson?.[lesson.id] ? (
-                <div className="mt-2">
-                  <WeatherChip view={weatherByLesson[lesson.id]} audience="coach" onResolved={onWeatherResolved} />
-                </div>
-              ) : null}
-            </li>
-          ))}
+          {lessons.map((lesson) => {
+            const status = agendaStatus(lesson, "short");
+            return (
+              <li key={lesson.id} className="rounded-2xl bg-card p-3 ring-1 ring-line">
+                <Link to="/app/lessons/$id" params={{ id: lesson.id }} className="block">
+                  <LessonRow
+                    time={lesson.time}
+                    name={lesson.clientName}
+                    detail={agendaDetail(lesson)}
+                    extra={status ? <p className="type-meta mt-1 text-forest">{status}</p> : null}
+                  />
+                </Link>
+                {weatherByLesson?.[lesson.id] ? (
+                  <div className="mt-2">
+                    <WeatherChip view={weatherByLesson[lesson.id]} audience="coach" onResolved={onWeatherResolved} />
+                  </div>
+                ) : null}
+              </li>
+            );
+          })}
         </ol>
       )}
     </div>
@@ -475,52 +487,40 @@ export function MonthCalendar({
           <p className="mt-3 text-sm text-muted">No lessons this day.</p>
         ) : (
           <ul className="mt-3 space-y-2">
-            {selectedLessons.map((lesson) => (
-              <li key={lesson.id} className="rounded-2xl bg-card p-4 ring-1 ring-line">
-                <Link to="/app/lessons/$id" params={{ id: lesson.id }} className="block">
-                  <div className="max-md:hidden">
-                    <p className="type-primary break-words font-semibold">
-                      {lesson.time} · {lesson.clientName}
-                    </p>
-                    <p className="type-follow break-words text-sm text-muted">
-                      {lesson.locationName} · {lesson.statusLabel} · {lesson.pay?.text}
-                      {lesson.recurring ? " · Recurring" : ""}
-                    </p>
-                    {lesson.pendingKind ? (
-                      <p className="mt-2 text-xs font-semibold text-forest">
-                        {lesson.pendingKind === "coach_swap" ? "Swap waiting on students" : "Move request waiting"}
+            {selectedLessons.map((lesson) => {
+              const status = agendaStatus(lesson, "long", true);
+              return (
+                <li key={lesson.id} className="rounded-2xl bg-card p-4 ring-1 ring-line">
+                  <Link to="/app/lessons/$id" params={{ id: lesson.id }} className="block">
+                    <div className="contents max-md:hidden">
+                      <p className="type-primary break-words font-semibold">
+                        {lesson.time} · {lesson.clientName}
                       </p>
-                    ) : null}
-                  </div>
-                  <LessonScan
-                    label={lesson.bucket === "upcoming" ? "Upcoming Lesson" : lesson.statusLabel}
-                    time={lesson.time}
-                    name={lesson.clientName}
-                    date={formatDateKey(selected)}
-                    location={lesson.locationName}
-                    extra={
-                      <>
-                        {lesson.pay?.text ? <p className="type-key mt-1.5">{lesson.pay.text}</p> : null}
-                        <p className="type-meta mt-1 text-forest">
-                          {lesson.statusLabel}
-                          {lesson.recurring ? " · Recurring" : ""}
-                          {lesson.pendingKind
-                            ? lesson.pendingKind === "coach_swap"
-                              ? " · Swap waiting on students"
-                              : " · Move request waiting"
-                            : ""}
+                      <p className="type-follow break-words text-sm text-muted">
+                        {lesson.locationName} · {lesson.statusLabel} · {lesson.pay?.text}
+                        {lesson.recurring ? " · Recurring" : ""}
+                      </p>
+                      {lesson.pendingKind ? (
+                        <p className="mt-2 text-xs font-semibold text-forest">
+                          {lesson.pendingKind === "coach_swap" ? "Swap waiting on students" : "Move request waiting"}
                         </p>
-                      </>
-                    }
-                  />
-                </Link>
-                {weatherByLesson?.[lesson.id] ? (
-                  <div className="mt-2">
-                    <WeatherChip view={weatherByLesson[lesson.id]} audience="coach" onResolved={onWeatherResolved} />
-                  </div>
-                ) : null}
-              </li>
-            ))}
+                      ) : null}
+                    </div>
+                    <LessonRow
+                      time={lesson.time}
+                      name={lesson.clientName}
+                      detail={agendaDetail(lesson)}
+                      extra={status ? <p className="type-meta mt-1 text-forest">{status}</p> : null}
+                    />
+                  </Link>
+                  {weatherByLesson?.[lesson.id] ? (
+                    <div className="mt-2">
+                      <WeatherChip view={weatherByLesson[lesson.id]} audience="coach" onResolved={onWeatherResolved} />
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

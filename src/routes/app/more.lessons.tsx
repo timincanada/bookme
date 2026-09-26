@@ -30,7 +30,7 @@ function LessonsPage() {
       <Link to="/app/more" className="type-action text-sm font-semibold text-forest">
         More
       </Link>
-      <h1 className="type-page mt-3 font-display text-3xl font-medium">Lessons</h1>
+      <h1 className="mt-3 font-display text-3xl font-medium">Lessons</h1>
       <p className="mt-2 text-muted">Duration and price for each lesson length.</p>
       {edit ? (
         editing ? (

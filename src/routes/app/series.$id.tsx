@@ -75,7 +75,7 @@ function SeriesPage() {
       <Link to="/app/clients/$id" params={{ id: s.clientId }} className="type-action text-sm font-semibold text-forest">
         {s.clientName}
       </Link>
-      <h1 className="type-page mt-3 flex flex-wrap items-center gap-2 font-display text-3xl font-medium">
+      <h1 className="mt-3 flex flex-wrap items-center gap-2 font-display text-3xl font-medium">
         <Repeat className="size-6 shrink-0 text-forest" strokeWidth={1.5} />
         <span className="min-w-0 break-words">Recurring schedule</span>
       </h1>
@@ -230,9 +230,9 @@ function LessonList({
               <Link
                 to="/app/lessons/$id"
                 params={{ id: l.id }}
-                className="block rounded-xl bg-card p-3 text-sm ring-1 ring-line"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-card p-3 text-sm ring-1 ring-line max-md:block"
               >
-                <span className="flex flex-wrap items-center justify-between gap-2 max-md:hidden">
+                <span className="contents max-md:hidden">
                   <span className="type-primary min-w-0 break-words tabular-nums">{l.when}</span>
                   <span className="flex min-w-0 flex-wrap items-center gap-2">
                     <StatusChip>{l.statusLabel}</StatusChip>

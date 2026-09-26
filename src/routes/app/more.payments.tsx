@@ -26,7 +26,7 @@ function PaymentsPage() {
       <Link to="/app/more" className="type-action text-sm font-semibold text-forest">
         More
       </Link>
-      <h1 className="type-page mt-3 font-display text-3xl font-medium">Payments</h1>
+      <h1 className="mt-3 font-display text-3xl font-medium">Payments</h1>
       <p className="mt-2 text-muted">Students can pay cash in person. Card needs Stripe Connect.</p>
 
       <div className="mt-6 space-y-3 rounded-2xl bg-card p-5 ring-1 ring-line">

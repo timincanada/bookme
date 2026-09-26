@@ -88,9 +88,9 @@ function LessonDetail() {
       <Link to="/app" className="type-action text-sm font-semibold text-forest">
         Schedule
       </Link>
-      <h1 className="type-page mt-3 font-display text-3xl font-medium">Lesson</h1>
+      <h1 className="mt-3 font-display text-3xl font-medium">Lesson</h1>
       <div className="mt-4 rounded-2xl bg-card p-5 ring-1 ring-line">
-        <div className="max-md:hidden">
+        <div className="contents max-md:hidden">
           <p className="type-primary break-words font-semibold">{l.when}</p>
           <p className="type-primary break-words">Private · {l.clientName}</p>
           <p className="break-words text-sm text-muted">{l.clientEmail || "No email on file"}</p>
