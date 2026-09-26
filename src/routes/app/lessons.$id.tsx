@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { coachCancelLesson, coachMoveLesson, coachNextWeek, getCoachOpenSlots, getMyLesson } from "@/lib/bookme/api";
 import { notifyLessonsChanged, useLessonsRefresh } from "@/lib/bookme/lessons-sync";
 import { parseClock } from "@/lib/bookme/recurring";
+import { LessonScan, lessonInstantParts } from "@/components/bookme/lesson-scan";
 import { formatTime, zonedInstantExact } from "@/lib/bookme/time";
 
 export const Route = createFileRoute("/app/lessons/$id")({ component: LessonDetail });
@@ -84,16 +85,40 @@ function LessonDetail() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
-      <Link to="/app" className="text-sm font-semibold text-forest">
+      <Link to="/app" className="type-action text-sm font-semibold text-forest">
         Schedule
       </Link>
       <h1 className="mt-3 font-display text-3xl font-medium">Lesson</h1>
       <div className="mt-4 rounded-2xl bg-card p-5 ring-1 ring-line">
-        <p className="type-primary break-words font-semibold">{l.when}</p>
-        <p className="type-primary break-words">Private · {l.clientName}</p>
-        <p className="break-words text-sm text-muted">{l.clientEmail || "No email on file"}</p>
-        <div className="mt-1 flex flex-wrap items-center gap-2">
-          <p className="min-w-0 break-words text-sm text-muted">{l.locationName}</p>
+        <div className="contents max-md:hidden">
+          <p className="type-primary break-words font-semibold">{l.when}</p>
+          <p className="type-primary break-words">Private · {l.clientName}</p>
+          <p className="break-words text-sm text-muted">{l.clientEmail || "No email on file"}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <p className="min-w-0 break-words text-sm text-muted">{l.locationName}</p>
+            <WeatherChip
+              view={weatherByLesson[id]}
+              audience="coach"
+              onResolved={(decision) => {
+                if (decision === "cancel") {
+                  notifyLessonsChanged("weather-cancel");
+                  void navigate({ to: "/app" });
+                } else void reloadWeather();
+              }}
+            />
+          </div>
+        </div>
+        <LessonScan
+          label="Lesson"
+          time={lessonInstantParts(l.start, tz).time}
+          name={l.clientName}
+          date={lessonInstantParts(l.start, tz).date}
+          location={l.locationName}
+          extra={
+            <p className="type-secondary mt-0.5 break-words text-muted">{l.clientEmail || "No email on file"}</p>
+          }
+        />
+        <div className="mt-2 md:hidden">
           <WeatherChip
             view={weatherByLesson[id]}
             audience="coach"

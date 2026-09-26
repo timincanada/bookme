@@ -54,7 +54,7 @@ function LocationsPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
-      <Link to="/app/more" className="text-sm font-semibold text-forest">
+      <Link to="/app/more" className="type-action text-sm font-semibold text-forest">
         More
       </Link>
       <h1 className="mt-3 font-display text-3xl font-medium">Locations</h1>
@@ -63,8 +63,8 @@ function LocationsPage() {
         {coach.locations.map((loc) => (
           <li key={loc.id} className="flex items-center justify-between gap-3 rounded-2xl bg-card p-4 ring-1 ring-line">
             <div>
-              <p className="font-semibold">{loc.name}</p>
-              <p className="text-sm text-muted">
+              <p className="type-key font-semibold">{loc.name}</p>
+              <p className="type-secondary text-sm text-muted">
                 {loc.address || loc.kind}
                 {loc.verified === false && loc.address ? " · unverified" : ""}
                 {loc.active ? "" : " · off"}

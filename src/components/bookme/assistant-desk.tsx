@@ -11,6 +11,7 @@ import {
   Repeat,
   Search,
 } from "lucide-react";
+import { LessonScan, lessonInstantParts } from "@/components/bookme/lesson-scan";
 import { RecurringPlanCard } from "@/components/bookme/recurring-plan-card";
 import { Button } from "@/components/ui/button";
 import type { AssistantPreview, UpcomingLesson } from "@/lib/bookme/api";
@@ -75,7 +76,7 @@ export function StudentMark({ name, size = "sm" }: { name: string; size?: "sm" |
     <span
       className={cn(
         "grid shrink-0 place-items-center rounded-full bg-sage-2 font-semibold text-forest",
-        size === "md" ? "size-8 text-xs" : "size-6 text-[10px]",
+        size === "md" ? "size-8 text-xs" : "size-6 text-[10px] max-md:size-7",
       )}
     >
       {initials(name)}
@@ -87,7 +88,7 @@ export function StudentMark({ name, size = "sm" }: { name: string; size?: "sm" |
 const MOBILE_TITLE_MQ = "(max-width: 767.98px)";
 
 /**
- * Mobile title steps. Step 0 is `.type-page` (20px / 1.25, 2 lines).
+ * Mobile title steps. Step 0 is `.type-page-dense` (20px / 1.25, 2 lines).
  * 19px stays on 2 lines. 17px may use 3. 14px is only when 17px/3 still
  * clips (a 24-character nickname at 320px). The last clamp is a safety net.
  */
@@ -246,13 +247,13 @@ export function AssistantHeader({
           ref={titleRef}
           data-title-step={step}
           className={cn(
-            "type-page max-md:break-words max-md:![overflow-wrap:anywhere] font-semibold leading-tight text-ink md:truncate",
+            "type-page type-page-dense max-md:break-words max-md:![overflow-wrap:anywhere] font-semibold leading-tight text-ink md:truncate",
             step > 1 ? "max-md:line-clamp-3" : "max-md:line-clamp-2",
           )}
         >
           {title}
         </p>
-        <p className="type-secondary mt-0.5 flex items-center gap-1.5 text-xs text-success">
+        <p className="type-meta mt-0.5 max-md:mt-1 flex items-center gap-1.5 text-xs text-success">
           <span className={cn("size-1.5 rounded-full", live ? "bg-success" : "bg-success/70")} />
           {status}
         </p>
@@ -301,13 +302,14 @@ export function AssistantHeader({
 
 export function UpcomingLessonCard({ lesson, timeZone }: { lesson: UpcomingLesson; timeZone: string }) {
   const stamp = formatLessonStamp(lesson.startAt, timeZone);
+  const parts = lessonInstantParts(lesson.startAt, timeZone);
   return (
     <Link
       to="/app/lessons/$id"
       params={{ id: lesson.id }}
       className="block rounded-2xl bg-card p-3.5 shadow-soft ring-1 ring-line"
     >
-      <div className="type-card-gap flex items-start gap-3">
+      <div className="type-card-gap flex items-start gap-3 max-md:hidden">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-sage-3 text-forest">
           <CalendarDays className="size-5" strokeWidth={1.75} />
         </span>
@@ -323,6 +325,17 @@ export function UpcomingLessonCard({ lesson, timeZone }: { lesson: UpcomingLesso
             {lesson.location}
           </p>
         </div>
+        <ChevronRight className="mt-1 size-5 shrink-0 text-muted" strokeWidth={1.75} />
+      </div>
+      <div className="flex items-start gap-2 md:hidden">
+        <LessonScan
+          className="min-w-0 flex-1"
+          label="Upcoming Lesson"
+          time={parts.time}
+          name={lesson.clientName}
+          date={parts.date}
+          location={lesson.location}
+        />
         <ChevronRight className="mt-1 size-5 shrink-0 text-muted" strokeWidth={1.75} />
       </div>
     </Link>
@@ -346,7 +359,7 @@ export function ChatBubble({
         <div className="type-bubble type-primary max-w-[82%] rounded-2xl rounded-br-md bg-forest px-3.5 py-2.5 text-sm leading-relaxed text-on-forest">
           {text}
         </div>
-        <p className="type-secondary flex items-center gap-0.5 pr-1 text-[11px] text-muted">
+        <p className="type-meta flex items-center gap-0.5 pr-1 text-[11px] text-muted">
           {formatClock(at, timeZone)}
           <CheckCheck className="size-3.5 text-forest" strokeWidth={2} />
         </p>
@@ -422,7 +435,7 @@ function LinkCard({ preview }: { preview: AssistantPreview }) {
         <div className="min-w-0">
           <p className="type-section font-semibold text-ink">{preview.heading}</p>
           {preview.fields?.map((f) => (
-            <p key={f.label} className="text-sm text-muted">
+            <p key={f.label} className="type-secondary text-sm text-muted">
               {f.value}
             </p>
           ))}
@@ -430,7 +443,7 @@ function LinkCard({ preview }: { preview: AssistantPreview }) {
       </div>
       <a
         href={preview.href}
-        className="mt-3 flex items-center justify-between bg-sage-3 px-4 py-3 text-sm font-semibold text-forest"
+        className="type-action mt-3 flex items-center justify-between bg-sage-3 px-4 py-3 text-sm font-semibold text-forest"
       >
         {preview.kind === "import_done" ? "Open schedule" : "Open import form"}
         <ChevronRight className="size-4" strokeWidth={1.75} />
@@ -450,13 +463,13 @@ function CancelledCard({ preview }: { preview: AssistantPreview }) {
         </span>
         <div className="min-w-0">
           <p className="type-section font-semibold text-ink">Lesson Cancelled</p>
-          <p className="type-primary mt-0.5 text-sm text-muted">{when}</p>
-          <p className="type-primary text-sm text-muted">{who}</p>
+          <p className="type-secondary mt-0.5 max-md:mt-1 text-sm text-muted">{when}</p>
+          <p className="type-key text-sm text-muted max-md:text-ink">{who}</p>
         </div>
       </div>
       <Link
         to="/app"
-        className="mt-3 flex items-center justify-between bg-sage-3 px-4 py-3 text-sm font-semibold text-forest"
+        className="type-action mt-3 flex items-center justify-between bg-sage-3 px-4 py-3 text-sm font-semibold text-forest"
       >
         View updated schedule
         <ChevronRight className="size-4" strokeWidth={1.75} />
@@ -469,15 +482,31 @@ function ScheduleCard({ preview }: { preview: AssistantPreview }) {
   return (
     <div className="rounded-2xl bg-card p-4 shadow-soft ring-1 ring-line">
       <p className="type-section text-sm font-semibold text-ink">{preview.heading || "Upcoming lessons"}</p>
-      <ul className="mt-2 space-y-2">
+      <ul className="mt-2 space-y-2 max-md:mt-3 max-md:space-y-3">
         {preview.groups!.map((g) => (
           <li key={g.dateKey} className="type-primary text-sm">
-            <p className="font-medium text-forest">{g.label}</p>
-            {g.lines.map((line) => (
-              <p key={line} className="text-muted">
-                {line}
-              </p>
-            ))}
+            <div className="contents max-md:hidden">
+              <p className="font-medium text-forest">{g.label}</p>
+              {g.lines.map((line) => (
+                <p key={line} className="text-muted">
+                  {line}
+                </p>
+              ))}
+            </div>
+            <div className="md:hidden">
+              {(g.items && g.items.length > 0
+                ? g.items
+                : g.lines.map((line) => ({ time: line, name: "", location: "" }))
+              ).map((item, index) => (
+                <div key={`${g.dateKey}-${index}`} className={index > 0 ? "mt-3" : "mt-2"}>
+                  <p className="type-label text-muted">Upcoming lesson</p>
+                  <p className="type-clock mt-1">{item.time}</p>
+                  {item.name ? <p className="type-key mt-1 break-words">{item.name}</p> : null}
+                  <p className="type-secondary mt-1 text-muted">{g.label}</p>
+                  {item.location ? <p className="type-secondary mt-0.5 break-words text-muted">{item.location}</p> : null}
+                </div>
+              ))}
+            </div>
           </li>
         ))}
       </ul>
@@ -492,8 +521,14 @@ function OpeningsCard({ preview }: { preview: AssistantPreview }) {
       <ul className="mt-2 space-y-2">
         {preview.groups!.map((g) => (
           <li key={g.dateKey} className="type-primary text-sm">
-            <p className="font-medium text-forest">{g.label}</p>
-            <p className="text-muted">{g.lines.length ? g.lines.slice(0, 6).join(" · ") : "None"}</p>
+            <div className="contents max-md:hidden">
+              <p className="font-medium text-forest">{g.label}</p>
+              <p className="text-muted">{g.lines.length ? g.lines.slice(0, 6).join(" · ") : "None"}</p>
+            </div>
+            <div className="md:hidden">
+              <p className="type-secondary font-medium text-forest">{g.label}</p>
+              <p className="type-key mt-1">{g.lines.length ? g.lines.slice(0, 6).join(" · ") : "None"}</p>
+            </div>
           </li>
         ))}
       </ul>
@@ -528,8 +563,8 @@ export function ConfirmCard({
       <div className="overflow-hidden rounded-2xl bg-card shadow-soft ring-1 ring-line">
         <div className="px-4 pt-4">
           <p className="type-section font-semibold text-ink">Cancel this lesson?</p>
-          <p className="type-primary mt-1 text-sm text-muted">{when}</p>
-          <p className="type-primary text-sm text-muted">{who}</p>
+          <p className="type-secondary mt-1 text-sm text-muted">{when}</p>
+          <p className="type-key text-sm text-muted max-md:text-ink">{who}</p>
           {preview.note ? <p className="mt-2 text-sm text-ink-soft">{preview.note}</p> : null}
         </div>
         <div className="mt-3 space-y-1 px-4 pb-3">
@@ -548,12 +583,12 @@ export function ConfirmCard({
       {preview.heading ? <p className="type-section font-semibold text-forest">{preview.heading}</p> : null}
       {preview.fields?.map((f, i) => (
         <div key={i} className="mt-2">
-          {f.label ? <p className="text-xs text-muted">{f.label}</p> : null}
-          <p className="type-primary whitespace-pre-wrap text-sm">{f.value}</p>
+          {f.label ? <p className="type-label text-xs text-muted">{f.label}</p> : null}
+          <p className="type-key whitespace-pre-wrap text-sm">{f.value}</p>
         </div>
       ))}
       {preview.note ? <p className="mt-2 text-sm">{preview.note}</p> : null}
-      {preview.footer ? <p className="mt-1 text-xs text-muted">{preview.footer}</p> : null}
+      {preview.footer ? <p className="type-meta mt-1 text-xs text-muted">{preview.footer}</p> : null}
       <Button className="mt-3" size="field" onClick={onConfirm}>
         {preview.confirmLabel || "Confirm"}
       </Button>
@@ -585,7 +620,7 @@ export function QuickChips({
           key={c.label}
           type="button"
           onClick={c.onClick}
-          className="type-action flex shrink-0 items-center gap-1.5 rounded-full bg-card px-3.5 py-2 text-sm font-medium text-forest shadow-soft ring-1 ring-line"
+          className="type-action flex shrink-0 items-center gap-1.5 rounded-full bg-card px-3.5 py-2 text-sm font-medium text-forest shadow-soft ring-1 ring-line max-md:min-h-11 max-md:px-4"
         >
           <c.icon className="size-4" strokeWidth={1.75} />
           {c.label}

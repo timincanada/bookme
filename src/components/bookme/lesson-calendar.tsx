@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Repeat } from "lucide-react";
 import { useMemo, type CSSProperties } from "react";
+import { LessonRow } from "@/components/bookme/lesson-scan";
 import { WeatherChip } from "@/components/bookme/weather-chip";
 import type { HourSegment } from "@/lib/bookme/hours";
 import type { LessonWeatherView } from "@/lib/bookme/weather-service";
@@ -55,6 +56,24 @@ export function nextLessonDay(lessons: CalLesson[], tz: string, today = todayKey
   return last ? lessonDateKey(last, tz) : today;
 }
 
+function agendaDetail(lesson: CalLesson) {
+  return [`${lesson.duration} min`, lesson.locationName, lesson.recurring ? "Recurring" : ""].filter(Boolean).join(" · ");
+}
+
+function agendaStatus(lesson: CalLesson, pending: "short" | "long", pay = false) {
+  const waiting =
+    lesson.pendingKind === "coach_swap"
+      ? pending === "long"
+        ? "Swap waiting on students"
+        : "Swap waiting"
+      : lesson.pendingKind
+        ? pending === "long"
+          ? "Move request waiting"
+          : "Move waiting"
+        : "";
+  return [lesson.statusLabel, pay ? lesson.pay?.text : "", waiting].filter(Boolean).join(" · ");
+}
+
 function toneFor(lesson: CalLesson) {
   if (lesson.bucket === "cancelled" || lesson.status === "cancelled" || lesson.status === "expired") {
     return "bg-paper-2 text-muted ring-1 ring-line line-through";
@@ -106,7 +125,7 @@ function Nav({
       >
         <ChevronLeft className="size-5" />
       </button>
-      <p className="min-w-0 flex-1 break-words text-center font-display text-xl font-medium sm:text-2xl">{label}</p>
+      <p className="type-section min-w-0 flex-1 break-words text-center font-display text-xl font-medium sm:text-2xl">{label}</p>
       <button
         type="button"
         onClick={onNext}
@@ -321,30 +340,26 @@ export function DayAgenda({
         <p className="mt-3 text-sm text-muted">No lessons this day.</p>
       ) : (
         <ol className="mt-3 space-y-2">
-          {lessons.map((lesson) => (
-            <li key={lesson.id} className="rounded-2xl bg-card p-3 ring-1 ring-line">
-              <Link to="/app/lessons/$id" params={{ id: lesson.id }} className="type-card-gap flex gap-3">
-                <div className="type-time w-16 shrink-0 pt-0.5 text-sm font-semibold tabular-nums">{lesson.time}</div>
-                <div className="min-w-0 flex-1">
-                  <p className="type-primary break-words font-semibold">{lesson.clientName}</p>
-                  <p className="type-follow break-words text-sm text-muted">
-                    {lesson.duration} min · {lesson.locationName}
-                    {lesson.recurring ? " · Recurring" : ""}
-                  </p>
-                  <p className="mt-1 text-xs font-medium text-forest">
-                    {lesson.statusLabel}
-                    {lesson.pendingKind ? (lesson.pendingKind === "coach_swap" ? " · Swap waiting" : " · Move waiting") : ""}
-                  </p>
-                </div>
-                <span className={cn("mt-1 size-2.5 shrink-0 rounded-full", lesson.bucket === "upcoming" && lesson.status !== "held" ? "bg-forest" : "bg-sage-2")} />
-              </Link>
-              {weatherByLesson?.[lesson.id] ? (
-                <div className="mt-2 pl-[4.75rem]">
-                  <WeatherChip view={weatherByLesson[lesson.id]} audience="coach" onResolved={onWeatherResolved} />
-                </div>
-              ) : null}
-            </li>
-          ))}
+          {lessons.map((lesson) => {
+            const status = agendaStatus(lesson, "short");
+            return (
+              <li key={lesson.id} className="rounded-2xl bg-card p-3 ring-1 ring-line">
+                <Link to="/app/lessons/$id" params={{ id: lesson.id }} className="block">
+                  <LessonRow
+                    time={lesson.time}
+                    name={lesson.clientName}
+                    detail={agendaDetail(lesson)}
+                    extra={status ? <p className="type-meta mt-1 text-forest">{status}</p> : null}
+                  />
+                </Link>
+                {weatherByLesson?.[lesson.id] ? (
+                  <div className="mt-2">
+                    <WeatherChip view={weatherByLesson[lesson.id]} audience="coach" onResolved={onWeatherResolved} />
+                  </div>
+                ) : null}
+              </li>
+            );
+          })}
         </ol>
       )}
     </div>
@@ -437,13 +452,13 @@ export function MonthCalendar({
                   {dayLessons.slice(0, 3).map((lesson) => (
                     <span
                       key={lesson.id}
-                      className={cn("block truncate rounded px-1 py-0.5 text-[11px] font-medium", toneFor(lesson))}
+                      className={cn("block truncate rounded px-1 py-0.5 text-[11px] font-medium max-md:text-[13px]", toneFor(lesson))}
                     >
                       {formatTime(new Date(lesson.start), tz).replace(":00", "")} {firstName(lesson.clientName)}
                     </span>
                   ))}
                   {dayLessons.length > 3 ? (
-                    <span className="px-1 text-[11px] font-medium text-muted">+{dayLessons.length - 3}</span>
+                    <span className="px-1 text-[11px] font-medium text-muted max-md:text-[13px]">+{dayLessons.length - 3}</span>
                   ) : null}
                 </div>
                 {dayLessons.length ? (
@@ -472,29 +487,40 @@ export function MonthCalendar({
           <p className="mt-3 text-sm text-muted">No lessons this day.</p>
         ) : (
           <ul className="mt-3 space-y-2">
-            {selectedLessons.map((lesson) => (
-              <li key={lesson.id} className="rounded-2xl bg-card p-4 ring-1 ring-line">
-                <Link to="/app/lessons/$id" params={{ id: lesson.id }} className="block">
-                  <p className="type-primary break-words font-semibold">
-                    {lesson.time} · {lesson.clientName}
-                  </p>
-                  <p className="type-follow break-words text-sm text-muted">
-                    {lesson.locationName} · {lesson.statusLabel} · {lesson.pay?.text}
-                    {lesson.recurring ? " · Recurring" : ""}
-                  </p>
-                  {lesson.pendingKind ? (
-                    <p className="mt-2 text-xs font-semibold text-forest">
-                      {lesson.pendingKind === "coach_swap" ? "Swap waiting on students" : "Move request waiting"}
-                    </p>
+            {selectedLessons.map((lesson) => {
+              const status = agendaStatus(lesson, "long", true);
+              return (
+                <li key={lesson.id} className="rounded-2xl bg-card p-4 ring-1 ring-line">
+                  <Link to="/app/lessons/$id" params={{ id: lesson.id }} className="block">
+                    <div className="contents max-md:hidden">
+                      <p className="type-primary break-words font-semibold">
+                        {lesson.time} · {lesson.clientName}
+                      </p>
+                      <p className="type-follow break-words text-sm text-muted">
+                        {lesson.locationName} · {lesson.statusLabel} · {lesson.pay?.text}
+                        {lesson.recurring ? " · Recurring" : ""}
+                      </p>
+                      {lesson.pendingKind ? (
+                        <p className="mt-2 text-xs font-semibold text-forest">
+                          {lesson.pendingKind === "coach_swap" ? "Swap waiting on students" : "Move request waiting"}
+                        </p>
+                      ) : null}
+                    </div>
+                    <LessonRow
+                      time={lesson.time}
+                      name={lesson.clientName}
+                      detail={agendaDetail(lesson)}
+                      extra={status ? <p className="type-meta mt-1 text-forest">{status}</p> : null}
+                    />
+                  </Link>
+                  {weatherByLesson?.[lesson.id] ? (
+                    <div className="mt-2">
+                      <WeatherChip view={weatherByLesson[lesson.id]} audience="coach" onResolved={onWeatherResolved} />
+                    </div>
                   ) : null}
-                </Link>
-                {weatherByLesson?.[lesson.id] ? (
-                  <div className="mt-2">
-                    <WeatherChip view={weatherByLesson[lesson.id]} audience="coach" onResolved={onWeatherResolved} />
-                  </div>
-                ) : null}
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

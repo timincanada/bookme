@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
+import { LessonScan, lessonInstantParts } from "@/components/bookme/lesson-scan";
 import { decideRequest, getRequestByToken } from "@/lib/bookme/api";
 
 export const Route = createFileRoute("/r/$token")({ component: RequestDecide });
@@ -38,18 +39,31 @@ function RequestDecide() {
         <Logo />
       </header>
       <div className="mx-auto max-w-xl px-5 pb-16 sm:px-8">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">From your coach</p>
+        <p className="type-label text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">From your coach</p>
         <h1 className="mt-2 font-display text-4xl font-medium">Time swap</h1>
         {error ? <p className="mt-4 text-coral">{error}</p> : null}
         {data ? (
           <div className="mt-5 rounded-2xl bg-card p-5 ring-1 ring-line">
-            <p className="text-sm text-muted">{data.coachName}</p>
-            <p className="type-primary mt-2 font-semibold">Your lesson · {data.yourWhen}</p>
-            {data.otherWhen ? (
-              <p className="type-primary mt-1 text-sm">
-                Swap with {data.otherLabel ?? "another student"} at {data.otherWhen}
-              </p>
-            ) : null}
+            <div className="contents max-md:hidden">
+              <p className="text-sm text-muted">{data.coachName}</p>
+              <p className="type-primary mt-2 font-semibold">Your lesson · {data.yourWhen}</p>
+              {data.otherWhen ? (
+                <p className="type-primary mt-1 text-sm">
+                  Swap with {data.otherLabel ?? "another student"} at {data.otherWhen}
+                </p>
+              ) : null}
+            </div>
+            <LessonScan
+              label="Your lesson"
+              time={lessonInstantParts(data.yourStart, data.timezone).time}
+              name={data.coachName}
+              date={lessonInstantParts(data.yourStart, data.timezone).date}
+              location={
+                data.otherStart
+                  ? `Swap · ${lessonInstantParts(data.otherStart, data.timezone).time} · ${lessonInstantParts(data.otherStart, data.timezone).date}`
+                  : undefined
+              }
+            />
             {data.note ? (
               <blockquote className="mt-4 rounded-xl bg-sage-3 px-4 py-3 text-sm text-ink-soft">
                 {data.note}

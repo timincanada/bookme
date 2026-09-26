@@ -27,7 +27,7 @@ function LessonsPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
-      <Link to="/app/more" className="text-sm font-semibold text-forest">
+      <Link to="/app/more" className="type-action text-sm font-semibold text-forest">
         More
       </Link>
       <h1 className="mt-3 font-display text-3xl font-medium">Lessons</h1>
@@ -56,10 +56,10 @@ function LessonsPage() {
                   search={{ edit: service.id }}
                   className="block rounded-2xl bg-card p-4 ring-1 ring-line hover:bg-paper"
                 >
-                  <p className="font-semibold">{row.name}</p>
+                  <p className="type-key font-semibold">{row.name}</p>
                   <ul className="mt-1 space-y-0.5">
                     {row.lines.map((line) => (
-                      <li key={line} className="text-sm text-muted">
+                      <li key={line} className="type-key text-sm text-muted max-md:text-ink">
                         {line}
                       </li>
                     ))}
@@ -125,10 +125,10 @@ function LessonEditor({
 
   return (
     <div className="mt-6">
-      <Link to="/app/more/lessons" search={{ edit: undefined }} className="text-sm font-semibold text-forest">
+      <Link to="/app/more/lessons" search={{ edit: undefined }} className="type-action text-sm font-semibold text-forest">
         All lessons
       </Link>
-      <h2 className="mt-3 font-display text-2xl font-medium">{initial.name}</h2>
+      <h2 className="type-section mt-3 font-display text-2xl font-medium">{initial.name}</h2>
       <p className="mt-4 text-sm font-medium">Duration</p>
       <p className="mt-1 text-sm text-muted">Select one or more lesson lengths students can book.</p>
       <div className="mt-2 flex flex-wrap gap-2">

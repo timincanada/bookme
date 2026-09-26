@@ -3,6 +3,7 @@ import { CalendarDays, Check, MapPin } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
+import { LessonScan, lessonInstantParts } from "@/components/bookme/lesson-scan";
 import { getBooking } from "@/lib/bookme/api";
 import { formatMoney } from "@/lib/utils";
 
@@ -60,21 +61,40 @@ function Confirmed() {
         <p className="mt-3 text-ink-soft">{sub}</p>
         {booking ? (
           <div className="mt-8 rounded-2xl bg-card p-6 ring-1 ring-line">
-            <p className="font-display text-2xl font-medium">{booking.serviceName}</p>
-            <p className="mt-1 text-muted">with {booking.coachName}</p>
-            <div className="mt-5 space-y-3 text-sm">
-              <p className="type-primary flex items-center gap-2">
-                <CalendarDays className="size-4 text-forest" />
-                {booking.when}
-              </p>
-              <p className="flex items-center gap-2">
-                <MapPin className="size-4 text-forest" />
-                {booking.locationName}
-              </p>
+            <div className="contents max-md:hidden">
+              <p className="font-display text-2xl font-medium">{booking.serviceName}</p>
+              <p className="mt-1 text-muted">with {booking.coachName}</p>
+              <div className="mt-5 space-y-3 text-sm">
+                <p className="type-primary flex items-center gap-2">
+                  <CalendarDays className="size-4 text-forest" />
+                  {booking.when}
+                </p>
+                <p className="flex items-center gap-2">
+                  <MapPin className="size-4 text-forest" />
+                  {booking.locationName}
+                </p>
+              </div>
+              <div className="mt-5 flex justify-between border-t border-line pt-4 font-semibold">
+                <span>{booking.payText}</span>
+                <span className="tabular-nums">{formatMoney(booking.priceCad)}</span>
+              </div>
             </div>
-            <div className="mt-5 flex justify-between border-t border-line pt-4 font-semibold">
-              <span>{booking.payText}</span>
-              <span className="tabular-nums">{formatMoney(booking.priceCad)}</span>
+            <div className="md:hidden">
+              <p className="type-section">{booking.serviceName}</p>
+              <LessonScan
+                className="mt-3"
+                label="Lesson"
+                time={lessonInstantParts(booking.start, booking.timezone).time}
+                name={booking.coachName}
+                date={lessonInstantParts(booking.start, booking.timezone).date}
+                location={booking.locationName}
+                extra={
+                  <div className="mt-3 flex justify-between border-t border-line pt-3">
+                    <span className="type-secondary">{booking.payText}</span>
+                    <span className="type-key tabular-nums">{formatMoney(booking.priceCad)}</span>
+                  </div>
+                }
+              />
             </div>
           </div>
         ) : null}

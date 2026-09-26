@@ -67,7 +67,7 @@ export function WeeklyHoursEditor({
         const err = checked ? dayError(hours, weekday) : null;
         return (
           <div key={label} className="rounded-2xl bg-card p-3 ring-1 ring-line">
-            <label className="flex items-center gap-2 font-semibold">
+            <label className="type-key flex items-center gap-2 font-semibold">
               <input type="checkbox" checked={checked} onChange={() => toggleDay(weekday)} />
               {label}
             </label>

@@ -238,7 +238,7 @@ function Setup() {
           <div className="mt-5">
             <WeeklyHoursEditor hours={hours} onChange={setHours} />
           </div>
-          <h2 className="mt-8 font-display text-2xl font-medium">Booking window</h2>
+          <h2 className="type-section mt-8 font-display text-2xl font-medium">Booking window</h2>
           <p className="mt-1 text-muted">How far ahead students can pick a time. You can still place a lesson further out yourself.</p>
           <div className="mt-4">
             <BookAheadPicker value={bookAheadDays} onChange={setBookAheadDays} />

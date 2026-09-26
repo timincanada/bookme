@@ -29,11 +29,11 @@ export function RecurringPlanCard({
   return (
     <section className="overflow-hidden rounded-2xl bg-card shadow-card ring-1 ring-line" aria-label="Confirm import">
       <div className="px-5 pt-5">
-        <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+        <p className="type-label flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
           <Repeat className="size-3.5" strokeWidth={2} />
           Import recurring schedule
         </p>
-        <h2 className="mt-2 font-display text-2xl font-medium">{plan.client.name}</h2>
+        <h2 className="type-section mt-2 font-display text-2xl font-medium">{plan.client.name}</h2>
         <p className="text-sm text-muted">
           {plan.client.email || "No email"} · {plan.client.mode === "existing" ? "Existing client" : "New client"}
         </p>

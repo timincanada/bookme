@@ -354,43 +354,103 @@
 }
 
 /*
- * Mobile type scale — max-width: 767.98px only (Tailwind `md` is 48rem / 768px).
- * Desktop keeps the default Tailwind tokens. Utilities read these variables
- * (font-size: var(--text-*); line-height: var(--tw-leading, var(--text-*--line-height))),
- * so the override applies without touching unprefixed desktop rules.
+ * Mobile type scale v2 — max-width: 767.98px only (Tailwind `md` is 48rem / 768px).
+ * Every rule in this block is a no-op at ≥768px. Desktop keeps Tailwind's
+ * default tokens and only the loaded Figtree stops 400/500/600/700.
+ * Utilities read --text-* (font-size / line-height), so the scale override
+ * applies without touching unprefixed desktop rules.
  *
- * Token        Desktop                         Mobile
- * --text-xs    0.75rem   (12px)  lh ~1.333     0.8125rem (13px)  lh 1.4    meta, badges
- * --text-sm    0.875rem  (14px)  lh ~1.429     0.9375rem (15px)  lh 1.47   secondary, subtitles, locations
- * --text-base  1rem      (16px)  lh 1.5        1.0625rem (17px)  lh 1.5    primary body
+ * These classes are unlayered, so on mobile they win over Tailwind utilities
+ * (size, weight, line-height). Pair a role with the desktop utility you still
+ * want at ≥768px.
+ *
+ * Token        Desktop                         Mobile v2
+ * --text-xs    0.75rem   (12px)  lh ~1.333     0.8125rem (13px)   lh 1.4    floor for meta
+ * --text-sm    0.875rem  (14px)  lh ~1.429     0.96875rem (15.5px) lh 1.5   secondary copy
+ * --text-base  1rem      (16px)  lh 1.5        1.0625rem (17px)   lh 1.5    primary body
  * --text-lg    1.125rem  (18px)                unchanged
  * --text-xl    1.25rem   (20px)                unchanged
  * --text-2xl   1.5rem    (24px)                unchanged
- * --text-3xl   1.875rem  (30px)                unchanged  (display h1s such as "Schedule")
- * --text-4xl+                                unchanged
+ * --text-3xl   1.875rem  (30px)                unchanged. Display h1s (font-display text-3xl) stay here.
+ * --text-4xl+                                unchanged. Display h1s stay on their utility.
  *
- * Semantic roles (mobile only; no effect at ≥768px):
- * .type-page       20px / 1.25   app-bar titles
- * .type-section    17px / 1.3    section and card titles
- * .type-primary    17px / 1.5    chat bubbles, lesson date/time, student name
- * .type-secondary  15px / 1.47   subtitles and timestamps that are smaller than text-sm
- * .type-action     16px / 1.3    buttons and quick-action chips
- * .type-tab        13px / 1.15   bottom navigation labels
- * .type-input      16px          inputs that are not .field (iOS will not zoom)
- * .field           16px          except fields that opt into a display size (text-lg and up)
- * .type-time       17px, 5.25rem wide   day-agenda time column (fits "10:30 AM")
- * .type-bubble     padding 12px 16px     +2px from px-3.5 py-2.5
- * .type-card-gap   gap 14px              +2px from gap-3
- * .type-follow     margin-top 2px        extra space under a primary line
+ * Role              px     weight   lh     use
+ * .type-page        22     700      1.25   sans app-bar / sheet title. Not display h1s.
+ * .type-page-dense  20     650      1.25   dense app-bar (assistant, chat). Figtree axis.
+ * .type-section     18     650      1.25   section title. Fraunces h1–h4 pin to 600 (loaded cut).
+ * .type-clock       20     700      1.2    lesson time inside a summary card
+ * .type-row-name    17     600      1.35   client name on a day-list row
+ * .type-key         17     550      1.35   client name, price, booking status
+ * .type-primary     17     500      1.5    primary body, chat bubbles
+ * .type-secondary   15.5   450      1.5    date, location, explanations
+ * .type-action      16     600      1.3    buttons and quick-action chips
+ * .type-badge       15     500      1.25   status and pay chips. Padding stays on the chip.
+ * .type-tab         13.5   500      1.2    bottom nav (6 labels fit 360px; tighter tracking under 360px)
+ * .type-meta        13     500      1.4    timestamps, small badges
+ * .type-label       13     600      1.3    uppercase eyebrow. Colour stays with utilities.
+ * .type-input       16            inputs that are not .field (iOS will not zoom)
+ * .field            16            except fields that opt into text-lg and up
+ * .type-time        20 / 700, 6.5rem wide   legacy time column
+ * .type-bubble      padding 12px 16px
+ * .type-card-gap    gap 16px
+ * .type-follow      margin-top 4px
+ *
+ * Weights 450 / 550 / 650 are Figtree variable-axis stops (request 400..700).
+ * Assistant title steps still shrink .type-page-dense: 20 → 19 → 17 → 14.
+ * text-[10px], text-[11px], and text-[12px] floor at 13px here only.
  */
 @media (max-width: 767.98px) {
   :root {
     --text-xs: 0.8125rem;
     --text-xs--line-height: 1.4;
-    --text-sm: 0.9375rem;
-    --text-sm--line-height: 1.47;
+    --text-sm: 0.96875rem;
+    --text-sm--line-height: 1.5;
     --text-base: 1.0625rem;
     --text-base--line-height: 1.5;
+
+    --type-page-size: 1.375rem;
+    --type-page-weight: 700;
+    --type-page-leading: 1.25;
+    --type-page-dense-size: 1.25rem;
+    --type-page-dense-weight: 650;
+    --type-badge-size: 0.9375rem;
+    --type-badge-weight: 500;
+    --type-badge-leading: 1.25;
+    --type-row-name-size: 1.0625rem;
+    --type-row-name-weight: 600;
+    --type-row-name-leading: 1.35;
+    --type-section-size: 1.125rem;
+    --type-section-weight: 650;
+    --type-section-leading: 1.25;
+    --type-clock-size: 1.25rem;
+    --type-clock-weight: 700;
+    --type-clock-leading: 1.2;
+    --type-key-size: 1.0625rem;
+    --type-key-weight: 550;
+    --type-key-leading: 1.35;
+    --type-primary-size: 1.0625rem;
+    --type-primary-weight: 500;
+    --type-primary-leading: 1.5;
+    --type-secondary-size: 0.96875rem;
+    --type-secondary-weight: 450;
+    --type-secondary-leading: 1.5;
+    --type-action-size: 1rem;
+    --type-action-weight: 600;
+    --type-action-leading: 1.3;
+    --type-tab-size: 0.84375rem;
+    --type-tab-weight: 500;
+    --type-tab-leading: 1.2;
+    --type-meta-size: 0.8125rem;
+    --type-meta-weight: 500;
+    --type-meta-leading: 1.4;
+    --type-label-size: 0.8125rem;
+    --type-label-weight: 600;
+    --type-label-leading: 1.3;
+    --type-input-size: 1rem;
+  }
+
+  body {
+    font-synthesis: none;
   }
 
   /* Voice mode keeps its own sizes (issue #82). */
@@ -401,14 +461,41 @@
     --text-sm--line-height: calc(1.25 / 0.875);
     --text-base: 1rem;
     --text-base--line-height: calc(1.5 / 1);
+    font-synthesis: weight style;
+  }
+
+  /* Floor incidental sizes. Role classes below override this when both match. */
+  .text-\[10px\],
+  .text-\[11px\],
+  .text-\[12px\] {
+    font-size: var(--type-meta-size);
   }
 
   .type-page {
-    font-size: 1.25rem;
-    line-height: 1.25;
+    font-size: var(--type-page-size);
+    font-weight: var(--type-page-weight);
+    line-height: var(--type-page-leading);
   }
 
-  /* Steeper steps for a long assistant title. Step 0 stays on .type-page. */
+  .type-page-dense {
+    font-size: var(--type-page-dense-size);
+    font-weight: var(--type-page-dense-weight);
+    line-height: var(--type-page-leading);
+  }
+
+  .type-badge {
+    font-size: var(--type-badge-size);
+    font-weight: var(--type-badge-weight);
+    line-height: var(--type-badge-leading);
+  }
+
+  .type-row-name {
+    font-size: var(--type-row-name-size);
+    font-weight: var(--type-row-name-weight);
+    line-height: var(--type-row-name-leading);
+  }
+
+  /* Steeper steps for a long assistant title. Step 0 is .type-page-dense (20px). */
   .type-page[data-title-step="1"] {
     font-size: 19px;
     line-height: 1.25;
@@ -425,41 +512,87 @@
   }
 
   .type-section {
-    font-size: 1.0625rem;
-    line-height: 1.3;
+    font-size: var(--type-section-size);
+    font-weight: var(--type-section-weight);
+    line-height: var(--type-section-leading);
+  }
+
+  /* Fraunces is loaded at 500/600/700 only — don't ask it for 650. */
+  :is(h1, h2, h3, h4, .font-display).type-section {
+    font-weight: 600;
+  }
+
+  .type-clock {
+    font-size: var(--type-clock-size);
+    font-weight: var(--type-clock-weight);
+    line-height: var(--type-clock-leading);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .type-key {
+    font-size: var(--type-key-size);
+    font-weight: var(--type-key-weight);
+    line-height: var(--type-key-leading);
   }
 
   .type-primary {
-    font-size: 1.0625rem;
-    line-height: 1.5;
+    font-size: var(--type-primary-size);
+    font-weight: var(--type-primary-weight);
+    line-height: var(--type-primary-leading);
   }
 
   .type-secondary {
-    font-size: 0.9375rem;
-    line-height: 1.47;
+    font-size: var(--type-secondary-size);
+    font-weight: var(--type-secondary-weight);
+    line-height: var(--type-secondary-leading);
   }
 
   .type-action {
-    font-size: 1rem;
-    line-height: 1.3;
+    font-size: var(--type-action-size);
+    font-weight: var(--type-action-weight);
+    line-height: var(--type-action-leading);
   }
 
   .type-tab {
-    font-size: 0.8125rem;
-    line-height: 1.15;
+    font-size: var(--type-tab-size);
+    font-weight: var(--type-tab-weight);
+    line-height: var(--type-tab-leading);
+    letter-spacing: -0.02em;
+  }
+
+  /* Six labels on a 320px row. 360px and up keeps the looser tracking above. */
+  @media (max-width: 359.98px) {
+    .type-tab {
+      letter-spacing: -0.08em;
+    }
+  }
+
+  .type-meta {
+    font-size: var(--type-meta-size);
+    font-weight: var(--type-meta-weight);
+    line-height: var(--type-meta-leading);
+  }
+
+  .type-label {
+    font-size: var(--type-label-size);
+    font-weight: var(--type-label-weight);
+    line-height: var(--type-label-leading);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   .type-input,
   .type-input::placeholder,
   .field:not(.text-lg):not(.text-xl):not(.text-2xl):not(.text-3xl):not(.text-4xl):not(.text-5xl),
   .field:not(.text-lg):not(.text-xl):not(.text-2xl):not(.text-3xl):not(.text-4xl):not(.text-5xl)::placeholder {
-    font-size: 1rem;
+    font-size: var(--type-input-size);
   }
 
   .type-time {
-    width: 5.25rem;
-    font-size: 1.0625rem;
-    line-height: 1.25;
+    width: 6.5rem;
+    font-size: var(--type-clock-size);
+    font-weight: var(--type-clock-weight);
+    line-height: var(--type-clock-leading);
   }
 
   .type-bubble {
@@ -467,10 +600,10 @@
   }
 
   .type-card-gap {
-    gap: 14px;
+    gap: 16px;
   }
 
   .type-follow {
-    margin-top: 2px;
+    margin-top: 4px;
   }
 }

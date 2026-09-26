@@ -46,7 +46,7 @@ function Schedule() {
       <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
         <div className="min-w-0">
           <h1 className="font-display text-3xl font-medium">Schedule</h1>
-          <p className="mt-1 text-muted">
+          <p className="type-secondary mt-1 max-md:mt-2 text-muted">
             {lessons.length} upcoming lesson{lessons.length === 1 ? "" : "s"}
           </p>
         </div>
@@ -66,7 +66,7 @@ function Schedule() {
           <Link
             to="/app/import"
             search={{ client: undefined }}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-forest"
+            className="type-action inline-flex items-center gap-1.5 text-sm font-semibold text-forest"
           >
             <Repeat className="size-4" strokeWidth={1.75} />
             Import recurring
@@ -74,7 +74,7 @@ function Schedule() {
           <Link
             to="/app/bookings"
             search={{ tab: "upcoming", swap: undefined }}
-            className="text-sm font-semibold text-forest"
+            className="type-action text-sm font-semibold text-forest"
           >
             Month
           </Link>
@@ -83,7 +83,7 @@ function Schedule() {
       {!coach.setup ? (
         <Link
           to="/app/setup"
-          className="mt-4 block rounded-2xl bg-sage-3 p-3 text-sm font-semibold text-forest"
+          className="type-key mt-4 block rounded-2xl bg-sage-3 p-3 text-sm font-semibold text-forest"
         >
           Finish Open for business to publish your link
         </Link>
@@ -91,12 +91,12 @@ function Schedule() {
         policy.showPurchases ? (
           <Link
             to="/app/billing"
-            className="mt-4 block rounded-2xl bg-sage-3 p-3 text-sm font-semibold text-forest"
+            className="type-key mt-4 block rounded-2xl bg-sage-3 p-3 text-sm font-semibold text-forest"
           >
             Start a trial to copy your booking link
           </Link>
         ) : (
-          <p className="mt-4 rounded-2xl bg-sage-3 p-3 text-sm font-semibold text-forest">
+          <p className="type-key mt-4 rounded-2xl bg-sage-3 p-3 text-sm font-semibold text-forest">
             Your booking link isn't active.
           </p>
         )
@@ -105,7 +105,7 @@ function Schedule() {
         <Link
           to="/app/bookings"
           search={{ tab: "requests", swap: undefined }}
-          className="mt-4 block rounded-2xl bg-sage-3 p-3 text-sm font-semibold text-forest"
+          className="type-key mt-4 block rounded-2xl bg-sage-3 p-3 text-sm font-semibold text-forest"
         >
           {coach.pendingRequests} request{coach.pendingRequests === 1 ? "" : "s"} waiting
         </Link>

@@ -13,6 +13,7 @@ import {
 } from "@/lib/bookme/api";
 import { canSelfReschedule } from "@/lib/bookme/hold";
 import { useStudent } from "@/lib/bookme/student-context";
+import { LessonScan, lessonInstantParts } from "@/components/bookme/lesson-scan";
 import { formatTime } from "@/lib/bookme/time";
 
 export const Route = createFileRoute("/manage/")({ component: StudentLessons });
@@ -103,15 +104,30 @@ function StudentLessons() {
         <ul className="mt-5 space-y-3">
           {pending.map((r) => (
             <li key={r.id} className="rounded-2xl bg-sage-3 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-forest">
-                {r.kind === "coach_swap" ? "Coach asked to swap" : "Waiting on your coach"}
-              </p>
-              <p className="type-primary mt-1 font-semibold">{r.coachName}</p>
-              <p className="type-primary type-follow text-sm">
-                {r.kind === "coach_swap"
-                  ? `Your lesson ${r.when} ⇄ ${r.otherLabel ?? "Another student"} · ${r.otherWhen}`
-                  : `Move ${r.when} to ${r.nextWhen}`}
-              </p>
+              <div className="contents max-md:hidden">
+                <p className="text-xs font-semibold uppercase tracking-wide text-forest">
+                  {r.kind === "coach_swap" ? "Coach asked to swap" : "Waiting on your coach"}
+                </p>
+                <p className="type-primary mt-1 font-semibold">{r.coachName}</p>
+                <p className="type-primary type-follow text-sm">
+                  {r.kind === "coach_swap"
+                    ? `Your lesson ${r.when} ⇄ ${r.otherLabel ?? "Another student"} · ${r.otherWhen}`
+                    : `Move ${r.when} to ${r.nextWhen}`}
+                </p>
+              </div>
+              <LessonScan
+                label={r.kind === "coach_swap" ? "Coach asked to swap" : "Waiting on your coach"}
+                time={lessonInstantParts(r.start, r.timezone).time}
+                name={r.coachName}
+                date={lessonInstantParts(r.start, r.timezone).date}
+                location={
+                  r.kind === "coach_swap" && r.otherStart
+                    ? `⇄ ${r.otherLabel ?? "Another student"} · ${lessonInstantParts(r.otherStart, r.timezone).time}`
+                    : r.nextStart
+                      ? `→ ${lessonInstantParts(r.nextStart, r.timezone).time} · ${lessonInstantParts(r.nextStart, r.timezone).date}`
+                      : undefined
+                }
+              />
               {r.note ? <p className="mt-2 text-sm text-ink-soft">{r.note}</p> : null}
               {r.canDecide && r.token ? (
                 <div className="mt-3 grid gap-2">
@@ -136,23 +152,44 @@ function StudentLessons() {
       <ul className="mt-5 space-y-3">
         {lessons.map((l) => (
           <li key={l.id} className="rounded-2xl bg-card p-4 ring-1 ring-line">
-            <div className="flex items-start justify-between gap-3">
-              <p className="type-primary font-semibold">{l.coachName}</p>
+            <div className="contents max-md:hidden">
+              <div className="flex items-start justify-between gap-3">
+                <p className="type-primary font-semibold">{l.coachName}</p>
+                {l.coachSlug ? (
+                  <Link
+                    to="/$slug"
+                    params={{ slug: l.coachSlug }}
+                    className="shrink-0 rounded-full bg-forest px-3 py-1.5 text-sm font-semibold text-on-forest"
+                  >
+                    Book a new lesson
+                  </Link>
+                ) : null}
+              </div>
+              <p className="type-primary type-follow text-sm">{l.when}</p>
+              <p className="type-follow text-sm text-muted">{l.locationName}</p>
+              <p className="text-sm text-muted">
+                {l.status} · {l.payText}
+              </p>
+            </div>
+            <div className="md:hidden">
+              <LessonScan
+                label={l.status}
+                time={lessonInstantParts(l.start, l.timezone).time}
+                name={l.coachName}
+                date={lessonInstantParts(l.start, l.timezone).date}
+                location={l.locationName}
+                extra={<p className="type-key mt-1.5">{l.payText}</p>}
+              />
               {l.coachSlug ? (
                 <Link
                   to="/$slug"
                   params={{ slug: l.coachSlug }}
-                  className="shrink-0 rounded-full bg-forest px-3 py-1.5 text-sm font-semibold text-on-forest"
+                  className="type-action mt-3 inline-flex min-h-11 items-center rounded-full bg-forest px-3 py-1.5 text-sm font-semibold text-on-forest"
                 >
                   Book a new lesson
                 </Link>
               ) : null}
             </div>
-            <p className="type-primary type-follow text-sm">{l.when}</p>
-            <p className="type-follow text-sm text-muted">{l.locationName}</p>
-            <p className="text-sm text-muted">
-              {l.status} · {l.payText}
-            </p>
             <WeatherChip
               view={weatherByLesson[l.id]}
               audience="student"
@@ -188,7 +225,7 @@ function StudentLessons() {
       </ul>
       {picked ? (
         <div className="mt-6 rounded-2xl bg-card p-4 ring-1 ring-line">
-          <h2 className="font-display text-2xl">Change this lesson</h2>
+          <h2 className="type-section font-display text-2xl">Change this lesson</h2>
           <p className="mt-1 text-sm text-muted">
             {picked.recurring
               ? "This is one of your regular weekly lessons. Ask your coach for a new time, or cancel this one."

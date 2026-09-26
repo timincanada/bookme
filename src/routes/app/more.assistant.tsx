@@ -10,7 +10,7 @@ function AssistantNamePage() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
-      <Link to="/app/more" className="text-sm font-semibold text-forest">
+      <Link to="/app/more" className="type-action text-sm font-semibold text-forest">
         More
       </Link>
       <h1 className="mt-3 font-display text-3xl font-medium">Assistant name</h1>

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { LessonScan, lessonInstantParts } from "@/components/bookme/lesson-scan";
 import { MonthCalendar, nextLessonDay, type CalLesson } from "@/components/bookme/lesson-calendar";
 import { useCoachWeather } from "@/components/bookme/use-lesson-weather";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -119,7 +120,7 @@ function Bookings() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <h1 className="font-display text-3xl font-medium">Bookings</h1>
-      <p className="mt-1 text-muted">Calendar of lessons, student requests, and time swaps.</p>
+      <p className="type-secondary mt-1 max-md:mt-2 text-muted">Calendar of lessons, student requests, and time swaps.</p>
       <div className="mt-4 flex flex-wrap gap-2">
         {(["upcoming", "requests", "completed", "cancelled"] as const).map((t) => (
           <Link
@@ -127,7 +128,7 @@ function Bookings() {
             to="/app/bookings"
             search={{ tab: t, swap: undefined }}
             className={cn(
-              "rounded-full px-4 py-2 text-sm font-medium capitalize ring-1",
+              "type-action rounded-full px-4 py-2 text-sm font-medium capitalize ring-1 max-md:min-h-11",
               tab === t ? "bg-forest text-on-forest ring-forest" : "ring-line",
             )}
           >
@@ -141,17 +142,32 @@ function Bookings() {
         <div className="mt-6 space-y-4">
           {(inbox?.requests || []).map((r) => (
             <div key={r.id} className="rounded-2xl bg-card p-4 ring-1 ring-line">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                {r.kind === "coach_swap" ? "Swap" : "Move request"} · {r.status}
-              </p>
-              <p className="type-primary mt-1 break-words font-semibold">{r.studentName}</p>
-              <p className="type-primary type-follow break-words text-sm">
-                {r.kind === "coach_swap"
-                  ? `${r.studentWhen} ⇄ ${r.otherName} · ${r.otherWhen}`
-                  : r.status === "accepted" && r.studentWhen === r.nextWhen
-                    ? `Moved to ${r.nextWhen}`
-                    : `${r.studentWhen} → ${r.nextWhen}`}
-              </p>
+              <div className="contents max-md:hidden">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                  {r.kind === "coach_swap" ? "Swap" : "Move request"} · {r.status}
+                </p>
+                <p className="type-primary mt-1 break-words font-semibold">{r.studentName}</p>
+                <p className="type-primary type-follow break-words text-sm">
+                  {r.kind === "coach_swap"
+                    ? `${r.studentWhen} ⇄ ${r.otherName} · ${r.otherWhen}`
+                    : r.status === "accepted" && r.studentWhen === r.nextWhen
+                      ? `Moved to ${r.nextWhen}`
+                      : `${r.studentWhen} → ${r.nextWhen}`}
+                </p>
+              </div>
+              <LessonScan
+                label={`${r.kind === "coach_swap" ? "Swap" : "Move request"} · ${r.status}`}
+                time={lessonInstantParts(r.studentStart, tz).time}
+                name={r.studentName}
+                date={lessonInstantParts(r.studentStart, tz).date}
+                location={
+                  r.kind === "coach_swap" && r.otherStart
+                    ? `⇄ ${r.otherName || "Student"} · ${lessonInstantParts(r.otherStart, tz).time} · ${lessonInstantParts(r.otherStart, tz).date}`
+                    : r.nextStart
+                      ? `→ ${lessonInstantParts(r.nextStart, tz).time} · ${lessonInstantParts(r.nextStart, tz).date}`
+                      : undefined
+                }
+              />
               {r.note ? <p className="mt-2 break-words text-sm text-ink-soft">{r.note}</p> : null}
               {r.kind === "coach_swap" && r.status === "pending" ? (
                 <p className="mt-2 text-xs text-muted">
@@ -217,7 +233,7 @@ function Bookings() {
           ) : null}
 
           <div className="rounded-2xl bg-card p-5 ring-1 ring-line">
-            <h2 className="font-display text-2xl">Propose a swap</h2>
+            <h2 className="type-section font-display text-2xl">Propose a swap</h2>
             <p className="mt-1 text-sm text-muted">
               Both students get an email with your note. Times move only if both accept. Your assistant can send this too.
             </p>

@@ -144,7 +144,7 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
         </div>
 
         <aside className="max-lg:min-w-0 rounded-2xl bg-card p-5 shadow-soft ring-1 ring-line sm:p-6">
-          <h2 className="font-display text-2xl font-medium">Choose a lesson</h2>
+          <h2 className="type-section font-display text-2xl font-medium">Choose a lesson</h2>
           {!coach.open ? (
             <p className="mt-4 text-sm text-muted">This coach is not taking new bookings right now.</p>
           ) : (
@@ -174,7 +174,7 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
                         })()}
                       </span>
                     </span>
-                    <span className="type-primary font-semibold">
+                    <span className="type-key font-semibold">
                       {(() => {
                         const label = formatMoney(listedFromPrice([l])).replace(".00", "");
                         return servicePricesDiffer(l) ? `from ${label}` : label;
@@ -197,7 +197,7 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
                           setPicked("");
                         }}
                         className={cn(
-                          "rounded-full px-4 py-2 text-sm ring-1",
+                          "type-action rounded-full px-4 py-2 text-sm ring-1 max-md:min-h-11",
                           duration === d ? "bg-forest text-on-forest ring-forest" : "ring-line",
                         )}
                       >
@@ -249,7 +249,7 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
                         active ? "bg-forest text-on-forest ring-forest" : "bg-card ring-line hover:bg-paper",
                       )}
                     >
-                      <div className="text-sm font-semibold">{meta.kicker}</div>
+                      <div className="type-key text-sm font-semibold">{meta.kicker}</div>
                       <div className={cn("text-xs", active ? "text-on-forest/80" : "text-muted")}>{meta.sub}</div>
                     </button>
                   );
@@ -268,7 +268,7 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
                         setPicked("");
                       }}
                       className={cn(
-                        "min-w-[4.5rem] rounded-xl px-2 py-2 text-center text-xs ring-1",
+                        "type-action min-w-[4.5rem] rounded-xl px-2 py-2 text-center text-xs ring-1 max-md:min-h-11",
                         active ? "bg-forest text-on-forest ring-forest" : "ring-line",
                       )}
                     >
@@ -293,7 +293,7 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
                     type="button"
                     onClick={() => setPicked(s)}
                     className={cn(
-                      "h-11 min-w-[5.5rem] rounded-xl px-3 text-sm font-semibold ring-1 transition-colors",
+                      "type-action h-11 min-w-[5.5rem] rounded-xl px-3 text-sm font-semibold ring-1 transition-colors",
                       picked === s ? "bg-forest text-on-forest ring-forest" : "bg-card ring-line hover:bg-paper",
                     )}
                   >
@@ -323,7 +323,7 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
 
       <section className="mx-auto grid max-w-6xl gap-10 border-t border-line px-5 py-12 sm:px-8 lg:grid-cols-2">
         <div>
-          <h2 className="font-display text-2xl font-medium">Lesson details</h2>
+          <h2 className="type-section font-display text-2xl font-medium">Lesson details</h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             <Fact icon={<SportIcon sport={sport} className="size-5" />} title={lesson?.name ?? "Private"} body="One-on-one coaching" />
             <Fact icon={<Clock className="size-5" />} title={`${duration} minutes`} body="Focused, personalized instruction" />
@@ -333,7 +333,7 @@ function CoachView({ coach }: { coach: NonNullable<Awaited<ReturnType<typeof get
           {coach.languages ? <p className="mt-3 text-sm text-ink-soft">{coach.languages}</p> : null}
         </div>
         <div>
-          <h2 className="font-display text-2xl font-medium">Before you book</h2>
+          <h2 className="type-section font-display text-2xl font-medium">Before you book</h2>
           <ul className="mt-5 space-y-4">
             {(coach.notes.length ? coach.notes : ["Free cancellation up to 24 hours before your lesson."]).map((n) => (
               <li key={n} className="flex gap-3">

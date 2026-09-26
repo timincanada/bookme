@@ -206,7 +206,7 @@ function PortalTab({ to, on, children }: { to: "/manage" | "/manage/messages" | 
     <Link
       to={to}
       search={to === "/manage" ? { email: undefined, token: undefined } : undefined}
-      className={cn("rounded-full px-4 py-2 text-sm", on ? "bg-forest text-on-forest" : "ring-1 ring-line")}
+      className={cn("type-action rounded-full px-4 py-2 text-sm max-md:min-h-11", on ? "bg-forest text-on-forest" : "ring-1 ring-line")}
     >
       {children}
     </Link>

@@ -36,13 +36,13 @@ function StudentInbox() {
               className="flex items-center justify-between gap-3 rounded-2xl bg-card p-4 ring-1 ring-line"
             >
               <span>
-                <span className={cn("type-primary block", t.unread ? "font-semibold" : "font-medium")}>
+                <span className={cn("block", t.unread ? "type-key font-semibold" : "type-primary font-medium")}>
                   {t.coachName}
                 </span>
                 {t.lastPreview ? (
-                  <span className="block truncate text-sm text-muted">{t.lastPreview}</span>
+                  <span className="type-secondary block truncate text-sm text-muted">{t.lastPreview}</span>
                 ) : null}
-                <span className="text-sm text-muted">
+                <span className="type-meta text-sm text-muted">
                   {t.lastMessageAt
                     ? new Date(t.lastMessageAt).toLocaleDateString("en-CA", {
                         month: "short",
