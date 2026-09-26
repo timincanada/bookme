@@ -89,11 +89,11 @@ function LessonDetail() {
       </Link>
       <h1 className="mt-3 font-display text-3xl font-medium">Lesson</h1>
       <div className="mt-4 rounded-2xl bg-card p-5 ring-1 ring-line">
-        <p className="type-primary font-semibold">{l.when}</p>
-        <p className="type-primary">Private · {l.clientName}</p>
-        <p className="text-sm text-muted">{l.clientEmail || "No email on file"}</p>
+        <p className="type-primary break-words font-semibold">{l.when}</p>
+        <p className="type-primary break-words">Private · {l.clientName}</p>
+        <p className="break-words text-sm text-muted">{l.clientEmail || "No email on file"}</p>
         <div className="mt-1 flex flex-wrap items-center gap-2">
-          <p className="text-sm text-muted">{l.locationName}</p>
+          <p className="min-w-0 break-words text-sm text-muted">{l.locationName}</p>
           <WeatherChip
             view={weatherByLesson[id]}
             audience="coach"
@@ -112,36 +112,38 @@ function LessonDetail() {
           <PayChip kind={l.pay.kind} text={l.pay.text} />
         </p>
         {l.recurring && l.seriesId ? (
-          <p className="mt-3 flex items-center gap-1.5 text-sm">
-            <Repeat className="size-4 text-forest" strokeWidth={1.75} />
-            Part of a recurring schedule ·{" "}
-            <Link to="/app/series/$id" params={{ id: l.seriesId }} className="font-semibold text-forest underline">
-              Open schedule
-            </Link>
+          <p className="mt-3 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
+            <Repeat className="size-4 shrink-0 text-forest" strokeWidth={1.75} />
+            <span className="min-w-0 break-words">
+              Part of a recurring schedule ·{" "}
+              <Link to="/app/series/$id" params={{ id: l.seriesId }} className="font-semibold text-forest underline">
+                Open schedule
+              </Link>
+            </span>
           </p>
         ) : null}
         <MessageLink clientId={l.clientId} />
         {l.pendingKind ? (
-          <p className="mt-3 text-sm font-semibold text-forest">
+          <p className="mt-3 break-words text-sm font-semibold text-forest">
             {l.pendingKind === "coach_swap" ? "A time swap is waiting on the students." : "This student asked to move. Review it in Bookings."}{" "}
             <Link to="/app/bookings" search={{ tab: "requests", swap: undefined }} className="underline">
               Open requests
             </Link>
           </p>
         ) : null}
+        {canCollect ? (
+          <div className="mt-3">
+            <CollectButton
+              lessonId={id}
+              onCollected={() => {
+                notifyLessonsChanged("collect");
+                void reload();
+              }}
+            />
+            {l.recurring ? <p className="mt-2 text-xs text-muted">Only this lesson is marked. The schedule's payment note stays as is.</p> : null}
+          </div>
+        ) : null}
       </div>
-      {canCollect ? (
-        <div className="mt-4">
-          <CollectButton
-            lessonId={id}
-            onCollected={() => {
-              notifyLessonsChanged("collect");
-              void reload();
-            }}
-          />
-          {l.recurring ? <p className="mt-2 text-xs text-muted">Only this lesson is marked. The schedule's payment note stays as is.</p> : null}
-        </div>
-      ) : null}
       {movable ? (
         <div className="mt-6 rounded-2xl bg-card p-5 ring-1 ring-line">
           <h2 className="type-section font-semibold">Reschedule</h2>
@@ -168,13 +170,14 @@ function LessonDetail() {
           </div>
           {l.recurring ? (
             <div className="mt-4 flex flex-wrap items-end gap-2">
-              <label className="block">
+              <label className="block w-full min-w-0 max-w-full flex-1 md:w-auto md:flex-none">
                 <span className="mb-1.5 block text-sm font-medium">Other time</span>
-                <input className="field" type="time" step={300} value={otherTime} onChange={(e) => setOtherTime(e.target.value)} />
+                <input className="field max-w-full" type="time" step={300} value={otherTime} onChange={(e) => setOtherTime(e.target.value)} />
               </label>
               <Button
                 variant="outline"
                 size="field"
+                className="min-w-0 max-w-full"
                 disabled={busy || !otherStart()}
                 onClick={() => {
                   const start = otherStart();
@@ -189,13 +192,15 @@ function LessonDetail() {
             <div className="mt-4 rounded-xl bg-paper-2 p-3 text-sm">
               <p className="flex gap-2">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0 text-coral" strokeWidth={1.75} />
-                Not in your public hours — this will still hold the slot. Move to {formatTime(new Date(pendingOutside), tz)}?
+                <span className="min-w-0 break-words">
+                  Not in your public hours — this will still hold the slot. Move to {formatTime(new Date(pendingOutside), tz)}?
+                </span>
               </p>
-              <div className="mt-3 flex gap-2">
-                <Button size="field" disabled={busy} onClick={() => void move(pendingOutside, true)}>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button size="field" className="w-auto min-w-0 max-w-full flex-[1_1_12rem]" disabled={busy} onClick={() => void move(pendingOutside, true)}>
                   Move anyway
                 </Button>
-                <Button variant="outline" size="field" disabled={busy} onClick={() => setPendingOutside(null)}>
+                <Button variant="outline" size="field" className="w-auto min-w-0 max-w-full flex-[1_1_12rem]" disabled={busy} onClick={() => setPendingOutside(null)}>
                   Keep current time
                 </Button>
               </div>

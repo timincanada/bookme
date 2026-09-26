@@ -22,7 +22,7 @@ export const buttonVariants = cva(
         md: "h-11 px-5 text-sm rounded-full",
         lg: "h-12 px-6 text-base rounded-full",
         xl: "h-14 px-7 text-base rounded-full",
-        field: "h-12 px-5 text-base rounded-xl w-full",
+        field: "min-h-12 h-auto w-full min-w-0 max-w-full px-5 text-center text-base rounded-xl",
       },
     },
     defaultVariants: { variant: "primary", size: "md" },

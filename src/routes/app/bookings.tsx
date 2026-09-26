@@ -144,15 +144,15 @@ function Bookings() {
               <p className="text-xs font-semibold uppercase tracking-wide text-muted">
                 {r.kind === "coach_swap" ? "Swap" : "Move request"} · {r.status}
               </p>
-              <p className="type-primary mt-1 font-semibold">{r.studentName}</p>
-              <p className="type-primary type-follow text-sm">
+              <p className="type-primary mt-1 break-words font-semibold">{r.studentName}</p>
+              <p className="type-primary type-follow break-words text-sm">
                 {r.kind === "coach_swap"
                   ? `${r.studentWhen} ⇄ ${r.otherName} · ${r.otherWhen}`
                   : r.status === "accepted" && r.studentWhen === r.nextWhen
                     ? `Moved to ${r.nextWhen}`
                     : `${r.studentWhen} → ${r.nextWhen}`}
               </p>
-              {r.note ? <p className="mt-2 text-sm text-ink-soft">{r.note}</p> : null}
+              {r.note ? <p className="mt-2 break-words text-sm text-ink-soft">{r.note}</p> : null}
               {r.kind === "coach_swap" && r.status === "pending" ? (
                 <p className="mt-2 text-xs text-muted">
                   {firstName(r.studentName)} {r.studentDecision} · {r.otherName ? firstName(r.otherName) : "Student"}{" "}
@@ -160,7 +160,7 @@ function Bookings() {
                 </p>
               ) : null}
               {r.kind === "student_move" && r.status === "pending" ? (
-                <div className="mt-3 flex gap-2">
+                <div className="mt-3 flex flex-wrap gap-2">
                   <Button
                     size="sm"
                     disabled={busy}
@@ -222,7 +222,7 @@ function Bookings() {
               Both students get an email with your note. Times move only if both accept. Your assistant can send this too.
             </p>
             <label className="mt-4 block text-sm font-medium">First student</label>
-            <select className="field mt-1" value={aId} onChange={(e) => setAId(e.target.value)}>
+            <select className="field mt-1 min-w-0 max-w-full" value={aId} onChange={(e) => setAId(e.target.value)}>
               <option value="">Choose a lesson</option>
               {upcoming.map((l) => (
                 <option key={l.id} value={l.id} disabled={l.id === bId || Boolean(l.pendingKind)}>
@@ -232,7 +232,7 @@ function Bookings() {
               ))}
             </select>
             <label className="mt-3 block text-sm font-medium">Second student</label>
-            <select className="field mt-1" value={bId} onChange={(e) => setBId(e.target.value)}>
+            <select className="field mt-1 min-w-0 max-w-full" value={bId} onChange={(e) => setBId(e.target.value)}>
               <option value="">Choose a lesson</option>
               {upcoming.map((l) => (
                 <option key={l.id} value={l.id} disabled={l.id === aId || Boolean(l.pendingKind)}>
@@ -280,7 +280,7 @@ function Bookings() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Can't send this swap</AlertDialogTitle>
-            <AlertDialogDescription>{pendingConflict}</AlertDialogDescription>
+            <AlertDialogDescription className="break-words">{pendingConflict}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction

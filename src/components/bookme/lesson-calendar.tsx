@@ -97,7 +97,7 @@ function Nav({
   onToday: () => void;
 }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex min-w-0 items-center gap-2">
       <button
         type="button"
         onClick={onPrev}
@@ -106,7 +106,7 @@ function Nav({
       >
         <ChevronLeft className="size-5" />
       </button>
-      <p className="min-w-0 flex-1 text-center font-display text-xl font-medium sm:text-2xl">{label}</p>
+      <p className="min-w-0 flex-1 break-words text-center font-display text-xl font-medium sm:text-2xl">{label}</p>
       <button
         type="button"
         onClick={onNext}
@@ -208,7 +208,7 @@ export function WeekCalendar({
               type="button"
               onClick={() => onSelect(key)}
               className={cn(
-                "flex min-h-11 flex-col items-center rounded-2xl py-2 text-xs font-medium",
+                "flex min-h-11 min-w-0 flex-col items-center rounded-2xl py-2 text-xs font-medium",
                 on && "bg-forest text-on-forest",
                 !on && isToday && "bg-sage-3 text-forest",
                 !on && !isToday && "text-ink-soft hover:bg-paper-2",
@@ -326,8 +326,8 @@ export function DayAgenda({
               <Link to="/app/lessons/$id" params={{ id: lesson.id }} className="type-card-gap flex gap-3">
                 <div className="type-time w-16 shrink-0 pt-0.5 text-sm font-semibold tabular-nums">{lesson.time}</div>
                 <div className="min-w-0 flex-1">
-                  <p className="type-primary font-semibold">{lesson.clientName}</p>
-                  <p className="type-follow text-sm text-muted">
+                  <p className="type-primary break-words font-semibold">{lesson.clientName}</p>
+                  <p className="type-follow break-words text-sm text-muted">
                     {lesson.duration} min · {lesson.locationName}
                     {lesson.recurring ? " · Recurring" : ""}
                   </p>
@@ -418,7 +418,7 @@ export function MonthCalendar({
                 type="button"
                 onClick={() => onSelect(key)}
                 className={cn(
-                  "min-h-14 border-b border-r border-line/70 p-1.5 text-left align-top sm:min-h-24",
+                  "min-h-14 min-w-0 border-b border-r border-line/70 p-1.5 text-left align-top sm:min-h-24",
                   on && "bg-sage-3",
                   !on && isToday && "bg-cream",
                 )}
@@ -475,10 +475,10 @@ export function MonthCalendar({
             {selectedLessons.map((lesson) => (
               <li key={lesson.id} className="rounded-2xl bg-card p-4 ring-1 ring-line">
                 <Link to="/app/lessons/$id" params={{ id: lesson.id }} className="block">
-                  <p className="type-primary font-semibold">
+                  <p className="type-primary break-words font-semibold">
                     {lesson.time} · {lesson.clientName}
                   </p>
-                  <p className="type-follow text-sm text-muted">
+                  <p className="type-follow break-words text-sm text-muted">
                     {lesson.locationName} · {lesson.statusLabel} · {lesson.pay?.text}
                     {lesson.recurring ? " · Recurring" : ""}
                   </p>

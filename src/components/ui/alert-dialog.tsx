@@ -63,7 +63,7 @@ export const AlertDialogDescription = forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Description
     ref={ref}
-    className={cn("text-sm text-ink-soft", className)}
+    className={cn("break-words text-sm text-ink-soft", className)}
     {...props}
   />
 ));

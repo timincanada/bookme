@@ -43,14 +43,14 @@ function Schedule() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="flex items-end justify-between gap-3">
-        <div>
+      <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
+        <div className="min-w-0">
           <h1 className="font-display text-3xl font-medium">Schedule</h1>
           <p className="mt-1 text-muted">
             {lessons.length} upcoming lesson{lessons.length === 1 ? "" : "s"}
           </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <Link
             to="/app/messages"
             className="relative inline-flex items-center text-forest"

@@ -39,13 +39,13 @@ export function WeatherChipView({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 font-medium leading-none",
-        small ? "h-7 text-xs" : "h-8 text-sm",
+        "inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-full border px-2.5 font-medium leading-none",
+        small ? "min-h-7 text-xs" : "min-h-8 text-sm",
         extreme ? "border-amber-500 bg-amber-50 text-ink" : "border-line bg-card text-ink",
       )}
     >
       <Icon className={small ? "size-3.5 text-ink-soft" : "size-4 text-ink-soft"} strokeWidth={1.75} aria-hidden />
-      <span>{summary}</span>
+      <span className="min-w-0 break-words">{summary}</span>
       {extreme ? (
         <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
           Weather alert

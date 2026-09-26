@@ -73,7 +73,10 @@
   }
 
   .field {
+    box-sizing: border-box;
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
     height: 3rem;
     border-radius: 0.75rem;
     border: 1px solid var(--color-line);
@@ -82,6 +85,60 @@
     font-size: 0.95rem;
     color: var(--color-ink);
     outline: none;
+  }
+
+  /*
+   * iOS WebKit gives date/time controls an intrinsic min-width and ignores
+   * width:100% until appearance is cleared. Selects get the same box but keep
+   * the native chevron. The calendar/clock indicator stays so desktop Chrome
+   * can still open the picker.
+   */
+  select.field,
+  .field[type="date"],
+  .field[type="time"],
+  .field[type="datetime-local"],
+  .field[type="month"] {
+    display: block;
+  }
+
+  .field[type="date"],
+  .field[type="time"],
+  .field[type="datetime-local"],
+  .field[type="month"] {
+    -webkit-appearance: none;
+    appearance: none;
+    text-align: left;
+  }
+
+  .field[type="date"]::-webkit-date-and-time-value,
+  .field[type="time"]::-webkit-date-and-time-value,
+  .field[type="datetime-local"]::-webkit-date-and-time-value,
+  .field[type="month"]::-webkit-date-and-time-value {
+    text-align: left;
+    margin: 0;
+    min-width: 0;
+  }
+
+  .field[type="date"]::-webkit-datetime-edit,
+  .field[type="time"]::-webkit-datetime-edit,
+  .field[type="datetime-local"]::-webkit-datetime-edit,
+  .field[type="month"]::-webkit-datetime-edit,
+  .field[type="date"]::-webkit-datetime-edit-fields-wrapper,
+  .field[type="time"]::-webkit-datetime-edit-fields-wrapper,
+  .field[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper,
+  .field[type="month"]::-webkit-datetime-edit-fields-wrapper {
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+  }
+
+  .field[type="date"]::-webkit-datetime-edit,
+  .field[type="time"]::-webkit-datetime-edit,
+  .field[type="datetime-local"]::-webkit-datetime-edit,
+  .field[type="month"]::-webkit-datetime-edit {
+    display: inline-flex;
+    align-items: center;
+    height: 100%;
   }
 
   .field:focus {
