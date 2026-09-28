@@ -25,10 +25,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="bookme.training" />
-                <data android:pathPrefix="/manage" />
                 <data android:pathPrefix="/app" />
-                <data android:pathPrefix="/r/" />
-                <data android:path="/s" />
                 <data android:path="/welcome" />
             </intent-filter>
         </activity>
