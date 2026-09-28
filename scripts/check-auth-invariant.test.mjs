@@ -90,9 +90,21 @@ test("only a divergence warns the smoke verdict", () => {
   }
 });
 
-test("the build side resolves the template's shipped app-env", () => {
-  assert.equal(buildAuthEnabled(projectRoot(), {}), false);
+test("the build side resolves BookMe's shipped app-env as auth on", () => {
+  assert.equal(buildAuthEnabled(projectRoot(), {}), true);
   assert.equal(buildAuthEnabled(projectRoot(), { VITE_AUTH_ENABLED: "true" }), true);
+  // An explicit off still wins. The checker is not loosened to always pass.
+  assert.equal(buildAuthEnabled(projectRoot(), { VITE_AUTH_ENABLED: "false" }), false);
+});
+
+test("the invariant fails when the dev server disagrees with the auth-on build", () => {
+  const result = compareAuthInvariant({
+    devAuthEnabled: false,
+    buildAuthEnabled: buildAuthEnabled(projectRoot(), {}),
+  });
+  assert.equal(result.status, "diverged");
+  assert.match(result.message, /dev server has sign-in off but the next build has it on/);
+  assert.equal(authInvariantWarnings(result).length, 1);
 });
 
 test("the CLI reports rather than silently passing when run via a symlink", async () => {

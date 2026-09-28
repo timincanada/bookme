@@ -191,8 +191,6 @@ scripts/sign-out-plan.mjs
 scripts/sign-out-plan.test.mjs
 scripts/with-app-env.mjs
 scripts/with-app-env.test.mjs
-scripts/write-atomic.mjs
-scripts/write-atomic.test.mjs
 server/middleware/grok-pwa.ts
 server/middleware/security-headers.ts
 server/virtual-grok-og-identity.d.ts

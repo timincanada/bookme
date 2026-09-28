@@ -16,8 +16,8 @@ import { projectRoot } from "./with-app-env.mjs";
 const AUTH_MIGRATION = "0001_auth.sql";
 
 /**
- * The auth-on copy of the Better Auth schema and its source, or null when the
- * app has not turned sign-in on (the shipped state).
+ * The applied Better Auth schema and its source under migrations/auth/, or
+ * null when either file is absent.
  */
 function authSchemaCopy(root) {
   const copy = join(root, "migrations", AUTH_MIGRATION);
@@ -56,10 +56,32 @@ test("non-.sql entries are dropped (readdir also yields the auth/ directory)", (
   assert.deepEqual(pendingMigrations(["auth", "README.md"], []), []);
 });
 
-test("the auth schema ships outside the globbed directory", () => {
+test("BookMe's hand-written migrations are what migrate.mjs applies", () => {
+  // migrate.mjs readdirs migrations/ and does not descend. The auth schema is
+  // applied from migrations/0001_auth.sql; migrations/auth/ is the source copy.
   const migrationsDir = join(projectRoot(), "migrations");
-  assert.deepEqual(pendingMigrations(readdirSync(migrationsDir), []), []);
-  assert.ok(readdirSync(join(migrationsDir, "auth")).includes("0001_auth.sql"));
+  const entries = readdirSync(migrationsDir);
+  const plan = pendingMigrations(entries, []);
+  const sqlFiles = entries.filter((name) => name.endsWith(".sql")).sort();
+
+  assert.deepEqual(
+    plan.map((entry) => entry.name),
+    sqlFiles,
+    "the plan must be exactly the .sql files directly in migrations/",
+  );
+  for (const name of ["0001_auth.sql", "0002_bookme.sql", "0017_assistant_messages.sql"]) {
+    assert.ok(sqlFiles.includes(name), `${name} missing from the migrate plan`);
+    assert.ok(existsSync(join(migrationsDir, name)), `${name} missing on disk`);
+  }
+  assert.ok(existsSync(join(migrationsDir, "auth", AUTH_MIGRATION)));
+  assert.ok(entries.includes("auth"));
+  assert.ok(entries.includes("dev"));
+  assert.equal(
+    plan.some((entry) => entry.name === "seed.sql" || entry.path.includes("/")),
+    false,
+  );
+  assert.ok(existsSync(join(migrationsDir, "dev", "seed.sql")));
+  assert.ok(plan.length > 1);
 });
 
 test("this workspace's auth schema copy is byte-identical to its source", () => {
