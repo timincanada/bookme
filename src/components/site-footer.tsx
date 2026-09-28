@@ -30,7 +30,11 @@ export function SiteFooter() {
         />
         <FooterCol
           title="Legal"
-          links={[["/terms", "Terms & cancellation"]]}
+          links={[
+            ["/terms", "Terms & cancellation"],
+            ["/privacy", "Privacy policy"],
+            ["/delete-account", "Delete your account"],
+          ]}
         />
       </div>
       <div className="border-t border-line">
