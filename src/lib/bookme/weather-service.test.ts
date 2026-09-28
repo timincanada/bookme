@@ -3,12 +3,12 @@ import { mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
+import { resolveOpenMeteoFixture } from "./weather-fixture.server.ts";
 import {
   alignExtremeFixture,
   openAskAsStudent,
   resetWeatherForTests,
   resolveAskAsCoach,
-  resolveOpenMeteoFixture,
   setGeocodeTransport,
   setWeatherTransport,
   weatherForCoach,

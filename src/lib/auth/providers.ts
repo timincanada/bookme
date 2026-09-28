@@ -41,7 +41,7 @@ export const GOOGLE_SOCIAL_PROVIDER: AuthProvider = {
 const PRODUCTION_HOSTS = new Set(["bookme.training", "www.bookme.training"]);
 
 /** True when this browser origin should use direct Google (not the preview broker). */
-export function useDirectGoogleAuth(hostname?: string): boolean {
+export function prefersDirectGoogleAuth(hostname?: string): boolean {
   const host =
     (typeof hostname === "string" && hostname) ||
     (typeof window !== "undefined" ? window.location.hostname : "");
@@ -53,7 +53,7 @@ export function useDirectGoogleAuth(hostname?: string): boolean {
 
 /** Providers to render on the current host. */
 export function authProvidersForHost(hostname?: string): readonly AuthProvider[] {
-  return useDirectGoogleAuth(hostname) ? [GOOGLE_SOCIAL_PROVIDER] : GROK_PROVIDERS;
+  return prefersDirectGoogleAuth(hostname) ? [GOOGLE_SOCIAL_PROVIDER] : GROK_PROVIDERS;
 }
 
 /** @deprecated Prefer `authProvidersForHost()` — kept for older imports. */

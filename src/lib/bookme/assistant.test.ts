@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
-import { dateKeyFromText, findClient, parseAssistant, shiftDateKey, signEmailAsCoach } from "./assistant.ts";
+import { endOfCoachDay, findClient, parseAssistant, shiftDateKey, signEmailAsCoach } from "./assistant.ts";
 
 const clients = [{ id: "c1", name: "Emma Chen" }, { id: "c2", name: "Alex" }];
 const lessons = [
   { id: "l1", clientId: "c1", clientName: "Emma Chen", startAt: "2026-09-24T21:00:00.000Z", status: "confirmed", location: "Court 3" },
   { id: "l2", clientId: "c2", clientName: "Alex", startAt: "2026-09-25T19:00:00.000Z", status: "confirmed", location: "Blackmore" },
 ];
-const ctx = { todayKey: "2026-09-22", timezone: "America/Toronto", clients, lessons };
+const todayKey = "2026-09-22";
+const timezone = "America/Toronto";
+const ctx = { todayKey, timezone, clients, lessons, now: endOfCoachDay(todayKey, timezone) };
 
 assert.equal(shiftDateKey("2026-09-22", 1), "2026-09-23");
 assert.equal(findClient(clients, "email Alex")?.id, "c2");

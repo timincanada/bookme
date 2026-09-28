@@ -211,15 +211,14 @@ export const adminUpdateTeam = createServerFn({ method: "POST" })
     return { ok: true as const, message: add ? `${res.email} can now open the console.` : `${res.email} removed.` };
   });
 
-/** CSV or Excel export of coaches / revenue / lessons. */
+/** CSV export of coaches / revenue / lessons. */
 export const adminExport = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((input: { kind: "coaches" | "revenue" | "lessons"; format: "csv" | "xlsx"; from?: string; to?: string }) => guardInput(input))
+  .validator((input: { kind: "coaches" | "revenue" | "lessons"; format?: "csv"; from?: string; to?: string }) => guardInput(input))
   .handler(async ({ context, data }) => {
     const gate = await authAdmin(context.userId);
     if (!gate.ok) return gate;
     const kind = data?.kind === "revenue" || data?.kind === "lessons" ? data.kind : "coaches";
-    const format = data?.format === "xlsx" ? "xlsx" : "csv";
 
     let rows: Record<string, unknown>[] = [];
     let columns: { key: string; header: string }[] = [];
@@ -269,26 +268,9 @@ export const adminExport = createServerFn({ method: "POST" })
       ];
     }
 
-    const filename = exportFilename(kind, format);
-    await recordAction(gate.sql, gate.me, { kind: "export", subjectType: "report", subjectId: kind, detail: format });
-
-    if (format === "csv") {
-      return { ok: true as const, filename, mime: "text/csv;charset=utf-8", base64: Buffer.from(toCsv(rows, columns), "utf8").toString("base64") };
-    }
-    const XLSX = await import("xlsx");
-    const sheet = XLSX.utils.json_to_sheet(
-      rows.map((r) => Object.fromEntries(columns.map((c) => [c.header, r[c.key] ?? ""]))),
-      { header: columns.map((c) => c.header) },
-    );
-    const book = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(book, sheet, kind);
-    const buf = XLSX.write(book, { type: "base64", bookType: "xlsx" }) as string;
-    return {
-      ok: true as const,
-      filename,
-      mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      base64: buf,
-    };
+    const filename = exportFilename(kind, "csv");
+    await recordAction(gate.sql, gate.me, { kind: "export", subjectType: "report", subjectId: kind, detail: "csv" });
+    return { ok: true as const, filename, mime: "text/csv;charset=utf-8", base64: Buffer.from(toCsv(rows, columns), "utf8").toString("base64") };
   });
 
 function mapAction(a: { id: string; actor_email: string; actor_role: string; kind: string; subject_type: string; subject_id: string; detail: string; note: string; created_at: string | Date }) {

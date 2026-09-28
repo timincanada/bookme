@@ -113,7 +113,7 @@ export function toCsv(rows: Record<string, unknown>[], columns: { key: string; h
   return `${head}\n${body}\n`;
 }
 
-export function exportFilename(kind: string, ext: "csv" | "xlsx", now = new Date()) {
+export function exportFilename(kind: string, ext: "csv", now = new Date()) {
   return `bookme-${kind}-${dateKeyAt(now, REPORT_TIMEZONE)}.${ext}`;
 }
 

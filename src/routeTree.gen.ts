@@ -21,6 +21,7 @@ import { Route as HelpRouteImport } from './routes/help'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ManageRouteImport } from './routes/manage'
+import { Route as PlansRouteImport } from './routes/plans'
 import { Route as PreviewRouteImport } from './routes/preview'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as SRouteImport } from './routes/s'
@@ -133,6 +134,11 @@ const LoginRoute = LoginRouteImport.update({
 const ManageRoute = ManageRouteImport.update({
   id: '/manage',
   path: '/manage',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlansRoute = PlansRouteImport.update({
+  id: '/plans',
+  path: '/plans',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PreviewRoute = PreviewRouteImport.update({
@@ -416,6 +422,7 @@ export interface FileRoutesByFullPath {
   '/how-it-works': typeof HowItWorksRoute
   '/login': typeof LoginRoute
   '/manage': typeof ManageRouteWithChildren
+  '/plans': typeof PlansRoute
   '/preview': typeof PreviewRoute
   '/pricing': typeof PricingRoute
   '/s': typeof SRoute
@@ -480,6 +487,7 @@ export interface FileRoutesByTo {
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
   '/login': typeof LoginRoute
+  '/plans': typeof PlansRoute
   '/preview': typeof PreviewRoute
   '/pricing': typeof PricingRoute
   '/s': typeof SRoute
@@ -547,6 +555,7 @@ export interface FileRoutesById {
   '/how-it-works': typeof HowItWorksRoute
   '/login': typeof LoginRoute
   '/manage': typeof ManageRouteWithChildren
+  '/plans': typeof PlansRoute
   '/preview': typeof PreviewRoute
   '/pricing': typeof PricingRoute
   '/s': typeof SRoute
@@ -616,6 +625,7 @@ export interface FileRouteTypes {
     | '/how-it-works'
     | '/login'
     | '/manage'
+    | '/plans'
     | '/preview'
     | '/pricing'
     | '/s'
@@ -680,6 +690,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/how-it-works'
     | '/login'
+    | '/plans'
     | '/preview'
     | '/pricing'
     | '/s'
@@ -746,6 +757,7 @@ export interface FileRouteTypes {
     | '/how-it-works'
     | '/login'
     | '/manage'
+    | '/plans'
     | '/preview'
     | '/pricing'
     | '/s'
@@ -814,6 +826,7 @@ export interface RootRouteChildren {
   HowItWorksRoute: typeof HowItWorksRoute
   LoginRoute: typeof LoginRoute
   ManageRoute: typeof ManageRouteWithChildren
+  PlansRoute: typeof PlansRoute
   PreviewRoute: typeof PreviewRoute
   PricingRoute: typeof PricingRoute
   SRoute: typeof SRoute
@@ -917,6 +930,13 @@ declare module '@tanstack/react-router' {
       path: '/manage'
       fullPath: '/manage'
       preLoaderRoute: typeof ManageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/plans': {
+      id: '/plans'
+      path: '/plans'
+      fullPath: '/plans'
+      preLoaderRoute: typeof PlansRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/preview': {
@@ -1432,6 +1452,7 @@ const rootRouteChildren: RootRouteChildren = {
   HowItWorksRoute: HowItWorksRoute,
   LoginRoute: LoginRoute,
   ManageRoute: ManageRouteWithChildren,
+  PlansRoute: PlansRoute,
   PreviewRoute: PreviewRoute,
   PricingRoute: PricingRoute,
   SRoute: SRoute,

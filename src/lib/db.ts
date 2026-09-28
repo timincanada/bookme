@@ -107,6 +107,50 @@ function createNeonSql(): Promise<Sql> {
   return globalRef.__pgSqlPromise__;
 }
 
+/**
+ * PGLite's wasm and `pglite.data` live next to the package entry. Nitro bundles
+ * the library into the preview output, so those relative URLs 404 and the
+ * in-flight file read rejects outside our bootstrap promise. Load the bytes
+ * from the package when we can resolve it.
+ */
+async function pglitePackageOptions(): Promise<{
+  fsBundle?: Blob;
+  pgliteWasmModule?: WebAssembly.Module;
+  initdbWasmModule?: WebAssembly.Module;
+}> {
+  try {
+    const { createRequire } = await import("node:module");
+    const { readFile } = await import("node:fs/promises");
+    const { dirname, join } = await import("node:path");
+    const { pathToFileURL } = await import("node:url");
+    const parents = [import.meta.url, pathToFileURL(join(process.cwd(), "package.json")).href];
+    for (const parent of parents) {
+      try {
+        const dir = dirname(createRequire(parent).resolve("@electric-sql/pglite"));
+        const [wasm, initdb, data] = await Promise.all([
+          readFile(join(dir, "pglite.wasm")),
+          readFile(join(dir, "initdb.wasm")),
+          readFile(join(dir, "pglite.data")),
+        ]);
+        const [pgliteWasmModule, initdbWasmModule] = await Promise.all([
+          WebAssembly.compile(wasm),
+          WebAssembly.compile(initdb),
+        ]);
+        return {
+          fsBundle: new Blob([new Uint8Array(data)]),
+          pgliteWasmModule,
+          initdbWasmModule,
+        };
+      } catch {
+        // Try the next parent (bundled import.meta.url, then the project root).
+      }
+    }
+  } catch (err) {
+    console.error("[db] Could not read @electric-sql/pglite wasm/data files:", err);
+  }
+  return {};
+}
+
 async function createPgliteSql(): Promise<Sql> {
   // Embedded Postgres, imported on demand so it never loads on the Neon path.
   // One in-memory instance per process, shared across HMR module instances, so
@@ -114,6 +158,7 @@ async function createPgliteSql(): Promise<Sql> {
   globalRef.__pgliteInstance__ ??= (async () => {
     const { PGlite } = await import("@electric-sql/pglite");
     const pg = new PGlite({
+      ...(await pglitePackageOptions()),
       parsers: {
         [OID_INT8]: Number,
         [OID_DATE]: identity,
@@ -290,7 +335,11 @@ const globalBoot = globalThis as typeof globalThis & {
 if (typeof window === "undefined" && dbSource === "pglite") {
   globalBoot.__pgBootstrapPromise__ ??= ensureDbReady().catch((err) => {
     globalBoot.__pgBootstrapPromise__ = undefined;
-    console.error("[db] PGLite bootstrap failed:", err);
-    throw err;
+    // Do not rethrow: this promise is not awaited, and a rejection here kills
+    // the Node process (vite preview when pglite.data is missing from the bundle).
+    console.error(
+      "[db] PGLite local preview DB failed to start. Set DATABASE_URL to use Neon Postgres, or ensure node_modules/@electric-sql/pglite/dist has pglite.wasm, initdb.wasm, and pglite.data.",
+      err,
+    );
   });
 }
