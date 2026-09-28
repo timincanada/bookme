@@ -21,33 +21,84 @@ import { renderInstallPage } from "./grok-pwa-plugin.mjs";
 
 const TEMPLATE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-test("injects before </head>", () => {
-  const out = injectGrokPwaHead("<html><head><title>x</title></head><body></body></html>");
+function withExtensionsFlag(value, run) {
+  const prev = process.env.GROK_EXTENSIONS_ENABLED;
+  if (value === undefined) delete process.env.GROK_EXTENSIONS_ENABLED;
+  else process.env.GROK_EXTENSIONS_ENABLED = value;
+  try {
+    return run();
+  } finally {
+    if (prev === undefined) delete process.env.GROK_EXTENSIONS_ENABLED;
+    else process.env.GROK_EXTENSIONS_ENABLED = prev;
+  }
+}
+
+function withExtensionsEnabled(run) {
+  return withExtensionsFlag("1", run);
+}
+
+test("injects og metas at the start of head and chrome before </head>", () => {
+  const out = withExtensionsFlag(undefined, () =>
+    injectGrokPwaHead("<html><head><title>x</title></head><body></body></html>"),
+  );
   assert.match(out, /rel="manifest"/);
   assert.match(out, /apple-touch-icon/);
-  assert.match(out, /grok-app-builder\/extensions\.js/);
+  // The extensions script is injected only when GROK_EXTENSIONS_ENABLED=1.
+  assert.doesNotMatch(out, /grok-app-builder\/extensions\.js/);
+  assert.match(out, /<head><meta name="twitter:card" content="summary_large_image">/);
+  assert.match(out, /property="og:title" content="BookMe"/);
+  assert.ok(out.indexOf('property="og:title"') < out.indexOf("<title>"));
   assert.ok(out.indexOf("manifest") < out.indexOf("</head>"));
 });
 
-test("injects the extensions script without a project id", () => {
-  const out = injectGrokPwaHead("<html><head></head></html>", {
-    appName: "Demo",
-    projectId: "",
-  });
+test("injects the extensions script without a project id when enabled", () => {
+  const off = withExtensionsFlag(undefined, () =>
+    injectGrokPwaHead("<html><head></head></html>", {
+      appName: "Demo",
+      projectId: "",
+    }),
+  );
+  assert.doesNotMatch(off, /extensions\.js/);
+  assert.doesNotMatch(off, /grok-project-id/);
+  assert.doesNotMatch(off, /data-project-id/);
+  assert.doesNotMatch(off, /property="grok:app_id"/);
+
+  const out = withExtensionsEnabled(() =>
+    injectGrokPwaHead("<html><head></head></html>", {
+      appName: "Demo",
+      projectId: "",
+    }),
+  );
   assert.match(out, /src="https:\/\/grok\.com\/grok-app-builder\/extensions\.js" defer/);
   assert.doesNotMatch(out, /grok-project-id/);
   assert.doesNotMatch(out, /data-project-id/);
   assert.doesNotMatch(out, /property="grok:app_id"/);
+  assert.ok(out.indexOf("extensions.js") < out.indexOf("</head>"));
 });
 
-test("injects project id on the script and meta when provided", () => {
-  const out = injectGrokPwaHead("<html><head></head></html>", {
-    appName: "Demo",
-    projectId: "proj-123",
-  });
+test("injects project id on the script and meta when extensions are enabled", () => {
+  const off = withExtensionsFlag(undefined, () =>
+    injectGrokPwaHead("<html><head></head></html>", {
+      appName: "Demo",
+      projectId: "proj-123",
+    }),
+  );
+  // grok:app_id is platform chrome. The third-party script stays gated.
+  assert.match(off, /property="grok:app_id" content="proj-123"/);
+  assert.doesNotMatch(off, /extensions\.js/);
+  assert.doesNotMatch(off, /name="grok-project-id"/);
+  assert.doesNotMatch(off, /data-project-id/);
+
+  const out = withExtensionsEnabled(() =>
+    injectGrokPwaHead("<html><head></head></html>", {
+      appName: "Demo",
+      projectId: "proj-123",
+    }),
+  );
   assert.match(out, /name="grok-project-id" content="proj-123"/);
   assert.match(out, /data-project-id="proj-123"/);
   assert.match(out, /property="grok:app_id" content="proj-123"/);
+  assert.equal(out.split('property="grok:app_id"').length - 1, 1);
 });
 
 test("does not duplicate grok:app_id", () => {
@@ -102,17 +153,20 @@ test("does not duplicate x:creator tags", () => {
   assert.equal(twice.split('property="x:creator:id"').length - 1, 1);
 });
 
-test("platform chrome overwrites share-card metas and always sets og:title", () => {
+test("platform chrome overwrites share-card metas and sets og:title from site.json", () => {
   const html =
     '<html><head><title>Hello World</title><meta property="og:title" content="Old"><meta name="twitter:card" content="summary"></head></html>';
   const out = injectGrokPwaHead(html, { appName: "Wild Race" });
   assert.match(out, /name="twitter:card" content="summary_large_image"/);
-  assert.match(out, /property="og:title" content="Hello World"/);
+  // src/lib/og/site.json title wins over the document <title> and appName.
+  assert.match(out, /property="og:title" content="BookMe"/);
   assert.doesNotMatch(out, /content="Old"/);
   assert.doesNotMatch(out, /content="summary"/);
+  assert.doesNotMatch(out, /property="og:title" content="Hello World"/);
   assert.equal(out.split('name="twitter:card"').length - 1, 1);
   assert.equal(out.split('property="og:title"').length - 1, 1);
   assert.doesNotMatch(out, /property="og:image"/);
+  assert.ok(out.indexOf('property="og:title"') < out.indexOf("<title>Hello World</title>"));
 });
 
 test("does not duplicate twitter:card or og:title", () => {
@@ -243,11 +297,23 @@ test("site title Grok App is a real name, not a sentinel", () => {
   assert.match(out, /property="og:title" content="Grok App"/);
 });
 
-test("published grok.me slug is still a title fallback", () => {
+test("site.json title wins over a published grok.me slug", () => {
   const out = injectGrokPwaHead("<html><head></head></html>", {
     host: "wild-race.grok.me",
   });
-  assert.match(out, /property="og:title" content="Wild Race"/);
+  assert.match(out, /property="og:title" content="BookMe"/);
+  assert.match(out, /property="og:image" content="https:\/\/wild-race\.grok\.me\/og\.jpg"/);
+  assert.doesNotMatch(out, /og\.grok\.me/);
+  assert.match(out, /<head><meta name="twitter:card"/);
+
+  // The slug is still the fallback when the workspace has no site title.
+  const cwd = mkdtempSync(join(tmpdir(), "grok-og-slug-"));
+  const fallback = injectGrokPwaHead("<html><head></head></html>", {
+    host: "wild-race.grok.me",
+    cwd,
+    site: {},
+  });
+  assert.match(fallback, /property="og:title" content="Wild Race"/);
 });
 
 test("rejects Vercel system hosts as og:image origins", () => {
@@ -303,16 +369,17 @@ test("vercel Host without a public hostname emits no og:image", () => {
 });
 
 test("emits og:image for a public host and prefers a custom card", () => {
-  const placeholder = injectGrokPwaHead("<html><head></head></html>", {
+  // BookMe ships public/og.jpg, so the disk card wins over the og.grok.me placeholder.
+  const shipped = injectGrokPwaHead("<html><head></head></html>", {
     appName: "Wild Race",
     host: "wild-race.grok.me",
     site: { title: "Wild Race" },
   });
-  assert.match(
-    placeholder,
-    /property="og:image" content="https:\/\/og\.grok\.me\/v1\/card\.png\?host=wild-race\.grok\.me&amp;title=Wild%20Race"/,
-  );
-  assert.match(placeholder, /property="og:image:width" content="1200"/);
+  assert.match(shipped, /property="og:title" content="Wild Race"/);
+  assert.match(shipped, /property="og:image" content="https:\/\/wild-race\.grok\.me\/og\.jpg"/);
+  assert.doesNotMatch(shipped, /og\.grok\.me/);
+  assert.match(shipped, /property="og:image:width" content="1200"/);
+  assert.ok(shipped.indexOf('property="og:image"') < shipped.indexOf('rel="manifest"'));
 
   const custom = injectGrokPwaHead("<html><head></head></html>", {
     appName: "Wild Race",
@@ -321,11 +388,25 @@ test("emits og:image for a public host and prefers a custom card", () => {
   });
   assert.match(custom, /property="og:image" content="https:\/\/wild-race\.grok\.me\/og\.jpg"/);
   assert.match(custom, /property="og:type" content="x:game"/);
+
+  const cwd = mkdtempSync(join(tmpdir(), "grok-og-placeholder-"));
+  const placeholder = injectGrokPwaHead("<html><head></head></html>", {
+    appName: "Wild Race",
+    host: "wild-race.grok.me",
+    cwd,
+    site: { title: "Wild Race" },
+  });
+  assert.match(
+    placeholder,
+    /property="og:image" content="https:\/\/og\.grok\.me\/v1\/card\.png\?host=wild-race\.grok\.me&amp;title=Wild%20Race"/,
+  );
 });
 
 test("placeholder og:image appends site.color when it is 6-digit hex", () => {
+  const cwd = mkdtempSync(join(tmpdir(), "grok-og-color-"));
   const themed = injectGrokPwaHead("<html><head></head></html>", {
     host: "wild-race.grok.me",
+    cwd,
     site: { title: "Wild Race", color: "#FF4D2E" },
   });
   assert.match(
@@ -335,23 +416,33 @@ test("placeholder og:image appends site.color when it is 6-digit hex", () => {
 
   const invalid = injectGrokPwaHead("<html><head></head></html>", {
     host: "wild-race.grok.me",
+    cwd,
     site: { title: "Wild Race", color: "red" },
   });
   assert.doesNotMatch(invalid, /color=/);
 
+  // BookMe's public/og.jpg (and any explicit card=custom) ignores the placeholder color.
   const custom = injectGrokPwaHead("<html><head></head></html>", {
     host: "wild-race.grok.me",
     site: { title: "Wild Race", card: "custom", color: "FF4D2E" },
   });
+  assert.match(custom, /property="og:image" content="https:\/\/wild-race\.grok\.me\/og\.jpg"/);
   assert.doesNotMatch(custom, /color=/);
 });
 
 test("document title entities are not double-escaped on og:title", () => {
-  const out = injectGrokPwaHead(
-    "<html><head><title>Cats &amp; Dogs</title></head></html>",
-  );
+  const cwd = mkdtempSync(join(tmpdir(), "grok-og-entities-"));
+  const out = injectGrokPwaHead("<html><head><title>Cats &amp; Dogs</title></head></html>", {
+    site: {},
+    cwd,
+  });
   assert.match(out, /property="og:title" content="Cats &amp; Dogs"/);
   assert.doesNotMatch(out, /Cats &amp;amp; Dogs/);
+
+  const shipped = injectGrokPwaHead("<html><head><title>Cats &amp; Dogs</title></head></html>");
+  assert.match(shipped, /property="og:title" content="BookMe"/);
+  assert.match(shipped, /<title>Cats &amp; Dogs<\/title>/);
+  assert.doesNotMatch(shipped, /&amp;amp;/);
 });
 
 test("site.json title wins over the host slug", () => {
@@ -365,8 +456,19 @@ test("site.json title wins over the host slug", () => {
 test("injects into documents with no head element", () => {
   const out = injectGrokPwaHead("<html><body>hi</body></html>", { appName: "Solo" });
   assert.match(out, /<head>/);
-  assert.match(out, /property="og:title" content="Solo"/);
+  assert.match(out, /property="og:title" content="BookMe"/);
   assert.match(out, /<\/head>/);
+  assert.match(out, /<body>hi<\/body>/);
+  assert.ok(out.indexOf("<head>") < out.indexOf('property="og:title"'));
+  assert.ok(out.indexOf('property="og:title"') < out.indexOf("</head>"));
+
+  const cwd = mkdtempSync(join(tmpdir(), "grok-og-solo-"));
+  const named = injectGrokPwaHead("<html><body>hi</body></html>", {
+    appName: "Solo",
+    site: {},
+    cwd,
+  });
+  assert.match(named, /property="og:title" content="Solo"/);
 });
 
 test("streaming injector matches </HEAD> case-insensitively", () => {
@@ -376,16 +478,22 @@ test("streaming injector matches </HEAD> case-insensitively", () => {
     ...injector.push("AD><body>hello</body></html>"),
   ];
   const out = Buffer.concat(chunks).toString("utf8");
-  assert.match(out, /property="og:title" content="x"/);
-  assert.match(out, /<body>hello<\/body>/);
+  assert.match(out, /<HEAD><meta name="twitter:card"/);
+  assert.match(out, /property="og:title" content="BookMe"/);
+  assert.match(out, /<title>x<\/title>/);
+  assert.match(out, /<\/head><body>hello<\/body>/);
+  assert.ok(out.indexOf('property="og:title"') < out.indexOf("</head>"));
 });
 
 test("does not duplicate the extensions script", () => {
-  const ctx = { appName: "Demo", projectId: "proj-123" };
-  const once = injectGrokPwaHead("<html><head></head></html>", ctx);
-  const twice = injectGrokPwaHead(once, ctx);
-  assert.equal(once, twice);
-  assert.equal(twice.split("extensions.js").length - 1, 1);
+  withExtensionsEnabled(() => {
+    const ctx = { appName: "Demo", projectId: "proj-123" };
+    const once = injectGrokPwaHead("<html><head></head></html>", ctx);
+    const twice = injectGrokPwaHead(once, ctx);
+    assert.match(once, /extensions\.js/);
+    assert.equal(once, twice);
+    assert.equal(twice.split("extensions.js").length - 1, 1);
+  });
 });
 
 test("is idempotent", () => {
@@ -394,9 +502,17 @@ test("is idempotent", () => {
   assert.equal(once, twice);
 });
 
-test("uses the app name in the injected title tag", () => {
+test("uses the site title in the injected apple title tag", () => {
   const out = injectGrokPwaHead("<html><head></head></html>", { appName: "Wild Race" });
-  assert.match(out, /apple-mobile-web-app-title" content="Wild Race"/);
+  assert.match(out, /apple-mobile-web-app-title" content="BookMe"/);
+
+  const cwd = mkdtempSync(join(tmpdir(), "grok-og-appname-"));
+  const named = injectGrokPwaHead("<html><head></head></html>", {
+    appName: "Wild Race",
+    site: {},
+    cwd,
+  });
+  assert.match(named, /apple-mobile-web-app-title" content="Wild Race"/);
 });
 
 test("streaming injector handles </head> split across chunks", () => {
