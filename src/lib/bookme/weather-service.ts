@@ -12,7 +12,6 @@
  *     Replaces https://api.open-meteo.com/v1/forecast. The query string is unchanged.
  * Cache is in-process, keyed by rounded lat/lng and UTC hour, for 45 minutes.
  */
-import { isAbsolute, resolve } from "node:path";
 import extremeFixtureJson from "../../../fixtures/open-meteo-extreme.json";
 import { publicAppUrl } from "./app-url";
 import { sendMail, type Mail } from "./mail";
@@ -125,19 +124,6 @@ type ExtremeFixture = {
 
 const extremeFixture = extremeFixtureJson as ExtremeFixture;
 
-async function readFixture(path: string) {
-  const { readFile } = await import("node:fs/promises");
-  return readFile(path, "utf8");
-}
-
-/** `extreme` is the shipped storm. Anything else is a file path, absolute or from cwd. */
-export function resolveOpenMeteoFixture(spec: string, cwd = process.cwd()) {
-  const trimmed = spec.trim();
-  if (trimmed === "extreme") return { kind: "extreme" as const };
-  const path = isAbsolute(trimmed) ? trimmed : resolve(cwd, trimmed);
-  return { kind: "file" as const, path };
-}
-
 /** Shift shipped hourly.time so hour 0 is the previous UTC hour. Values stay extreme. */
 export function alignExtremeFixture(body: ExtremeFixture, now: Date): ExtremeFixture {
   const time = body.hourly?.time;
@@ -153,6 +139,7 @@ export function alignExtremeFixture(body: ExtremeFixture, now: Date): ExtremeFix
 }
 
 async function fixtureBody(spec: string, now: Date) {
+  const { readFixture, resolveOpenMeteoFixture } = await import("./weather-fixture.server");
   const resolved = resolveOpenMeteoFixture(spec);
   if (resolved.kind === "extreme") return alignExtremeFixture(extremeFixture, now);
   return JSON.parse(await readFixture(resolved.path)) as unknown;

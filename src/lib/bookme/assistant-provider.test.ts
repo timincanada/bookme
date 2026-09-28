@@ -7,12 +7,15 @@ import {
   needsConfirmFor,
   resolveAssistantProvider,
 } from "./assistant-provider.ts";
-import type { Capability } from "./assistant.ts";
+import { endOfCoachDay, type Capability } from "./assistant.ts";
 
 const caps: Capability[] = ["list_availability", "list_lessons", "draft_email", "draft_reschedule", "draft_swap", "cancel_lesson"];
+const todayKey = "2026-09-22";
+const timezone = "America/Toronto";
 const ctx = {
-  todayKey: "2026-09-22",
-  timezone: "America/Toronto",
+  todayKey,
+  timezone,
+  now: endOfCoachDay(todayKey, timezone),
   clients: [{ id: "c2", name: "Alex" }],
   lessons: [
     {

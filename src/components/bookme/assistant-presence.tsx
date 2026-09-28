@@ -271,6 +271,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
             console.warn("assistant history", res.error);
           }
         } catch (err) {
+          let reported: unknown = err;
           if (frozen.card) {
             try {
               const res = await send(false);
@@ -280,11 +281,11 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
               }
               return;
             } catch (err2) {
-              err = err2;
+              reported = err2;
             }
           }
           if (epochRef.current === token) persistedSig.current.delete(frozen.id);
-          console.warn("assistant history", err);
+          console.warn("assistant history", reported);
         }
       });
       inflightRef.current = Promise.all([inflightRef.current, job])

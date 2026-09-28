@@ -23,7 +23,17 @@ export type AssistantAction =
   | { type: "cancel_lesson"; lessonId: string }
   | { type: "draft_import"; rule: RecurringRuleInput; fingerprint?: string; lang?: "zh" | "en" };
 
-export type AssistantContext = { todayKey: string; timezone: string; clients: ClientHit[]; lessons: LessonHit[] };
+export type AssistantContext = {
+  todayKey: string;
+  timezone: string;
+  clients: ClientHit[];
+  lessons: LessonHit[];
+  /**
+   * Clock for "upcoming" lesson filters. Live requests omit this and use
+   * Date.now(). Tests freeze it (typically the end of todayKey in the coach zone).
+   */
+  now?: string | Date;
+};
 
 export type ParseResult =
   | { ok: true; action: AssistantAction; summary: string; needsConfirm: boolean }
@@ -55,27 +65,42 @@ export function findNamedClients(clients: ClientHit[], text: string) {
   return hits;
 }
 
-export function nextLessonForClient(lessons: LessonHit[], clientId: string, nowIso?: string) {
-  const now = nowIso ? new Date(nowIso).getTime() : Date.now();
+/** Milliseconds for upcoming filters. Omitted or invalid clocks use Date.now(). */
+export function upcomingCutoff(now?: string | Date): number {
+  if (now == null || now === "") return Date.now();
+  const t = now instanceof Date ? now.getTime() : Date.parse(now);
+  return Number.isFinite(t) ? t : Date.now();
+}
+
+/**
+ * Last millisecond of `todayKey` in `tz`.
+ * Pass as `ctx.now` so lessons after that civil day still count as upcoming.
+ */
+export function endOfCoachDay(todayKey: string, tz: string): Date {
+  return new Date(zonedInstant(shiftDateKey(todayKey, 1), 0, tz).getTime() - 1);
+}
+
+export function nextLessonForClient(lessons: LessonHit[], clientId: string, now?: string | Date) {
+  const cutoff = upcomingCutoff(now);
   const open = lessons
-    .filter((l) => l.clientId === clientId && l.status === "confirmed" && new Date(l.startAt).getTime() >= now)
+    .filter((l) => l.clientId === clientId && l.status === "confirmed" && new Date(l.startAt).getTime() >= cutoff)
     .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
   return open[0] || null;
 }
 
-export function upcomingLessons(lessons: LessonHit[], nowIso?: string) {
-  const now = nowIso ? new Date(nowIso).getTime() : Date.now();
+export function upcomingLessons(lessons: LessonHit[], now?: string | Date) {
+  const cutoff = upcomingCutoff(now);
   return lessons
-    .filter((l) => l.status === "confirmed" && new Date(l.startAt).getTime() >= now)
+    .filter((l) => l.status === "confirmed" && new Date(l.startAt).getTime() >= cutoff)
     .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
 }
 
-function lessonForCancel(lessons: LessonHit[], text: string, todayKey: string, tz: string) {
+function lessonForCancel(lessons: LessonHit[], text: string, todayKey: string, tz: string, now?: string | Date) {
   const named = findNamedClients(
     [...new Map(lessons.map((l) => [l.clientId, { id: l.clientId, name: l.clientName }])).values()],
     text,
   );
-  let pool = upcomingLessons(lessons);
+  let pool = upcomingLessons(lessons, now);
   if (named.length === 1) pool = pool.filter((l) => l.clientId === named[0]!.id);
   if (named.length > 1) {
     const ids = new Set(named.map((c) => c.id));
@@ -177,7 +202,7 @@ export function parseAssistant(text: string, ctx: AssistantContext): ParseResult
   if (wantsEmail) {
     const client = findClient(ctx.clients, raw);
     if (!client) return { ok: false, error: "Name the student on the lesson to email." };
-    const lesson = nextLessonForClient(ctx.lessons, client.id);
+    const lesson = nextLessonForClient(ctx.lessons, client.id, ctx.now);
     if (!lesson) return { ok: false, error: "No upcoming confirmed lesson for " + client.name + " to email about." };
     const rest = raw.replace(new RegExp("(?:email|message|tell|remind)\\s+" + client.name.split(" ")[0], "i"), "").trim();
     const body = emailDraft(lesson, rest.replace(client.name, "").trim());
@@ -187,8 +212,8 @@ export function parseAssistant(text: string, ctx: AssistantContext): ParseResult
   if (wantsSwap) {
     const named = findNamedClients(ctx.clients, raw);
     if (named.length < 2) return { ok: false, error: "Name the two students to swap, like swap Emma and Jordan." };
-    const a = nextLessonForClient(ctx.lessons, named[0].id);
-    const b = nextLessonForClient(ctx.lessons, named[1].id);
+    const a = nextLessonForClient(ctx.lessons, named[0].id, ctx.now);
+    const b = nextLessonForClient(ctx.lessons, named[1].id, ctx.now);
     if (!a || !b) return { ok: false, error: "Both students need an upcoming confirmed lesson to swap." };
     if (a.id === b.id) return { ok: false, error: "Pick two different students." };
     const note = clipSwapNote(raw, named.map((c) => c.name));
@@ -201,7 +226,7 @@ export function parseAssistant(text: string, ctx: AssistantContext): ParseResult
   }
 
   if (wantsCancel) {
-    const lesson = lessonForCancel(ctx.lessons, raw, ctx.todayKey, ctx.timezone);
+    const lesson = lessonForCancel(ctx.lessons, raw, ctx.todayKey, ctx.timezone, ctx.now);
     if (!lesson) {
       return { ok: true, needsConfirm: false, action: { type: "list_lessons" }, summary: "Which lesson should I cancel? Here's what's coming up." };
     }
@@ -216,7 +241,7 @@ export function parseAssistant(text: string, ctx: AssistantContext): ParseResult
   if (wantsMove) {
     const client = findClient(ctx.clients, raw);
     if (!client) return { ok: false, error: "Name the student to reschedule." };
-    const lesson = nextLessonForClient(ctx.lessons, client.id);
+    const lesson = nextLessonForClient(ctx.lessons, client.id, ctx.now);
     if (!lesson) return { ok: false, error: "No upcoming confirmed lesson for " + client.name + "." };
     const dateKey = dateKeyFromText(raw, ctx.todayKey);
     const hm = t.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);

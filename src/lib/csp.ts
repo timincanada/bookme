@@ -9,8 +9,8 @@
 import { createIsomorphicFn } from "@tanstack/react-start";
 import { setResponseHeader } from "@tanstack/react-start/server";
 
-export function buildCsp(nonce: string) {
-  return [
+export function buildCsp(nonce: string, opts?: { reportOnly?: boolean }) {
+  const directives = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}'`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
@@ -26,8 +26,10 @@ export function buildCsp(nonce: string) {
     "form-action 'self'",
     "base-uri 'self'",
     "object-src 'none'",
-    "upgrade-insecure-requests",
-  ].join("; ");
+  ];
+  // Report-Only ignores this directive and Chrome warns. Keep it on the enforcing policy.
+  if (!opts?.reportOnly) directives.push("upgrade-insecure-requests");
+  return directives.join("; ");
 }
 
 /** Returns this request's nonce on the server (and sets the CSP header); undefined in the browser or in dev. */
@@ -39,8 +41,9 @@ export const cspNonceForRequest = createIsomorphicFn()
     const nonce = btoa(String.fromCharCode(...bytes));
     try {
       // CSP_REPORT_ONLY=1: browsers only log violations (use for the first deploy).
-      const header = process.env.CSP_REPORT_ONLY === "1" ? "Content-Security-Policy-Report-Only" : "Content-Security-Policy";
-      setResponseHeader(header, buildCsp(nonce));
+      const reportOnly = process.env.CSP_REPORT_ONLY === "1";
+      const header = reportOnly ? "Content-Security-Policy-Report-Only" : "Content-Security-Policy";
+      setResponseHeader(header, buildCsp(nonce, { reportOnly }));
     } catch {
       return undefined; // no request context (e.g. build-time) → no nonce, no header
     }

@@ -67,7 +67,8 @@ assert.equal(
   false,
 );
 
-assert.deepEqual(planCapabilities("light", "trialing"), ["list_availability", "draft_email", "draft_reschedule", "draft_swap"]);
+const ASSISTANT_CAPS = ["list_availability", "list_lessons", "draft_email", "draft_reschedule", "draft_swap", "cancel_lesson"];
+assert.deepEqual(planCapabilities("light", "trialing"), ASSISTANT_CAPS);
 assert.deepEqual(planCapabilities("light", "active"), []);
 assert.equal(hasCapability("light", "list_availability", "active"), false);
 assert.equal(hasCapability("coach", "draft_email"), true);
@@ -77,5 +78,5 @@ assert.equal(isTrialing("trialing", new Date("2026-08-25T00:00:00Z"), new Date("
 assert.equal(isTrialing("trialing", new Date("2026-08-30T00:00:00Z"), new Date("2026-08-27T12:00:00Z")), true);
 assert.equal(effectiveSubscriptionStatus("trialing", new Date("2026-08-25T00:00:00Z"), new Date("2026-08-27T12:00:00Z")), "active");
 assert.deepEqual(planCapabilities("light", "trialing", new Date("2026-08-25T00:00:00Z"), new Date("2026-08-27T12:00:00Z")), []);
-assert.deepEqual(planCapabilities("light", "trialing", new Date("2026-08-30T00:00:00Z"), new Date("2026-08-27T12:00:00Z")), ["list_availability", "draft_email", "draft_reschedule", "draft_swap"]);
+assert.deepEqual(planCapabilities("light", "trialing", new Date("2026-08-30T00:00:00Z"), new Date("2026-08-27T12:00:00Z")), ASSISTANT_CAPS);
 console.log("subscription tests ok");

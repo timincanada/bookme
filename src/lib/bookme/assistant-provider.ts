@@ -1,21 +1,15 @@
 import {
   parseAssistant,
   type AssistantAction,
+  type AssistantContext,
   type Capability,
-  type ClientHit,
-  type LessonHit,
 } from "./assistant";
 import { DEFAULT_ASSISTANT_NAME, normalizeAssistantName } from "./assistant-name";
 import { isLessonDuration, isPaymentStatus, parseClock, type RecurringRuleInput } from "./recurring";
 import { buildModelMessages } from "./assistant-history";
 import { formatWhen } from "./time";
 
-export type AssistantChatContext = {
-  todayKey: string;
-  timezone: string;
-  clients: ClientHit[];
-  lessons: LessonHit[];
-};
+export type AssistantChatContext = AssistantContext;
 
 export type AssistantChatInput = {
   coachId: string;

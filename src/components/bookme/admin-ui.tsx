@@ -42,11 +42,11 @@ export function TableShell({ head, children }: { head: React.ReactNode; children
 }
 
 export function ExportButtons({ kind, from, to }: { kind: "coaches" | "revenue" | "lessons"; from?: string; to?: string }) {
-  const [busy, setBusy] = useState("");
-  async function run(format: "csv" | "xlsx") {
-    setBusy(format);
-    const res = await adminExport({ data: { kind, format, from, to } });
-    setBusy("");
+  const [busy, setBusy] = useState(false);
+  async function run() {
+    setBusy(true);
+    const res = await adminExport({ data: { kind, format: "csv", from, to } });
+    setBusy(false);
     if (!res.ok) return;
     const bytes = Uint8Array.from(atob(res.base64), (c) => c.charCodeAt(0));
     const url = URL.createObjectURL(new Blob([bytes], { type: res.mime }));
@@ -58,13 +58,9 @@ export function ExportButtons({ kind, from, to }: { kind: "coaches" | "revenue" 
   }
   return (
     <div className="flex gap-2">
-      <Button variant="outline" size="sm" disabled={Boolean(busy)} onClick={() => void run("csv")}>
+      <Button variant="outline" size="sm" disabled={busy} onClick={() => void run()}>
         <Download className="mr-1.5 size-4" strokeWidth={1.75} />
         CSV
-      </Button>
-      <Button variant="outline" size="sm" disabled={Boolean(busy)} onClick={() => void run("xlsx")}>
-        <Download className="mr-1.5 size-4" strokeWidth={1.75} />
-        Excel
       </Button>
     </div>
   );
