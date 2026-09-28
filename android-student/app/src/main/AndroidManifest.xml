@@ -24,7 +24,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="bookme.training" />
                 <data android:pathPrefix="/manage" />
-                <data android:pathPrefix="/s" />
+                <data android:path="/s" />
                 <data android:pathPrefix="/r/" />
             </intent-filter>
         </activity>
