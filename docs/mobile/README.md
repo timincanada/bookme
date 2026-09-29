@@ -21,8 +21,9 @@ Minimum versions: iOS 15, Android 8.0 (API 26).
   storefront only** (native `Storefront` plugin, StoreKit `Storefront.current.countryCode == "USA"`)
   it shows "Manage account on bookme.training", opened in Safari.
   Student lesson payments stay on Stripe.
-- Android: same as the web (purchase controls visible). Check Google Play's
-  payments policy for coach subscriptions before submitting.
+- Android: the same — no purchase, upgrade, pricing or cancel controls (Google
+  Play's Payments policy covers in-app digital subscriptions). Coaches subscribe
+  on bookme.training; the app shows plan status only, with no link out.
 - Account deletion in-app: coach More → Account; student portal → Account.
   Public explanation: `https://bookme.training/delete-account`.
 - Push (v1): new message, new booking, cancellation, move request. Texts never

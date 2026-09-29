@@ -1,9 +1,11 @@
 /**
- * App Store rules for coach subscriptions (web-only purchase):
- * - iOS app: no purchase/upgrade UI and no pointers to buying elsewhere.
- * - Exception: US App Store storefront may show one link that opens the
- *   account page in the system browser.
- * Student lesson payments (Stripe) are not affected.
+ * Store rules for coach subscriptions (bought on the web only):
+ * - Native apps (iOS and Android): no purchase, upgrade, pricing or cancel
+ *   controls, and no pointers to buying elsewhere. Apple's guideline 3.1.3 and
+ *   Google Play's Payments policy both cover subscriptions sold in an app.
+ * - Exception: on the US App Store storefront one link may open the account
+ *   page in the system browser.
+ * Student lesson payments (Stripe, in-person lessons) are not affected.
  */
 import { registerPlugin } from "@capacitor/core";
 import { useEffect, useState } from "react";
@@ -34,12 +36,14 @@ export function usePurchasePolicy(): PurchasePolicy {
   const [policy, setPolicy] = useState<PurchasePolicy>({ ready: false, showPurchases: false, showExternalAccountLink: false });
   useEffect(() => {
     const platform = nativePlatform();
-    if (platform !== "ios") {
+    if (platform === "web") {
       setPolicy({ ready: true, showPurchases: true, showExternalAccountLink: false });
       return;
     }
-    let alive = true;
+    // Native: never show purchase controls.
     setPolicy({ ready: true, showPurchases: false, showExternalAccountLink: false });
+    if (platform !== "ios") return;
+    let alive = true;
     void storefrontCountry().then((country) => {
       if (alive) setPolicy({ ready: true, showPurchases: false, showExternalAccountLink: country === "USA" });
     });
