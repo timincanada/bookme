@@ -22,8 +22,7 @@ workflows:
         script: xcode-project use-profiles --project ios/App/App.xcodeproj
       - name: Build
         script: |
-          xcode-project build-ipa --project ios/App/App.xcodeproj --scheme App \
-            --build-version "$BUILD_NUMBER"
+          xcode-project build-ipa --project ios/App/App.xcodeproj --scheme App
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
