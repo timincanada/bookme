@@ -28,6 +28,22 @@
   --radius-lg: 16px;
   --radius-xl: 24px;
   --radius-2xl: 28px;
+  --radius-card: 22px;
+  --radius-pill: 999px;
+
+  /* Shared mobile scale. Pages use these instead of one-off sizes. */
+  --space-page: 20px;
+  --space-section: 24px;
+  --space-title-gap: 32px;
+  --text-display: 2.5rem;
+  --text-display--line-height: 1.08;
+  --text-nav: 0.75rem;
+  --nav-height: 74px;
+  --header-height: 66px;
+  --touch-min: 44px;
+  --composer-height: 56px;
+  --mic-size: 50px;
+  --icon-nav: 24px;
 
   --shadow-card: 0 18px 40px -24px rgb(28 25 22 / 0.28),
     0 8px 18px -12px rgb(28 25 22 / 0.12);
@@ -40,13 +56,16 @@
     -moz-osx-font-smoothing: grayscale;
     background: var(--color-paper);
     color: var(--color-ink);
+    min-height: 100dvh;
   }
 
   body {
     font-family: var(--font-sans);
     background: var(--color-paper);
     color: var(--color-ink);
-    min-height: 100%;
+    min-height: 100dvh;
+    max-width: 100%;
+    overflow-x: clip;
   }
 
   h1,
@@ -77,7 +96,8 @@
     width: 100%;
     max-width: 100%;
     min-width: 0;
-    height: 3rem;
+    min-height: 3rem;
+    height: auto;
     border-radius: 0.75rem;
     border: 1px solid var(--color-line);
     background: var(--color-card);
@@ -605,5 +625,109 @@
 
   .type-follow {
     margin-top: 4px;
+  }
+}
+
+/* Wider phones get the roomier page inset. 320–390 stay at 20px. */
+@media (min-width: 400px) {
+  :root {
+    --space-page: 24px;
+  }
+}
+
+:root {
+  --nav-offset: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
+}
+
+.app-page {
+  padding: var(--space-title-gap) var(--space-page) var(--space-section);
+}
+
+.app-header {
+  min-height: calc(var(--header-height) + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.app-tab-bar {
+  box-sizing: border-box;
+  min-height: var(--nav-offset);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.app-tab-label {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Six labels on a 320px row. 10.5px keeps "Assistant" from colliding. */
+@media (max-width: 359.98px) {
+  .app-tab-label {
+    font-size: 10.5px;
+    letter-spacing: -0.05em;
+  }
+}
+
+.hscroll,
+.scroll-quiet,
+.assistant-thread {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.hscroll::-webkit-scrollbar,
+.scroll-quiet::-webkit-scrollbar,
+.assistant-thread::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+@media (max-width: 767.98px) {
+  .app-shell,
+  .app-shell * {
+    scrollbar-width: none;
+  }
+
+  .app-shell *::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
+
+html[data-keyboard] .app-tab-bar {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-paper-2) 0%,
+    var(--color-card) 45%,
+    var(--color-paper-2) 100%
+  );
+  background-size: 220% 100%;
+  animation: bookme-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes bookme-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
   }
 }

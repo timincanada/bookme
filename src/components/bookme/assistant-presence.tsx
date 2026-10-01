@@ -34,6 +34,7 @@ import { assistantTurnMutated, notifyLessonsChanged, useLessonsRefresh } from "@
 import { isMicPermissionError, micErrorMessage, voiceUnavailableMessage } from "@/lib/bookme/voice-errors";
 import { usePurchasePolicy } from "@/lib/native/purchases";
 import { GrokVoiceSession } from "@/lib/bookme/realtime-session";
+import { assistantVisibleText } from "@/lib/bookme/opening-slots";
 import { spokenFromTurn } from "@/lib/bookme/voice";
 
 type Phase = "idle" | "connecting" | "live" | "listening" | "thinking" | "speaking" | "confirm";
@@ -1071,8 +1072,8 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
             : phase === "confirm"
               ? "Waiting for you"
               : phase === "live"
-                ? "Live · always here to help"
-                : "Always here to help";
+                ? "Live"
+                : "Here to help";
 
   const voicePanelOpen = (inCall || phase === "connecting") && phase !== "confirm" && phase !== "idle";
   const voicePanelState: VoicePanelState =
@@ -1100,7 +1101,7 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
   }
 
   return (
-    <div className="relative mx-auto flex min-h-0 w-full max-w-lg flex-1 flex-col bg-cream">
+    <div className="relative mx-auto flex min-h-0 w-full min-w-0 max-w-lg flex-1 flex-col overflow-x-clip bg-cream">
       <AssistantHeader
         coachName={coach.name}
         assistantName={coach.assistantName}
@@ -1120,16 +1121,19 @@ export function AssistantPresence({ coach }: { coach: MyCoach }) {
         <div className="flex flex-col gap-3">
           {upcoming ? <UpcomingLessonCard lesson={upcoming} timeZone={coach.timezone} /> : null}
 
-          {messages.map((m) => (
+          {messages.map((m) => {
+            const text = m.text ? assistantVisibleText(m.text, m.card) : "";
+            return (
             <div key={m.id} className="flex flex-col gap-2">
-              {m.text ? <ChatBubble role={m.role} text={m.text} at={m.at} timeZone={coach.timezone} /> : null}
+              {text ? <ChatBubble role={m.role} text={text} at={m.at} timeZone={coach.timezone} /> : null}
               {m.card ? (
                 <div className={m.role === "user" ? "self-end" : "pl-10"}>
-                  <ResultCard preview={m.card} />
+                  <ResultCard preview={m.card} onSelectSlot={(phrase) => ask(phrase)} />
                 </div>
               ) : null}
             </div>
-          ))}
+            );
+          })}
 
           {phase === "thinking" ? <ThinkingRow /> : null}
 

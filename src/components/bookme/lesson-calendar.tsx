@@ -3,6 +3,8 @@ import { ChevronLeft, ChevronRight, Repeat } from "lucide-react";
 import { useMemo, type CSSProperties } from "react";
 import { LessonRow } from "@/components/bookme/lesson-scan";
 import { WeatherChip } from "@/components/bookme/weather-chip";
+import { DateNavigator } from "@/components/bookme/ui/date-navigator";
+import { EmptyState } from "@/components/bookme/ui/empty-state";
 import type { HourSegment } from "@/lib/bookme/hours";
 import type { LessonWeatherView } from "@/lib/bookme/weather-service";
 import { firstName } from "@/lib/bookme/requests";
@@ -137,7 +139,7 @@ function Nav({
       <button
         type="button"
         onClick={onToday}
-        className="inline-flex h-11 items-center rounded-full px-3 text-sm font-semibold text-forest hover:bg-sage-3"
+        className="inline-flex h-auto min-h-11 items-center rounded-full px-3 text-sm font-semibold text-forest hover:bg-sage-3"
       >
         Today
       </button>
@@ -216,30 +218,17 @@ export function WeekCalendar({
         onNext={() => onSelect(addDaysKey(selected, 7))}
         onToday={() => onSelect(today)}
       />
-      <div className="mt-4 grid grid-cols-7 gap-1 md:hidden">
-        {keys.map((key, i) => {
-          const n = byDay.get(key)?.length || 0;
-          const isToday = key === today;
-          const on = key === selected;
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => onSelect(key)}
-              className={cn(
-                "flex min-h-11 min-w-0 flex-col items-center rounded-2xl py-2 text-xs font-medium",
-                on && "bg-forest text-on-forest",
-                !on && isToday && "bg-sage-3 text-forest",
-                !on && !isToday && "text-ink-soft hover:bg-paper-2",
-              )}
-            >
-              <span className="uppercase tracking-wide opacity-70">{DOW[i]?.slice(0, 1)}</span>
-              <span className="font-display text-lg font-medium leading-none">{Number(key.slice(8))}</span>
-              <span className={cn("mt-1 size-1 rounded-full", n ? (on ? "bg-on-forest" : "bg-forest") : "bg-transparent")} />
-            </button>
-          );
-        })}
-      </div>
+      <DateNavigator
+        days={keys.map((key, i) => ({
+          key,
+          dow: DOW[i]?.slice(0, 1) || "",
+          date: String(Number(key.slice(8))),
+          count: byDay.get(key)?.length || 0,
+        }))}
+        selected={selected}
+        today={today}
+        onSelect={onSelect}
+      />
 
       <div className="mt-4 hidden overflow-x-auto rounded-2xl bg-card ring-1 ring-line md:block">
         <div className="grid min-w-[52rem]" style={{ gridTemplateColumns: "4.75rem repeat(7, minmax(0, 1fr))" }}>
@@ -333,11 +322,27 @@ export function DayAgenda({
   const today = todayKey(timezone);
   const label = formatDateKey(dateKey, { weekday: "long", month: "long", day: "numeric" });
 
+  if (lessons.length === 0 && dateKey === today) {
+    return (
+      <div className="mt-5 md:hidden">
+        <EmptyState
+          title="No lessons today"
+          body="Your schedule is clear."
+          action={
+            <Link to="/app/more/hours" className="inline-flex min-h-11 items-center text-sm font-semibold text-forest">
+              Add availability
+            </Link>
+          }
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="mt-5 md:hidden">
       <p className="type-section text-sm font-semibold text-ink-soft">{dateKey === today ? "Today" : label}</p>
       {lessons.length === 0 ? (
-        <p className="mt-3 text-sm text-muted">No lessons this day.</p>
+        <p className="mt-3 text-base text-muted">No lessons this day.</p>
       ) : (
         <ol className="mt-3 space-y-2">
           {lessons.map((lesson) => {
@@ -423,7 +428,7 @@ export function MonthCalendar({
         </div>
         <div className="grid grid-cols-7">
           {grid.map((key, i) => {
-            if (!key) return <div key={`pad-${i}`} className="min-h-14 border-b border-r border-line/70 bg-paper-2/40 sm:min-h-24" />;
+            if (!key) return <div key={`pad-${i}`} className="min-h-11 border-b border-r border-line/70 bg-paper-2/40 sm:min-h-20" />;
             const dayLessons = byDay.get(key) || [];
             const isToday = key === today;
             const on = key === selected;
@@ -433,9 +438,7 @@ export function MonthCalendar({
                 type="button"
                 onClick={() => onSelect(key)}
                 className={cn(
-                  "min-h-14 min-w-0 border-b border-r border-line/70 p-1.5 text-left align-top sm:min-h-24",
-                  on && "bg-sage-3",
-                  !on && isToday && "bg-cream",
+                  "min-h-11 min-w-0 border-b border-r border-line/70 p-1 text-left align-top sm:min-h-20",
                 )}
               >
                 <span
@@ -484,7 +487,11 @@ export function MonthCalendar({
           {selected === today ? "Today" : formatDateKey(selected, { weekday: "long", month: "long", day: "numeric" })}
         </p>
         {selectedLessons.length === 0 ? (
-          <p className="mt-3 text-sm text-muted">No lessons this day.</p>
+          selected === today ? (
+            <EmptyState title="No lessons today" body="Your schedule is clear." />
+          ) : (
+            <p className="mt-3 text-base text-muted">No lessons this day.</p>
+          )
         ) : (
           <ul className="mt-3 space-y-2">
             {selectedLessons.map((lesson) => {

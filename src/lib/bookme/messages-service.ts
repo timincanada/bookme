@@ -200,6 +200,7 @@ export async function listCoachThreads(sql: QuerySql, coachId: string, now = new
     out.push({
       clientId: ctx.clientId,
       clientName: ctx.clientName,
+      clientEmail: ctx.clientEmail,
       mode: ctx.mode,
       lastMessageAt: ctx.lastMessageAt?.toISOString() ?? null,
       lastPreview: await lastPreview(sql, ctx.conversationId),

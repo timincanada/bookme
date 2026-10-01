@@ -1,16 +1,18 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { Card } from "@/components/bookme/ui/card";
+import { EmptyState } from "@/components/bookme/ui/empty-state";
+import { MessageRow } from "@/components/bookme/ui/message-row";
+import { PageFrame } from "@/components/bookme/ui/page-frame";
+import { PageTitle } from "@/components/bookme/ui/page-title";
+import { ErrorState, ListSkeleton } from "@/components/bookme/ui/screen-states";
+import { useDemoUi } from "@/lib/bookme/demo-ui";
 import { coachListConversations } from "@/lib/bookme/messages-api";
-import { cn } from "@/lib/utils";
+import { hideQaRecords } from "@/lib/bookme/qa-surface";
 
 export const Route = createFileRoute("/app/messages/")({ component: CoachInbox });
 
 type Threads = Extract<Awaited<ReturnType<typeof coachListConversations>>, { ok: true }>["threads"];
-
-function initials(name: string) {
-  const parts = name.trim().split(/\s+/).slice(0, 2);
-  return parts.map((p) => p[0]?.toUpperCase() || "").join("") || "?";
-}
 
 function rowTime(iso: string | null) {
   if (!iso) return "";
@@ -24,52 +26,52 @@ function rowTime(iso: string | null) {
 
 function CoachInbox() {
   const [threads, setThreads] = useState<Threads | null>(null);
+  const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
+  const demo = useDemoUi();
+
+  function load() {
+    setPhase("loading");
+    coachListConversations()
+      .then((r) => {
+        if (!r.ok) {
+          setPhase("error");
+          return;
+        }
+        setThreads(hideQaRecords(r.threads, demo));
+        setPhase("ready");
+      })
+      .catch(() => setPhase("error"));
+  }
 
   useEffect(() => {
-    coachListConversations().then((r) => setThreads(r.ok ? r.threads : []));
-  }, []);
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demo]);
 
   return (
-    <div className="mx-auto max-w-3xl px-5 py-8">
-      <h1 className="font-display text-3xl font-medium">Messages</h1>
-      {!threads ? <p className="mt-6 text-muted">Loading…</p> : null}
-      {threads && threads.length === 0 ? (
-        <p className="mt-6 text-muted">No conversations yet. Start one from a client's page.</p>
+    <PageFrame>
+      <PageTitle title="Messages" subtitle="Notes between you and your students" />
+      {phase === "loading" ? <ListSkeleton /> : null}
+      {phase === "error" ? <ErrorState onRetry={load} /> : null}
+      {phase === "ready" && threads && threads.length === 0 ? (
+        <EmptyState title="No messages yet" body="Messages from students will appear here." />
       ) : null}
-      {threads && threads.length > 0 ? (
-        <ul className="mt-5 divide-y divide-line overflow-hidden rounded-2xl bg-card ring-1 ring-line">
-          {threads.map((t) => (
-            <li key={t.clientId}>
-              <Link
-                to="/app/messages/$clientId"
-                params={{ clientId: t.clientId }}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-paper"
-              >
-                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-sage-2 text-sm font-semibold text-forest">
-                  {initials(t.clientName)}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-baseline justify-between gap-3">
-                    <span className={cn("truncate", t.unread ? "type-key font-semibold" : "type-primary font-medium")}>
-                      {t.clientName}
-                    </span>
-                    <span className="type-meta shrink-0 text-xs text-muted">{rowTime(t.lastMessageAt)}</span>
-                  </span>
-                  <span className="type-secondary mt-0.5 max-md:mt-1 block truncate text-sm text-muted">
-                    {t.lastPreview || "No messages yet"}
-                    {t.mode === "read" ? " · Read-only" : ""}
-                  </span>
-                </span>
-                {t.unread ? (
-                  <span className="rounded-full bg-forest px-2 py-0.5 text-xs font-semibold text-on-forest">
-                    {t.unread > 9 ? "9+" : t.unread}
-                  </span>
-                ) : null}
-              </Link>
-            </li>
-          ))}
-        </ul>
+      {phase === "ready" && threads && threads.length > 0 ? (
+        <Card className="mt-4">
+          <ul className="divide-y divide-line">
+            {threads.map((t) => (
+              <MessageRow
+                key={t.clientId}
+                clientId={t.clientId}
+                name={t.clientName}
+                preview={(t.lastPreview || "No messages yet") + (t.mode === "read" ? " · Read-only" : "")}
+                time={rowTime(t.lastMessageAt)}
+                unread={t.unread}
+              />
+            ))}
+          </ul>
+        </Card>
       ) : null}
-    </div>
+    </PageFrame>
   );
 }

@@ -1,7 +1,13 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LessonScan, lessonInstantParts } from "@/components/bookme/lesson-scan";
 import { MonthCalendar, nextLessonDay, type CalLesson } from "@/components/bookme/lesson-calendar";
+import { PageFrame } from "@/components/bookme/ui/page-frame";
+import { PageTitle } from "@/components/bookme/ui/page-title";
+import { ErrorState, ListSkeleton } from "@/components/bookme/ui/screen-states";
+import { SegmentedTabs } from "@/components/bookme/ui/segmented-tabs";
+import { useDemoUi } from "@/lib/bookme/demo-ui";
+import { hideQaRecords } from "@/lib/bookme/qa-surface";
 import { useCoachWeather } from "@/components/bookme/use-lesson-weather";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -24,7 +30,6 @@ import { notifyLessonsChanged, useLessonsRefresh } from "@/lib/bookme/lessons-sy
 import { firstName } from "@/lib/bookme/requests";
 import { todayKey } from "@/lib/bookme/time";
 import { DEFAULT_TIMEZONE } from "@/lib/bookme/timezone";
-import { cn } from "@/lib/utils";
 import { useCoach } from "@/lib/bookme/coach-context";
 
 type Tab = "upcoming" | "requests" | "completed" | "cancelled";
@@ -45,6 +50,8 @@ function Bookings() {
   const { byId: weatherByLesson, reload: reloadWeather } = useCoachWeather();
   const [lessons, setLessons] = useState<CalLesson[]>([]);
   const [inbox, setInbox] = useState<Extract<Awaited<ReturnType<typeof listCoachRequests>>, { ok: true }> | null>(null);
+  const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
+  const demo = useDemoUi();
   const [aId, setAId] = useState(swap || "");
   const [bId, setBId] = useState("");
   const [note, setNote] = useState("");
@@ -57,17 +64,26 @@ function Bookings() {
   const snapped = useRef(false);
 
   function reload() {
-    listMyLessons().then((r) => {
-      if (!r.ok) return;
-      setLessons(r.lessons);
-      if (!snapped.current) {
-        snapped.current = true;
-        setDay(nextLessonDay(r.lessons.filter((l) => l.bucket === "upcoming"), r.timezone));
-      }
-    });
-    listCoachRequests().then((r) => {
-      if (r.ok) setInbox(r);
-    });
+    Promise.all([listMyLessons(), listCoachRequests()])
+      .then(([lessonsRes, inboxRes]) => {
+        if (!lessonsRes.ok && !inboxRes.ok) {
+          setPhase("error");
+          return;
+        }
+        if (lessonsRes.ok) {
+          const visible = hideQaRecords(lessonsRes.lessons, demo);
+          setLessons(visible);
+          if (!snapped.current) {
+            snapped.current = true;
+            setDay(nextLessonDay(visible.filter((l) => l.bucket === "upcoming"), lessonsRes.timezone));
+          }
+        }
+        if (inboxRes.ok) {
+          setInbox({ ...inboxRes, requests: hideQaRecords(inboxRes.requests, demo) });
+        }
+        setPhase("ready");
+      })
+      .catch(() => setPhase("error"));
     reloadCoach();
   }
 
@@ -76,7 +92,7 @@ function Bookings() {
   useEffect(() => {
     reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [demo]);
 
   useEffect(() => {
     if (swap) setAId(swap);
@@ -117,26 +133,22 @@ function Bookings() {
     setMsg(res.error);
   }
 
+  const requestCount = inbox?.requests.length ?? inbox?.pending ?? 0;
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-      <h1 className="font-display text-3xl font-medium">Bookings</h1>
-      <p className="type-secondary mt-1 max-md:mt-2 text-muted">Calendar of lessons, student requests, and time swaps.</p>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {(["upcoming", "requests", "completed", "cancelled"] as const).map((t) => (
-          <Link
-            key={t}
-            to="/app/bookings"
-            search={{ tab: t, swap: undefined }}
-            className={cn(
-              "type-action rounded-full px-4 py-2 text-sm font-medium capitalize ring-1 max-md:min-h-11",
-              tab === t ? "bg-forest text-on-forest ring-forest" : "ring-line",
-            )}
-          >
-            {t}
-            {t === "requests" && inbox?.pending ? ` · ${inbox.pending}` : ""}
-          </Link>
-        ))}
-      </div>
+    <PageFrame wide>
+      <PageTitle title="Bookings" subtitle="Requests, upcoming lessons, and changes." />
+      <SegmentedTabs
+        active={tab}
+        tabs={(["upcoming", "requests", "completed", "cancelled"] as const).map((t) => ({
+          id: t,
+          label: t === "requests" && requestCount ? `Requests ${requestCount}` : t === "upcoming" ? "Upcoming" : t === "requests" ? "Requests" : t === "completed" ? "Completed" : "Cancelled",
+          to: "/app/bookings",
+          search: { tab: t, swap: undefined },
+        }))}
+      />
+      {phase === "loading" && lessons.length === 0 && !inbox ? <ListSkeleton rows={3} /> : null}
+      {phase === "error" ? <ErrorState onRetry={reload} /> : null}
 
       {tab === "requests" ? (
         <div className="mt-6 space-y-4">
@@ -229,7 +241,7 @@ function Bookings() {
             </div>
           ))}
           {inbox && inbox.requests.length === 0 ? (
-            <p className="text-muted">No requests yet. When a student asks to move, it lands here.</p>
+            <p className="text-base text-muted">No bookings yet. New bookings will appear here.</p>
           ) : null}
 
           <div className="rounded-2xl bg-card p-5 ring-1 ring-line">
@@ -332,6 +344,6 @@ function Bookings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageFrame>
   );
 }

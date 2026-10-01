@@ -1,8 +1,12 @@
-import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
 import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { BookingShare } from "@/components/bookme/booking-share";
+import { PageFrame } from "@/components/bookme/ui/page-frame";
+import { PageTitle } from "@/components/bookme/ui/page-title";
+import { SettingGroup } from "@/components/bookme/ui/setting-group";
+import { SettingRow, type SettingRoute } from "@/components/bookme/ui/setting-row";
 import { Button } from "@/components/ui/button";
 import { useCoach } from "@/lib/bookme/coach-context";
 import { shareLink, usePurchasePolicy } from "@/lib/native/purchases";
@@ -27,36 +31,63 @@ function More() {
     window.setTimeout(() => setCopied(false), 1800);
   }
 
+  const groups: { title: string; rows: { to: SettingRoute; label: string }[] }[] = [
+    {
+      title: "Booking",
+      rows: [
+        { to: "/app/more/hours", label: "Hours & availability" },
+        { to: "/app/more/locations", label: "Locations" },
+        { to: "/app/more/lessons", label: "Lessons" },
+        { to: "/app/setup", label: "Open for business" },
+      ],
+    },
+    {
+      title: "Assistant",
+      rows: [
+        { to: "/app/assistant", label: "Assistant" },
+        { to: "/app/more/assistant", label: "Assistant name" },
+      ],
+    },
+    {
+      title: "Business",
+      rows: [
+        { to: "/app/more/payments", label: "Payments" },
+        { to: "/app/billing", label: policy.showPurchases ? "Subscription & billing" : "Plan" },
+      ],
+    },
+    {
+      title: "Account",
+      rows: [{ to: "/app/more/account", label: "Account" }],
+    },
+  ];
+
   return (
-    <div className="mx-auto max-w-3xl px-5 py-8">
-      <h1 className="font-display text-3xl font-medium">More</h1>
-      <ul className="mt-5 divide-y divide-line rounded-2xl bg-card ring-1 ring-line">
-        {[
-          ["/app/assistant", "Assistant"],
-          ["/app/more/assistant", "Assistant name"],
-          ["/app/more/hours", "Hours & booking window"],
-          ["/app/more/locations", "Locations"],
-          ["/app/more/lessons", "Lessons"],
-          ["/app/more/payments", "Payments"],
-          ["/app/billing", policy.showPurchases ? "Subscription & billing" : "Plan"],
-          ["/app/setup", "Open for business"],
-          ["/app/more/account", "Account"],
-        ].map(([to, label]) => (
-          <li key={to}>
-            <Link to={to} className="type-primary block px-4 py-3 font-medium hover:bg-paper">
-              {label}
-            </Link>
-          </li>
-        ))}
-      </ul>
-      <div className="mt-6">
-        <h2 className="type-section font-display text-2xl">Your booking link</h2>
-        <p className="type-secondary mt-1 text-sm text-muted">Students use this to book a new lesson.</p>
-        <div className="mt-4">
-          <BookingShare slug={coach.slug} name={coach.name} canShare={coach.open} walletEnabled={coach.walletEnabled} />
+    <PageFrame>
+      <PageTitle title="More" subtitle="Hours, assistant, and account." />
+      <div className="mt-[var(--space-section)]">
+        <h2 className="font-display text-2xl font-medium leading-tight text-ink">Your booking link</h2>
+        <p className="mt-1 text-base text-muted">Students use this to book a new lesson.</p>
+        <div className="mt-3">
+          <BookingShare
+            variant="actions"
+            slug={coach.slug}
+            name={coach.name}
+            canShare={coach.open}
+            walletEnabled={coach.walletEnabled}
+          />
         </div>
       </div>
-      <div className="mt-6 rounded-2xl bg-card p-5 ring-1 ring-line">
+      {groups.map((group) => (
+        <SettingGroup key={group.title} title={group.title}>
+          {group.rows.map((row) => (
+            <SettingRow key={row.to} to={row.to} label={row.label} />
+          ))}
+        </SettingGroup>
+      ))}
+      <div className="mt-[var(--space-section)]">
+        <BookingShare slug={coach.slug} name={coach.name} canShare={coach.open} walletEnabled={coach.walletEnabled} />
+      </div>
+      <div className="mt-[var(--space-section)] rounded-[var(--radius-card)] bg-card p-5 ring-1 ring-line">
         <h2 className="type-section font-display text-2xl">Student desk</h2>
         <p className="mt-1 text-sm text-muted">
           For students who already booked — move a lesson or message you. Not for new bookings.
@@ -74,6 +105,6 @@ function More() {
           Confirmation emails already include {brandedManageUrl().replace("https://", "")}.
         </p>
       </div>
-    </div>
+    </PageFrame>
   );
 }
