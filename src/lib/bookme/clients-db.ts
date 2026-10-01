@@ -49,8 +49,10 @@ export async function findOrCreateCoachClient(
 }
 
 export async function listCoachClients(sql: QuerySql, coachId: string) {
-  return sql.query<CoachClient & { n: number }>(
-    `select cl.id, cl.name, cl.email, cl.note, count(l.id)::int as n
+  return sql.query<CoachClient & { n: number; last_at: string | Date | null }>(
+    `select cl.id, cl.name, cl.email, cl.note,
+            count(l.id)::int as n,
+            max(l.start_at) as last_at
      from clients cl
      left join lessons l on l.client_id = cl.id and l.coach_id = cl.coach_id
      where cl.coach_id = $1

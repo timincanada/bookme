@@ -3,6 +3,7 @@ import {
   ASSISTANT_NAME_MAX,
   DEFAULT_ASSISTANT_NAME,
   assistantDeskTitle,
+  assistantHeaderTitle,
   hasCustomAssistantName,
   normalizeAssistantName,
 } from "./assistant-name.ts";
@@ -33,5 +34,11 @@ assert.equal(assistantDeskTitle("James", "Maya"), "Maya-James's Private Assistan
 assert.equal(assistantDeskTitle("  Tim Zhang  ", "Desk"), "Desk-Tim Zhang's Private Assistant");
 assert.equal(assistantDeskTitle(""), "BookMe Assistant");
 assert.equal(assistantDeskTitle("   ", "Lucy"), "BookMe Assistant");
+
+assert.equal(assistantHeaderTitle("Alex Rivera"), "Alex's Assistant");
+assert.equal(assistantHeaderTitle("Alex Rivera", "Assistant"), "Alex's Assistant");
+assert.equal(assistantHeaderTitle("Alex Rivera", "Lucy"), "Lucy");
+assert.equal(assistantHeaderTitle(""), "Assistant");
+assert.equal(assistantHeaderTitle("   ", "Lucy"), "Lucy");
 
 console.log("assistant-name.test.ts ok");

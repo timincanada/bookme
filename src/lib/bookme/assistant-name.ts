@@ -30,3 +30,17 @@ export function assistantDeskTitle(coachName: string, assistantName?: string | n
   // Use the saved Name as typed (after normalize), not Title Case forced on the nickname.
   return `${normalizeAssistantName(assistantName)}-${desk}`;
 }
+
+/**
+ * Short label for the assistant chat header.
+ * The canonical desk title stays assistantDeskTitle (product copy and tests).
+ * Custom nickname: the nickname alone. Otherwise the coach's first name.
+ */
+export function assistantHeaderTitle(coachName: string, assistantName?: string | null) {
+  if (hasCustomAssistantName(assistantName)) return normalizeAssistantName(assistantName);
+  const first = String(coachName ?? "")
+    .trim()
+    .split(/\s+/)[0];
+  if (!first) return "Assistant";
+  return `${first}'s Assistant`;
+}

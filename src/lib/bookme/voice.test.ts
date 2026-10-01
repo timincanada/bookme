@@ -39,5 +39,22 @@ assert.equal(
   }),
   "Mon, Sep 14: 10:00 a.m., 11:00 a.m., 12:00 p.m.. Plus 1 more day.",
 );
+assert.equal(
+  spokenFromTurn({
+    ok: true,
+    message: "10:00 a.m. · Court 1",
+    preview: {
+      groups: [
+        {
+          label: "Mon, Sep 14",
+          times: ["10:00 a.m.", "11:00 a.m.", "12:00 p.m.", "1:00 p.m."],
+          lines: ["10:00 a.m. · Court 1", "11:00 a.m. · Court 1", "12:00 p.m. · Court 1", "1:00 p.m. · Court 1"],
+        },
+        { label: "Tue, Sep 15", times: ["10:00 a.m."], lines: ["10:00 a.m. · Court 1"] },
+      ],
+    },
+  }),
+  "Mon, Sep 14: 10:00 a.m., 11:00 a.m., 12:00 p.m.. Plus 1 more day.",
+);
 
 console.log("voice.test.ts ok");

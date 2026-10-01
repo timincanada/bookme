@@ -1,10 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { MessageCircle, Repeat } from "lucide-react";
+import { ChevronDown, MessageCircle, Repeat } from "lucide-react";
 import { useCoach } from "@/lib/bookme/coach-context";
 import { listMyLessons } from "@/lib/bookme/api";
 import { notifyLessonsChanged, useLessonsRefresh } from "@/lib/bookme/lessons-sync";
 import { WeekCalendar, nextLessonDay, type CalLesson } from "@/components/bookme/lesson-calendar";
 import { useCoachWeather } from "@/components/bookme/use-lesson-weather";
+import { BookingRequestBanner } from "@/components/bookme/ui/booking-request-banner";
+import { PageFrame } from "@/components/bookme/ui/page-frame";
+import { PageTitle } from "@/components/bookme/ui/page-title";
+import { ErrorState, ListSkeleton } from "@/components/bookme/ui/screen-states";
+import { useDemoUi } from "@/lib/bookme/demo-ui";
+import { hideQaRecords } from "@/lib/bookme/qa-surface";
+import { HSCROLL } from "@/lib/bookme/ui-classes";
 import { DEFAULT_TIMEZONE } from "@/lib/bookme/timezone";
 import { todayKey } from "@/lib/bookme/time";
 import { usePurchasePolicy } from "@/lib/native/purchases";
@@ -16,69 +23,80 @@ function Schedule() {
   const { coach } = useCoach();
   const { byId: weatherByLesson, reload: reloadWeather } = useCoachWeather();
   const [lessons, setLessons] = useState<CalLesson[]>([]);
+  const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
   const policy = usePurchasePolicy();
+  const demo = useDemoUi();
   const tz = coach?.timezone || DEFAULT_TIMEZONE;
   const [day, setDay] = useState(() => todayKey(tz));
   const snapped = useRef(false);
 
   function reloadLessons() {
-    listMyLessons().then((r) => {
-      if (!r.ok) return;
-      const upcoming = r.lessons.filter((l) => l.bucket === "upcoming");
-      setLessons(upcoming);
-      if (!snapped.current) {
-        snapped.current = true;
-        setDay(nextLessonDay(upcoming, r.timezone));
-      }
-    });
+    listMyLessons()
+      .then((r) => {
+        if (!r.ok) {
+          setPhase("error");
+          return;
+        }
+        const upcoming = hideQaRecords(
+          r.lessons.filter((l) => l.bucket === "upcoming"),
+          demo,
+        );
+        setLessons(upcoming);
+        setPhase("ready");
+        if (!snapped.current) {
+          snapped.current = true;
+          setDay(nextLessonDay(upcoming, r.timezone));
+        }
+      })
+      .catch(() => setPhase("error"));
   }
 
   useLessonsRefresh(reloadLessons);
 
   useEffect(() => {
     reloadLessons();
-  }, []);
+    // demo flips after the server answers on preview; reload so QA rows match the gate
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demo]);
 
   if (!coach) return null;
 
+  const countLabel = `${lessons.length} upcoming lesson${lessons.length === 1 ? "" : "s"}`;
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
-        <div className="min-w-0">
-          <h1 className="font-display text-3xl font-medium">Schedule</h1>
-          <p className="type-secondary mt-1 max-md:mt-2 text-muted">
-            {lessons.length} upcoming lesson{lessons.length === 1 ? "" : "s"}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <Link
-            to="/app/messages"
-            className="relative inline-flex items-center text-forest"
-            aria-label="Messages"
-          >
-            <MessageCircle className="size-5" strokeWidth={1.75} />
-            {coach.unreadMessages ? (
-              <span className="absolute -right-2 -top-1.5 min-w-4 rounded-full bg-forest px-1 text-center text-[10px] font-semibold leading-4 text-on-forest">
-                {coach.unreadMessages > 9 ? "9+" : coach.unreadMessages}
-              </span>
-            ) : null}
-          </Link>
-          <Link
-            to="/app/import"
-            search={{ client: undefined }}
-            className="type-action inline-flex items-center gap-1.5 text-sm font-semibold text-forest"
-          >
-            <Repeat className="size-4" strokeWidth={1.75} />
-            Import recurring
-          </Link>
+    <PageFrame wide>
+      <PageTitle
+        title="Schedule"
+        subtitle={countLabel}
+        aside={
           <Link
             to="/app/bookings"
             search={{ tab: "upcoming", swap: undefined }}
-            className="type-action text-sm font-semibold text-forest"
+            className="inline-flex min-h-11 items-center gap-1 rounded-[var(--radius-pill)] px-3 text-sm font-semibold text-forest ring-1 ring-line"
           >
             Month
+            <ChevronDown className="size-4" strokeWidth={1.75} aria-hidden />
           </Link>
-        </div>
+        }
+      />
+      <div className={HSCROLL + " mt-1"}>
+        <Link to="/app/messages" className="inline-flex min-h-11 shrink-0 items-center gap-1.5 text-sm font-medium text-muted">
+          <MessageCircle className="size-4" strokeWidth={1.75} aria-hidden />
+          Messages
+          {coach.unreadMessages ? (
+            <span className="rounded-full bg-forest px-1.5 text-[10px] font-semibold leading-4 text-on-forest">
+              {coach.unreadMessages > 9 ? "9+" : coach.unreadMessages}
+            </span>
+          ) : null}
+        </Link>
+        <Link
+          to="/app/import"
+          search={{ client: undefined }}
+          className="inline-flex min-h-11 shrink-0 items-center gap-1.5 text-sm font-medium text-muted"
+        >
+          <Repeat className="size-4" strokeWidth={1.75} aria-hidden />
+          Import recurring
+        </Link>
       </div>
       {!coach.setup ? (
         <Link
@@ -101,15 +119,10 @@ function Schedule() {
           </p>
         )
       ) : null}
-      {coach.pendingRequests ? (
-        <Link
-          to="/app/bookings"
-          search={{ tab: "requests", swap: undefined }}
-          className="type-key mt-4 block rounded-2xl bg-sage-3 p-3 text-sm font-semibold text-forest"
-        >
-          {coach.pendingRequests} request{coach.pendingRequests === 1 ? "" : "s"} waiting
-        </Link>
-      ) : null}
+      <BookingRequestBanner count={coach.pendingRequests || 0} />
+      {phase === "loading" && lessons.length === 0 ? <ListSkeleton rows={3} /> : null}
+      {phase === "error" ? <ErrorState onRetry={reloadLessons} /> : null}
+      {phase === "ready" || lessons.length > 0 ? (
       <div className="mt-6">
         <WeekCalendar
           lessons={lessons}
@@ -127,6 +140,7 @@ function Schedule() {
           }}
         />
       </div>
-    </div>
+      ) : null}
+    </PageFrame>
   );
 }

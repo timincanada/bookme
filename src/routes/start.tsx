@@ -8,6 +8,7 @@ import { useNativePlatform } from "@/lib/native/platform";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { getMyCoach, saveCoachBasics, ensureDemoCoach } from "@/lib/bookme/api";
 import { DEMO_COACH } from "@/lib/bookme/demo";
+import { useDemoUi } from "@/lib/bookme/demo-ui";
 import { verticalById, type VerticalId } from "@/lib/bookme/verticals";
 
 export const Route = createFileRoute("/start")({ component: Start });
@@ -21,11 +22,13 @@ function Start() {
   const [verticalId, setVerticalId] = useState<VerticalId>("tennis");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const demo = useDemoUi();
   const vertical = verticalById(verticalId);
 
   useEffect(() => {
+    if (!demo) return;
     void ensureDemoCoach();
-  }, []);
+  }, [demo]);
 
   if (isPending) return <main className="min-h-screen bg-paper" />;
   if (user) return <Navigate to="/app/setup" />;
@@ -63,8 +66,8 @@ function Start() {
   }
 
   return (
-    <main className="min-h-screen bg-paper">
-      <div className="mx-auto flex min-h-screen max-w-xl flex-col justify-center px-5 py-12">
+    <main className="min-h-dvh overflow-x-clip bg-paper">
+      <div className="mx-auto flex min-h-dvh max-w-xl flex-col px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))]">
         <Logo />
         <h1 className="mt-8 font-display text-4xl font-medium">Open for business</h1>
         <p className="mt-2 text-ink-soft">Create a coach account, then set your lesson and hours.</p>
@@ -112,9 +115,9 @@ function Start() {
             Sign in
           </Link>
         </p>
-        <p className="mt-3 text-sm text-muted">
-          Try the demo: {DEMO_COACH.email}
-        </p>
+        {demo ? (
+          <p className="mt-3 text-sm text-muted">Try the demo: {DEMO_COACH.email}</p>
+        ) : null}
       </div>
     </main>
   );

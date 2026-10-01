@@ -2598,6 +2598,10 @@ export type AssistantPreview = {
     dateKey: string;
     label: string;
     lines: string[];
+    /** Clock labels for chip UI. `lines` stays for older cards and spoken text. */
+    times?: string[];
+    /** Shown once per date group, not repeated on every chip. */
+    location?: string;
     items?: { time: string; name: string; location: string }[];
   }[];
   importPlan?: RecurringPreview;
@@ -2855,7 +2859,7 @@ async function processAssistantTurn(userId: string, data: AssistantInput): Promi
           `select name, kind from locations where coach_id = $1 and active = true order by name`,
           [coach.id],
         ));
-      const groups: { dateKey: string; label: string; lines: string[] }[] = [];
+      const groups: { dateKey: string; label: string; lines: string[]; times: string[]; location?: string }[] = [];
       const until = lastBookableDateKey(normalizeBookAheadDays(coach.book_ahead_days), ctx.todayKey);
       const days = Math.max(1, Math.min(31, Math.floor(Number(action.days) || 1)));
       for (let i = 0; i < days; i++) {
@@ -2864,10 +2868,13 @@ async function processAssistantTurn(userId: string, data: AssistantInput): Promi
         const slots = await openSlots(sql, coach.id, useKey, duration);
         if (!slots.length && days > 1) continue;
         const label = formatDateKey(useKey);
+        const times = slots.map((s) => formatTime(new Date(s), tz));
         groups.push({
           dateKey: useKey,
           label,
-          lines: slots.map((s) => formatTime(new Date(s), tz) + (locName ? " · " + locName : "")),
+          times,
+          location: locName || undefined,
+          lines: times.map((time) => (locName ? time + " · " + locName : time)),
         });
       }
       const message = groups.length
