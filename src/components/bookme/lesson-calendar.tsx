@@ -324,7 +324,7 @@ export function DayAgenda({
 
   if (lessons.length === 0 && dateKey === today) {
     return (
-      <div className="mt-5 md:hidden">
+      <div className="mt-5 mb-6 md:mb-0 md:hidden">
         <EmptyState
           title="No lessons today"
           body="Your schedule is clear."
@@ -339,7 +339,7 @@ export function DayAgenda({
   }
 
   return (
-    <div className="mt-5 md:hidden">
+    <div className="mt-5 mb-6 md:mb-0 md:hidden">
       <p className="type-section text-sm font-semibold text-ink-soft">{dateKey === today ? "Today" : label}</p>
       {lessons.length === 0 ? (
         <p className="mt-3 text-base text-muted">No lessons this day.</p>

@@ -19,7 +19,6 @@ import { keepFieldVisible } from "@/components/bookme/ui/keep-field-visible";
 import { Button } from "@/components/ui/button";
 import type { AssistantPreview, UpcomingLesson } from "@/lib/bookme/api";
 import { assistantHeaderTitle } from "@/lib/bookme/assistant-name";
-import { HSCROLL } from "@/lib/bookme/ui-classes";
 import { cn } from "@/lib/utils";
 
 export const ASSISTANT_PHOTO = "/photos/assistant.jpg";
@@ -598,7 +597,7 @@ export function QuickChips({
     { label: "View schedule", icon: CalendarDays, onClick: onSchedule },
   ];
   return (
-    <div className={cn(HSCROLL, "snap-x snap-proximity ps-3 pb-2 pt-1")}>
+    <div className="flex w-full min-w-0 flex-nowrap items-center gap-1.5 px-1.5 pb-2 pt-1 min-[360px]:gap-2 min-[360px]:px-2">
       {chips.map((c) => (
         <ActionChip key={c.label} label={c.label} icon={c.icon} onClick={c.onClick} />
       ))}
