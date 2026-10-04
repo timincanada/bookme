@@ -13,15 +13,18 @@ import {
 } from "lucide-react";
 import { LessonScan, lessonInstantParts } from "@/components/bookme/lesson-scan";
 import { RecurringPlanCard } from "@/components/bookme/recurring-plan-card";
+import { ActionChip } from "@/components/bookme/ui/action-chip";
+import { AssistantTimeSlots } from "@/components/bookme/ui/assistant-time-slots";
+import { keepFieldVisible } from "@/components/bookme/ui/keep-field-visible";
 import { Button } from "@/components/ui/button";
 import type { AssistantPreview, UpcomingLesson } from "@/lib/bookme/api";
-import { assistantDeskTitle } from "@/lib/bookme/assistant-name";
+import { assistantHeaderTitle } from "@/lib/bookme/assistant-name";
 import { cn } from "@/lib/utils";
 
 export const ASSISTANT_PHOTO = "/photos/assistant.jpg";
 
 export function assistantTitle(coachName: string, assistantName?: string | null) {
-  return assistantDeskTitle(coachName, assistantName);
+  return assistantHeaderTitle(coachName, assistantName);
 }
 
 export function formatClock(at: number, timeZone: string) {
@@ -233,10 +236,10 @@ export function AssistantHeader({
   }, [menuOpen]);
 
   return (
-    <header className="flex items-center gap-1 border-b border-line bg-cream px-2 py-2">
+    <header className="flex items-center gap-1 border-b border-line bg-cream px-2 py-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
       <Link
         to="/app"
-        className="grid size-10 shrink-0 place-items-center rounded-full bg-sage-3 text-ink"
+        className="grid size-11 shrink-0 place-items-center rounded-full bg-sage-3 text-ink"
         aria-label="Back"
       >
         <ChevronLeft className="size-5" strokeWidth={1.75} />
@@ -265,7 +268,7 @@ export function AssistantHeader({
           aria-expanded={menuOpen}
           aria-label="Assistant menu"
           onClick={() => setMenuOpen((open) => !open)}
-          className="grid size-10 shrink-0 place-items-center rounded-full bg-sage-3 text-ink"
+          className="grid size-11 shrink-0 place-items-center rounded-full bg-sage-3 text-ink"
         >
           <MoreHorizontal className="size-5" strokeWidth={1.75} />
         </button>
@@ -394,9 +397,11 @@ export function ThinkingRow() {
 export function ResultCard({
   preview,
   onOpenings,
+  onSelectSlot,
 }: {
   preview: AssistantPreview;
   onOpenings?: () => void;
+  onSelectSlot?: (phrase: string) => void;
 }) {
   if (preview.kind === "cancel" && !preview.confirmLabel) {
     return <CancelledCard preview={preview} />;
@@ -409,7 +414,7 @@ export function ResultCard({
     return <ScheduleCard preview={preview} />;
   }
   if (preview.kind === "openings" && preview.groups?.length) {
-    return <OpeningsCard preview={preview} />;
+    return <AssistantTimeSlots groups={preview.groups} onContinue={onSelectSlot} />;
   }
   if (preview.kind === "cancel") return null;
   if (!preview.groups?.length) return null;
@@ -514,28 +519,6 @@ function ScheduleCard({ preview }: { preview: AssistantPreview }) {
   );
 }
 
-function OpeningsCard({ preview }: { preview: AssistantPreview }) {
-  return (
-    <div className="rounded-2xl bg-card p-4 shadow-soft ring-1 ring-line">
-      <p className="type-section text-sm font-semibold text-ink">Open times</p>
-      <ul className="mt-2 space-y-2">
-        {preview.groups!.map((g) => (
-          <li key={g.dateKey} className="type-primary text-sm">
-            <div className="contents max-md:hidden">
-              <p className="font-medium text-forest">{g.label}</p>
-              <p className="text-muted">{g.lines.length ? g.lines.slice(0, 6).join(" · ") : "None"}</p>
-            </div>
-            <div className="md:hidden">
-              <p className="type-secondary font-medium text-forest">{g.label}</p>
-              <p className="type-key mt-1">{g.lines.length ? g.lines.slice(0, 6).join(" · ") : "None"}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 export function ConfirmCard({
   preview,
   onConfirm,
@@ -610,21 +593,13 @@ export function QuickChips({
 }) {
   const chips = [
     { label: "Reschedule", icon: CalendarDays, onClick: onReschedule },
-    { label: "Find a new time", icon: Search, onClick: onOpenings },
+    { label: "Find a time", icon: Search, onClick: onOpenings },
     { label: "View schedule", icon: CalendarDays, onClick: onSchedule },
   ];
   return (
-    <div className="flex gap-2 overflow-x-auto px-3 pb-2 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="flex w-full min-w-0 flex-nowrap items-center gap-1.5 px-1.5 pb-2 pt-1 min-[360px]:gap-2 min-[360px]:px-2">
       {chips.map((c) => (
-        <button
-          key={c.label}
-          type="button"
-          onClick={c.onClick}
-          className="type-action flex shrink-0 items-center gap-1.5 rounded-full bg-card px-3.5 py-2 text-sm font-medium text-forest shadow-soft ring-1 ring-line max-md:min-h-11 max-md:px-4"
-        >
-          <c.icon className="size-4" strokeWidth={1.75} />
-          {c.label}
-        </button>
+        <ActionChip key={c.label} label={c.label} icon={c.icon} onClick={c.onClick} />
       ))}
     </div>
   );
@@ -649,7 +624,7 @@ export function Composer({
 }) {
   return (
     <form
-      className="flex items-center gap-2 border-t border-line bg-cream px-3 pb-2 pt-1.5"
+      className="flex min-w-0 items-center gap-2 border-t border-line bg-cream px-3 pb-2 pt-1.5"
       onSubmit={(e) => {
         e.preventDefault();
         onSend();
@@ -657,7 +632,8 @@ export function Composer({
     >
       <input
         id="assistant-input"
-        className="type-input h-11 min-w-0 flex-1 rounded-full border-0 bg-card px-4 text-sm text-ink shadow-soft ring-1 ring-line outline-none placeholder:text-muted"
+        className="type-input h-auto min-h-[var(--composer-height)] min-w-0 flex-1 rounded-[var(--radius-pill)] border-0 bg-card px-4 text-base text-ink ring-1 ring-line outline-none placeholder:text-muted"
+        onFocus={(e) => keepFieldVisible(e.currentTarget)}
         placeholder="Message your assistant…"
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -667,7 +643,7 @@ export function Composer({
       <button
         type="button"
         className={cn(
-          "assistant-talk grid size-11 shrink-0 place-items-center rounded-full bg-forest text-on-forest shadow-card transition-transform duration-150 ease-out active:scale-[0.96]",
+          "assistant-talk grid size-[var(--mic-size)] shrink-0 place-items-center rounded-full bg-forest text-on-forest transition-transform duration-150 ease-out active:scale-[0.96]",
           live && "is-live",
           disabled && "opacity-60",
         )}

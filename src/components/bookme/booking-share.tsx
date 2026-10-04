@@ -24,12 +24,15 @@ export function BookingShare({
   name,
   canShare,
   walletEnabled = false,
+  variant = "card",
 }: {
   slug: string;
   name: string;
   canShare: boolean;
   /** CEO 2026-09-22: show Add to Apple Wallet only when Pass signing is configured. */
   walletEnabled?: boolean;
+  /** Compact copy/share row. The default card keeps the QR poster. */
+  variant?: "card" | "actions";
 }) {
   const pretty = displayBookingLink(slug);
   const branded = brandedBookingUrl(slug);
@@ -122,8 +125,30 @@ export function BookingShare({
     }
   }
 
+  if (variant === "actions") {
+    return (
+      <div className="rounded-[var(--radius-card)] bg-card p-4 ring-1 ring-line">
+        <p className="break-all font-display text-xl font-medium tracking-tight text-ink">{pretty}</p>
+        {canShare ? (
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <Button size="field" onClick={() => void copyLink()}>
+              {copied ? <Check className="size-4" strokeWidth={2} /> : <Copy className="size-4" strokeWidth={1.75} />}
+              {copied ? "Copied" : "Copy link"}
+            </Button>
+            <Button variant="outline" size="field" onClick={() => void shareSheet()}>
+              <Share2 className="size-4" strokeWidth={1.75} />
+              Share
+            </Button>
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-muted">Start a trial to copy and share this page.</p>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className="rounded-2xl bg-card p-5 shadow-card ring-1 ring-line">
+    <div className="rounded-[var(--radius-card)] bg-card p-5 ring-1 ring-line">
       <div className="mx-auto max-w-[220px]">
         <div className="overflow-hidden rounded-xl bg-cream p-3 ring-1 ring-line">
           <QrMark value={live} />
@@ -251,7 +276,7 @@ async function renderBookingPoster(input: { live: string; pretty: string; name: 
   const root = getComputedStyle(document.documentElement);
   const paper = root.getPropertyValue("--color-paper").trim() || "#faf8f3";
   const cream = root.getPropertyValue("--color-cream").trim() || "#faf8f3";
-  const forest = root.getPropertyValue("--color-forest").trim() || "#154734";
+  const forest = root.getPropertyValue("--color-forest").trim() || "#10B981";
   const ink = root.getPropertyValue("--color-ink").trim() || "#1c1916";
   const muted = root.getPropertyValue("--color-muted").trim() || "#6f6b64";
 
@@ -279,7 +304,7 @@ async function renderBookingPoster(input: { live: string; pretty: string; name: 
   ctx.fillText("BookMe", width / 2, 88);
 
   ctx.fillStyle = ink;
-  ctx.font = "500 52px Fraunces, ui-serif, Georgia, serif";
+  ctx.font = "500 52px Figtree, ui-sans-serif, system-ui, sans-serif";
   ctx.fillText("Book with " + input.name, width / 2, qrY + qrBox + 120);
 
   ctx.fillStyle = forest;

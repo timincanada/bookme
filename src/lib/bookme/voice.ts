@@ -42,16 +42,16 @@ export function spokenFromTurn(res: {
   summary?: string;
   error?: string;
   needsConfirm?: boolean;
-  preview?: { groups?: { label: string; lines: string[] }[] } | null;
+  preview?: { groups?: { label: string; lines: string[]; times?: string[] }[] } | null;
 }): string {
   if (!res.ok) return res.error || "Something went wrong.";
   if (res.needsConfirm) return res.summary || "I have a change ready. Confirm below.";
   const groups = res.preview?.groups;
   if (groups?.length) {
-    const open = groups.filter((g) => g.lines.length);
+    const open = groups.filter((g) => (g.times?.length ? g.times : g.lines).length);
     if (!open.length) return "No openings in that window.";
     const first = open[0];
-    const sample = first.lines.slice(0, 3).join(", ");
+    const sample = (first.times?.length ? first.times : first.lines).slice(0, 3).join(", ");
     const moreDays = open.length - 1;
     if (moreDays > 0) return `${first.label}: ${sample}. Plus ${moreDays} more day${moreDays === 1 ? "" : "s"}.`;
     return `${first.label}: ${sample}.`;

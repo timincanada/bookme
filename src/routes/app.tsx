@@ -9,7 +9,10 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AccountMenu } from "@/components/bookme/account-menu";
-import { AppTabBar } from "@/components/bookme/app-tab-bar";
+import { AppHeader } from "@/components/bookme/ui/app-header";
+import { BottomNavigation } from "@/components/bookme/ui/bottom-navigation";
+import { ErrorState, ListSkeleton } from "@/components/bookme/ui/screen-states";
+import { useCoachKeyboard } from "@/components/bookme/ui/use-keyboard-inset";
 import { Logo } from "@/components/logo";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -39,10 +42,14 @@ function AppLayout() {
   const [coach, setCoach] = useState<MyCoach | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [closed, setClosed] = useState(false);
-  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const shellRef = useRef<HTMLDivElement>(null);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const chatThread = isCoachThreadPath(pathname);
+  const assistantRoute = pathname.startsWith("/app/assistant");
+  const keyboardOpen = useCoachKeyboard(shellRef, {
+    active: !isPending && Boolean(user) && !closed,
+    fill: assistantRoute || chatThread,
+  });
 
   function reload() {
     return getMyCoach()
@@ -83,74 +90,26 @@ function AppLayout() {
     reload();
   }, [user]);
 
-  // Keep the thread shell on the visual viewport (dvh does not shrink for the iOS keyboard).
-  useEffect(() => {
-    if (!chatThread || isPending || !user || closed) return;
-    const shell = shellRef.current;
-    const vv = window.visualViewport;
-    if (!shell || !vv) return;
-    const mq = window.matchMedia("(max-width: 767px)");
-    const sync = () => {
-      if (!mq.matches) {
-        shell.style.height = "";
-        shell.style.position = "";
-        shell.style.top = "";
-        shell.style.left = "";
-        shell.style.right = "";
-        setKeyboardOpen(false);
-        return;
-      }
-      shell.style.height = `${vv.height}px`;
-      if (vv.offsetTop > 0) {
-        shell.style.position = "fixed";
-        shell.style.top = `${vv.offsetTop}px`;
-        shell.style.left = "0";
-        shell.style.right = "0";
-      } else {
-        shell.style.position = "";
-        shell.style.top = "";
-        shell.style.left = "";
-        shell.style.right = "";
-      }
-      const obscured = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      const next = obscured > 150;
-      setKeyboardOpen((prev) => (prev === next ? prev : next));
-    };
-    sync();
-    vv.addEventListener("resize", sync);
-    vv.addEventListener("scroll", sync);
-    mq.addEventListener("change", sync);
-    return () => {
-      vv.removeEventListener("resize", sync);
-      vv.removeEventListener("scroll", sync);
-      mq.removeEventListener("change", sync);
-      shell.style.height = "";
-      shell.style.position = "";
-      shell.style.top = "";
-      shell.style.left = "";
-      shell.style.right = "";
-      setKeyboardOpen(false);
-    };
-  }, [chatThread, isPending, user, closed]);
-
-  if (isPending) return <div className="min-h-screen bg-paper" />;
+  if (isPending) return <div className="min-h-dvh bg-paper" />;
   if (!user) return <RedirectToSignIn />;
   if (closed) {
     return (
-      <main className="grid min-h-screen place-items-center bg-paper px-6 text-center">
+      <main className="grid min-h-dvh place-items-center bg-paper px-6 text-center">
         <p className="font-display text-3xl">This account is closed</p>
       </main>
     );
   }
 
-  const assistant = pathname.startsWith("/app/assistant");
-  const fillViewport = assistant || chatThread;
+  const fillViewport = assistantRoute || chatThread;
 
   return (
     <CoachContext.Provider value={{ coach, reload }}>
       <div
         ref={shellRef}
-        className={cn("flex bg-paper", fillViewport ? "h-dvh overflow-hidden" : "min-h-screen")}
+        className={cn(
+          "app-shell flex w-full max-w-full bg-paper",
+          fillViewport ? "h-dvh overflow-hidden" : "min-h-dvh",
+        )}
       >
         <aside className="hidden w-56 shrink-0 flex-col bg-forest text-on-forest md:flex">
           <div className="px-5 py-5">
@@ -193,31 +152,25 @@ function AppLayout() {
         <div
           className={cn(
             "flex min-h-0 min-w-0 flex-1 flex-col",
-            assistant
-              ? "bg-cream pb-20 md:pb-0"
-              : chatThread
-                ? keyboardOpen
-                  ? "pb-0"
-                  : "pb-[calc(4.25rem+env(safe-area-inset-bottom))] md:pb-0"
-                : "pb-16 md:pb-0",
+            assistantRoute ? "bg-cream" : "",
+            keyboardOpen ? "pb-0" : "pb-[var(--nav-offset)] md:pb-0",
           )}
         >
-          {assistant ? null : (
-            <div className="flex items-center justify-between border-b border-line px-4 py-3 md:hidden">
-              <Logo to="/app" />
-              <AccountMenu name={coach?.name} email={coach?.email} />
-            </div>
-          )}
-          <div className={cn("min-h-0 min-w-0 flex-1", fillViewport && "flex flex-col")}>
-            {loaded ? (
-              <>
-                <Outlet />
-                <AppTabBar />
-              </>
+          {assistantRoute ? null : <AppHeader name={coach?.name} email={coach?.email} />}
+          <div className={cn("min-h-0 min-w-0 flex-1", fillViewport && "flex flex-col overflow-hidden")}>
+            {!loaded ? (
+              <div className="app-page">
+                <ListSkeleton />
+              </div>
+            ) : !coach ? (
+              <div className="app-page">
+                <ErrorState onRetry={() => void reload()} />
+              </div>
             ) : (
-              <div className="p-8 text-muted">Loading…</div>
+              <Outlet />
             )}
           </div>
+          <BottomNavigation />
         </div>
       </div>
     </CoachContext.Provider>

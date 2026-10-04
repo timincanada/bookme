@@ -18,10 +18,11 @@ type AccountMenuProps = {
   name?: string | null;
   email?: string | null;
   showName?: boolean;
+  avatarClassName?: string;
 };
 
 /** Avatar menu in the coach app shell: Account, Subscription, setup, Sign out. */
-export function AccountMenu({ name, email, showName = false }: AccountMenuProps) {
+export function AccountMenu({ name, email, showName = false, avatarClassName }: AccountMenuProps) {
   const { coach } = useCoach();
   const user = useCurrentUser();
   const [open, setOpen] = useState(false);
@@ -53,7 +54,10 @@ export function AccountMenu({ name, email, showName = false }: AccountMenuProps)
         aria-expanded={open}
         aria-label="Account menu"
         onClick={() => setOpen((v) => !v)}
-        className="grid size-9 shrink-0 place-items-center rounded-full bg-forest text-sm font-semibold text-on-forest"
+        className={cn(
+          "grid size-9 shrink-0 place-items-center rounded-full bg-forest text-sm font-semibold text-on-forest",
+          avatarClassName,
+        )}
       >
         {initials(displayName)}
       </button>

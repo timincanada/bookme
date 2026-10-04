@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { ArrowUp } from "lucide-react";
+import { keepFieldVisible } from "@/components/bookme/ui/keep-field-visible";
 import { Button } from "@/components/ui/button";
 import { MESSAGE_MAX_LENGTH } from "@/lib/bookme/messages";
 import { cn } from "@/lib/utils";
@@ -79,6 +80,7 @@ export function MessageThread({
   const [error, setError] = useState("");
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const cursor = useRef<string | null>(null);
   const bottom = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLOListElement | null>(null);
@@ -116,7 +118,7 @@ export function MessageThread({
       alive = false;
       clearInterval(timer);
     };
-  }, []);
+  }, [attempt]);
 
   useEffect(() => {
     if (layout === "chat") {
@@ -181,15 +183,31 @@ export function MessageThread({
           {trailing}
         </div>
         {banner ? <div className="shrink-0">{banner}</div> : null}
-        {failed ? <p className="min-h-0 flex-1 p-4 text-sm text-muted">{error}</p> : null}
+        {failed ? (
+          <div className="min-h-0 flex-1 p-4" role="alert">
+            <p className="text-base font-semibold text-ink">Something went wrong.</p>
+            <button
+              type="button"
+              className="mt-3 inline-flex min-h-11 items-center text-base font-semibold text-forest"
+              onClick={() => {
+                setError("");
+                setAttempt((n) => n + 1);
+              }}
+            >
+              Try again
+            </button>
+          </div>
+        ) : null}
         {!thread && !failed ? (
-          <p className="min-h-0 flex-1 p-4 text-sm text-muted">Loading…</p>
+          <div className="min-h-0 flex-1 p-4" aria-busy="true" aria-label="Loading">
+            <div className="skeleton min-h-24 rounded-[var(--radius-card)]" />
+          </div>
         ) : null}
         {thread ? (
           <>
             <ol
               ref={listRef}
-              className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-y-contain px-3 py-3"
+              className="scroll-quiet min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-y-contain px-3 py-3"
               aria-live="polite"
               onScroll={(e) => {
                 const el = e.currentTarget;
@@ -238,7 +256,8 @@ export function MessageThread({
                   <textarea
                     ref={composerRef}
                     rows={1}
-                    className="type-input max-h-40 min-h-10 w-full flex-1 resize-none rounded-3xl border border-line bg-card px-4 py-2 text-[16px] leading-6 text-ink outline-none placeholder:text-muted focus:border-forest"
+                    className="type-input max-h-40 min-h-12 w-full flex-1 resize-none rounded-3xl border border-line bg-card px-4 py-2 text-[16px] leading-6 text-ink outline-none placeholder:text-muted focus:border-forest"
+                    onFocus={(e) => keepFieldVisible(e.currentTarget)}
                     value={draft}
                     maxLength={MESSAGE_MAX_LENGTH}
                     onChange={(e) => {
@@ -253,7 +272,7 @@ export function MessageThread({
                     type="submit"
                     aria-label="Send"
                     disabled={busy || !draft.trim()}
-                    className="grid size-10 shrink-0 place-items-center rounded-full bg-forest text-on-forest hover:bg-forest-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 disabled:opacity-40"
+                    className="grid size-11 shrink-0 place-items-center rounded-full bg-forest text-on-forest hover:bg-forest-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 disabled:opacity-40"
                   >
                     <ArrowUp className="size-5" strokeWidth={2} aria-hidden />
                   </button>
@@ -279,8 +298,26 @@ export function MessageThread({
         </div>
       ) : null}
       {banner}
-      {failed ? <p className="p-4 text-sm text-muted">{error}</p> : null}
-      {!thread && !failed ? <p className="p-4 text-sm text-muted">Loading…</p> : null}
+      {failed ? (
+        <div className="p-4" role="alert">
+          <p className="text-base font-semibold text-ink">Something went wrong.</p>
+          <button
+            type="button"
+            className="mt-3 inline-flex min-h-11 items-center text-base font-semibold text-forest"
+            onClick={() => {
+              setError("");
+              setAttempt((n) => n + 1);
+            }}
+          >
+            Try again
+          </button>
+        </div>
+      ) : null}
+      {!thread && !failed ? (
+        <div className="p-4" aria-busy="true" aria-label="Loading">
+          <div className="skeleton min-h-16 rounded-[var(--radius-card)]" />
+        </div>
+      ) : null}
       {thread ? (
         <>
           <ol className="max-h-[60vh] min-h-48 space-y-3 overflow-y-auto p-4" aria-live="polite">
@@ -316,10 +353,11 @@ export function MessageThread({
               }}
             >
               <textarea
-                className="field h-24 py-3"
+                className="field h-auto min-h-24 py-3"
                 value={draft}
                 maxLength={MESSAGE_MAX_LENGTH}
                 onChange={(e) => setDraft(e.target.value)}
+                onFocus={(e) => keepFieldVisible(e.currentTarget)}
                 placeholder={`Message ${thread.otherName}…`}
                 aria-label="Message"
               />

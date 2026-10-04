@@ -6,6 +6,7 @@ import { guardInput } from "./input-guard";
 import { getSql } from "@/lib/db";
 import { publicAppUrl as appUrl } from "./app-url";
 import { manageEntrySlug } from "./booking-link";
+import { demoAllowed } from "./demo";
 import { manageLinkMail, productionMailConfigError, sendMail } from "./mail";
 import { devShowsCode } from "./student-auth";
 const session = () => import("./student-session.server");
@@ -97,7 +98,7 @@ export const studentSignOut = createServerFn({ method: "POST" }).handler(async (
   return { ok: true as const };
 });
 
-/** Whether the demo student shortcut may be shown (never in production unless allowed). */
+/** Whether demo shortcuts may be shown. Same rule as demoAllowed (dev, preview, BOOKME_ALLOW_DEMO=1). */
 export const demoAvailable = createServerFn({ method: "GET" }).handler(async () => ({
-  demo: process.env.NODE_ENV !== "production" || process.env.BOOKME_ALLOW_DEMO === "1",
+  demo: demoAllowed(),
 }));
