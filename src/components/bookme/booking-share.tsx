@@ -276,7 +276,7 @@ async function renderBookingPoster(input: { live: string; pretty: string; name: 
   const root = getComputedStyle(document.documentElement);
   const paper = root.getPropertyValue("--color-paper").trim() || "#faf8f3";
   const cream = root.getPropertyValue("--color-cream").trim() || "#faf8f3";
-  const forest = root.getPropertyValue("--color-forest").trim() || "#154734";
+  const forest = root.getPropertyValue("--color-forest").trim() || "#10B981";
   const ink = root.getPropertyValue("--color-ink").trim() || "#1c1916";
   const muted = root.getPropertyValue("--color-muted").trim() || "#6f6b64";
 
@@ -304,7 +304,7 @@ async function renderBookingPoster(input: { live: string; pretty: string; name: 
   ctx.fillText("BookMe", width / 2, 88);
 
   ctx.fillStyle = ink;
-  ctx.font = "500 52px Fraunces, ui-serif, Georgia, serif";
+  ctx.font = "500 52px Figtree, ui-sans-serif, system-ui, sans-serif";
   ctx.fillText("Book with " + input.name, width / 2, qrY + qrBox + 120);
 
   ctx.fillStyle = forest;

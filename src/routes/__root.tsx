@@ -43,7 +43,7 @@ export const Route = createRootRoute({
         name: "description",
         content: "More time coaching. Less time scheduling.",
       },
-      { name: "theme-color", content: "#154734" },
+      { name: "theme-color", content: "#10B981" },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },

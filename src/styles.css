@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-display: "Fraunces", ui-serif, Georgia, "Times New Roman", serif;
+  --font-display: "Figtree", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
   --font-script: "Caveat", "Segoe Script", cursive;
 
@@ -11,9 +11,9 @@
   --color-ink: #1c1916;
   --color-ink-soft: #3d3a35;
   --color-muted: #6f6b64;
-  --color-forest: #154734;
-  --color-forest-deep: #103628;
-  --color-forest-hover: #1d5842;
+  --color-forest: #10B981;
+  --color-forest-deep: #047857;
+  --color-forest-hover: #059669;
   --color-sage: #d7e8de;
   --color-sage-2: #c3d9cc;
   --color-sage-3: #e8f3ec;
@@ -38,7 +38,7 @@
   --text-display: 2.5rem;
   --text-display--line-height: 1.08;
   --text-nav: 0.75rem;
-  --nav-height: 74px;
+  --nav-height: 108px;
   --header-height: 66px;
   --touch-min: 44px;
   --composer-height: 56px;
@@ -678,6 +678,10 @@
 .assistant-thread {
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+
+.hscroll {
+  padding-inline-end: 1.5rem;
 }
 
 .hscroll::-webkit-scrollbar,

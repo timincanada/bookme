@@ -598,7 +598,7 @@ export function QuickChips({
     { label: "View schedule", icon: CalendarDays, onClick: onSchedule },
   ];
   return (
-    <div className={cn(HSCROLL, "snap-x snap-proximity px-3 pb-2 pt-1")}>
+    <div className={cn(HSCROLL, "snap-x snap-proximity ps-3 pb-2 pt-1")}>
       {chips.map((c) => (
         <ActionChip key={c.label} label={c.label} icon={c.icon} onClick={c.onClick} />
       ))}
