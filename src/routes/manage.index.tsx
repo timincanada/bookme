@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useStudentWeather } from "@/components/bookme/use-lesson-weather";
 import { WeatherChip } from "@/components/bookme/weather-chip";
@@ -12,6 +12,8 @@ import {
   studentRequestMove,
 } from "@/lib/bookme/api";
 import { canSelfReschedule } from "@/lib/bookme/hold";
+import { EmptyState } from "@/components/bookme/ui/empty-state";
+import { ErrorState, ListSkeleton } from "@/components/bookme/ui/screen-states";
 import { useStudent } from "@/lib/bookme/student-context";
 import { LessonScan, lessonInstantParts } from "@/components/bookme/lesson-scan";
 import { formatTime } from "@/lib/bookme/time";
@@ -27,6 +29,7 @@ function StudentLessons() {
   const [lessons, setLessons] = useState<Lessons>([]);
   const [requests, setRequests] = useState<Requests>([]);
   const [loaded, setLoaded] = useState(false);
+  const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
   const [picked, setPicked] = useState<Lessons[number] | null>(null);
   const [day, setDay] = useState("");
   const [slots, setSlots] = useState<string[]>([]);
@@ -35,21 +38,40 @@ function StudentLessons() {
   const [askNote, setAskNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const loadGen = useRef(0);
 
   const pending = requests.filter((r) => r.status === "pending");
   const pendingLessonIds = new Set(pending.map((r) => r.lessonId));
 
   async function load() {
-    const data = await studentLessons();
-    if (!data.ok) return signedOut();
-    setLessons(data.lessons);
-    setLoaded(true);
-    const req = await studentListRequests();
-    if (req.ok) setRequests(req.requests);
+    const gen = ++loadGen.current;
+    setPhase("loading");
+    try {
+      const data = await studentLessons();
+      if (gen !== loadGen.current) return;
+      if (!data.ok) return signedOut();
+      setLessons(data.lessons);
+      setLoaded(true);
+      setPhase("ready");
+    } catch {
+      if (gen !== loadGen.current) return;
+      setPhase("error");
+      return;
+    }
+    try {
+      const req = await studentListRequests();
+      if (gen !== loadGen.current) return;
+      if (req.ok) setRequests(req.requests);
+    } catch {
+      // Requests are secondary. A failure here must not hide lessons already loaded.
+    }
   }
 
   useEffect(() => {
     void load();
+    return () => {
+      loadGen.current += 1;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -95,10 +117,12 @@ function StudentLessons() {
   // Regular weekly lessons can't be moved by the student; they can cancel or ask.
   const selfServe = picked ? canSelfReschedule(new Date(picked.start)) && !picked.recurring : false;
 
-  if (!loaded) return <p className="mt-6 text-muted">Loading…</p>;
+  if (!loaded && phase === "error") return <ErrorState onRetry={() => void load()} />;
+  if (!loaded) return <ListSkeleton rows={3} />;
 
   return (
     <>
+      {phase === "error" ? <ErrorState onRetry={() => void load()} /> : null}
       <p className="mt-5 text-sm text-muted">Free reschedule until 24 hours before. After that, send a request — your coach decides.</p>
       {pending.length ? (
         <ul className="mt-5 space-y-3">
@@ -217,9 +241,10 @@ function StudentLessons() {
         ))}
         {lessons.length === 0 ? (
           <li>
-            <p className="text-sm text-muted">
-              No bookings for this email yet. Ask your coach for their booking link (bookme.training/yourcoach).
-            </p>
+            <EmptyState
+              title="No bookings yet"
+              body="Ask your coach for their booking link (bookme.training/yourcoach)."
+            />
           </li>
         ) : null}
       </ul>

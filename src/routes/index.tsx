@@ -20,7 +20,7 @@ export const Route = createFileRoute("/")({ component: Home });
 
 function Home() {
   return (
-    <div className="min-h-screen bg-paper">
+    <div className="min-h-dvh bg-paper">
       <SiteHeader />
       <Hero />
       <TrustBar />

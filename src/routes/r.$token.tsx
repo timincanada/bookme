@@ -34,7 +34,7 @@ function RequestDecide() {
   }
 
   return (
-    <main className="min-h-screen bg-paper">
+    <main className="min-h-dvh bg-paper">
       <header className="mx-auto flex max-w-2xl items-center px-5 py-5 sm:px-8">
         <Logo />
       </header>

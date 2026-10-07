@@ -43,7 +43,7 @@ function BookPage() {
 
   if (!search.start) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-paper px-6 text-center">
+      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-paper px-6 text-center">
         <Logo />
         <p className="text-muted">Choose a lesson and time first.</p>
         <Button asChild>
@@ -88,7 +88,7 @@ function BookPage() {
   }
 
   return (
-    <main className="min-h-screen bg-paper">
+    <main className="min-h-dvh bg-paper">
       <header className="mx-auto flex max-w-2xl items-center px-5 py-5 sm:px-8">
         <Logo />
       </header>

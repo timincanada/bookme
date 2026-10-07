@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { EmptyState } from "@/components/bookme/ui/empty-state";
+import { ErrorState, ListSkeleton } from "@/components/bookme/ui/screen-states";
 import { studentListConversations } from "@/lib/bookme/messages-api";
 import { useStudent } from "@/lib/bookme/student-context";
 import { cn } from "@/lib/utils";
@@ -14,16 +16,43 @@ type Threads = Extract<
 function StudentInbox() {
   const { signedOut } = useStudent();
   const [threads, setThreads] = useState<Threads | null>(null);
+  const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
+  const loadGen = useRef(0);
+
+  function load() {
+    const gen = ++loadGen.current;
+    setPhase("loading");
+    studentListConversations()
+      .then((r) => {
+        if (gen !== loadGen.current) return;
+        if (!r.ok) return signedOut();
+        setThreads(r.threads);
+        setPhase("ready");
+      })
+      .catch(() => {
+        if (gen !== loadGen.current) return;
+        setPhase("error");
+      });
+  }
 
   useEffect(() => {
-    studentListConversations().then((r) => {
-      if (!r.ok) return signedOut();
-      setThreads(r.threads);
-    });
+    load();
+    return () => {
+      loadGen.current += 1;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!threads) return <p className="mt-6 text-muted">Loading…</p>;
+  if (phase === "error") return <ErrorState onRetry={load} />;
+  if (!threads) return <ListSkeleton rows={3} />;
+  if (threads.length === 0) {
+    return (
+      <EmptyState
+        title="No messages yet"
+        body="Messages open once you have a confirmed lesson with a coach."
+      />
+    );
+  }
   return (
     <>
       <p className="mt-5 text-sm text-muted">Message the coaches you've booked with.</p>
@@ -60,9 +89,6 @@ function StudentInbox() {
             </Link>
           </li>
         ))}
-        {threads.length === 0 ? (
-          <p className="text-muted">Messages open after a confirmed lesson with a coach.</p>
-        ) : null}
       </ul>
     </>
   );

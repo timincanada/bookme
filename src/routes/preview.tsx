@@ -27,7 +27,7 @@ function SamplePage() {
   const days = [today, addDaysKey(today, 1)];
 
   return (
-    <main className="min-h-screen bg-paper">
+    <main className="min-h-dvh bg-paper">
       <div className="bg-forest px-5 py-2.5 text-center text-sm text-on-forest sm:px-8">
         Sample page — nothing here is bookable.{" "}
         <Link to="/start" className="font-semibold underline underline-offset-2">

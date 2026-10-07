@@ -14,7 +14,7 @@ export const Route = createFileRoute("/$slug")({
 });
 
 function OpeningPage() {
-  return <main className="min-h-screen bg-paper px-5 py-16 text-muted">Opening the booking page…</main>;
+  return <main className="min-h-dvh bg-paper px-5 py-16 text-muted">Opening the booking page…</main>;
 }
 
 function SlugPage() {
