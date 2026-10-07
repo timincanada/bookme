@@ -30,7 +30,7 @@ function Start() {
     void ensureDemoCoach();
   }, [demo]);
 
-  if (isPending) return <main className="min-h-screen bg-paper" />;
+  if (isPending) return <main className="min-h-dvh bg-paper" />;
   if (user) return <Navigate to="/app/setup" />;
 
   async function submit(e: FormEvent) {

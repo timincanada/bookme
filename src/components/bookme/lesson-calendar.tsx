@@ -342,7 +342,7 @@ export function DayAgenda({
     <div className="mt-5 mb-6 md:mb-0 md:hidden">
       <p className="type-section text-sm font-semibold text-ink-soft">{dateKey === today ? "Today" : label}</p>
       {lessons.length === 0 ? (
-        <p className="mt-3 text-base text-muted">No lessons this day.</p>
+        <EmptyState title="No lessons this day" body="Nothing booked for this date." />
       ) : (
         <ol className="mt-3 space-y-2">
           {lessons.map((lesson) => {
@@ -490,7 +490,7 @@ export function MonthCalendar({
           selected === today ? (
             <EmptyState title="No lessons today" body="Your schedule is clear." />
           ) : (
-            <p className="mt-3 text-base text-muted">No lessons this day.</p>
+            <EmptyState title="No lessons this day" body="Nothing booked for this date." />
           )
         ) : (
           <ul className="mt-3 space-y-2">

@@ -12,7 +12,7 @@ export function getRouter() {
     defaultErrorComponent: AppErrorComponent,
     defaultNotFoundComponent: NotFound,
     defaultPendingComponent: function Pending() {
-      return <main className="min-h-screen bg-paper" />;
+      return <main className="min-h-dvh bg-paper" />;
     },
   });
 }

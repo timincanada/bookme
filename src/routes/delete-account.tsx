@@ -9,7 +9,7 @@ export const Route = createFileRoute("/delete-account")({
 
 function DeleteAccountInfo() {
   return (
-    <main className="min-h-screen bg-paper">
+    <main className="min-h-dvh bg-paper">
       <div className="mx-auto max-w-2xl px-6 py-10">
         <Logo />
         <h1 className="mt-10 font-display text-4xl font-medium">Delete your BookMe account</h1>

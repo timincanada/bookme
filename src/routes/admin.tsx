@@ -45,7 +45,7 @@ function AdminShell() {
     );
   }, [user]);
 
-  if (isPending) return <main className="min-h-screen bg-paper" />;
+  if (isPending) return <main className="min-h-dvh bg-paper" />;
   if (!user) return <RedirectToSignIn />;
   if (state && "kind" in state && state.kind === "denied") {
     return <AdminDenied userEmail={user.primaryEmail} reason={state.reason} />;
@@ -54,7 +54,7 @@ function AdminShell() {
   const access = (state && !("kind" in state) ? state : null) as OkState | null;
 
   return (
-    <main className="min-h-screen bg-paper pb-16">
+    <main className="min-h-dvh bg-paper pb-16">
       <header className="border-b border-line bg-card/70">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-5 py-4 sm:px-8">
           <div className="flex items-center gap-3">
@@ -113,7 +113,7 @@ function AdminDenied({ userEmail, reason }: { userEmail: string | null; reason?:
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-paper px-6 text-center">
+    <main className="grid min-h-dvh place-items-center bg-paper px-6 text-center">
       <div className="max-w-md">
         <h1 className="font-display text-3xl">You don't have access</h1>
         <p className="mt-3 text-sm text-ink-soft">

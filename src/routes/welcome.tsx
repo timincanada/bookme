@@ -28,8 +28,8 @@ function Welcome() {
   }, [navigate]);
 
   return (
-    <main className="min-h-screen bg-paper">
-      <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12">
+    <main className="min-h-dvh bg-paper">
+      <div className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 py-12">
         <Logo />
         <h1 className="mt-10 font-display text-4xl font-medium leading-tight">More time coaching. Less time scheduling.</h1>
         {checking ? (

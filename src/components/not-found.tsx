@@ -3,7 +3,7 @@ import { Logo } from "./logo";
 
 export function NotFound() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-paper px-6 text-center">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-paper px-6 text-center">
       <Logo />
       <h1 className="font-display text-4xl font-medium text-ink">Page not found</h1>
       <p className="max-w-md text-muted">
